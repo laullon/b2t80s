@@ -1,0 +1,23 @@
+language: go
+
+go:
+  - 1.13.x
+
+addons:
+  apt:
+    packages:
+      - libgl1-mesa-dev
+      - libegl1-mesa-dev
+      - libgles2-mesa-dev
+      - xorg-dev
+      - libasound2-dev
+
+env:
+  - GO111MODULE=on
+
+before_install:
+  - go get -u github.com/go-bindata/go-bindata/...
+  - go-bindata -pkg data -o data/data.go data/...
+
+script: 
+  - go test -short -v ./...
