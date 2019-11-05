@@ -1,0 +1,8 @@
+log.txt
+*.tap
+*.TAP
+games
+zout
+*.cdt
+dump.txt
+data.go
