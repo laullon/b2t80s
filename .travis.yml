@@ -15,11 +15,15 @@ addons:
     - libasound2-dev
 env:
 - GO111MODULE=on
+
 before_install:
 - go get -u github.com/go-bindata/go-bindata/...
 - go-bindata -pkg data -o data/data.go data/...
+
 script:
 - go test -short -v ./...
+- go build ./...
+
 deploy:
   provider: releases
   api_key:
@@ -27,4 +31,7 @@ deploy:
   file: b2*
   on:
     repo: laullon/b2t80s
-    branch: dev
+    branches:
+      only:
+        - master
+        - dev
