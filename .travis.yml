@@ -22,7 +22,7 @@ before_install:
 
 script:
 - go test -short -v ./...
-- go build ./...
+- go build
 
 deploy:
   provider: releases
