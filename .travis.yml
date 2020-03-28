@@ -26,9 +26,12 @@ script:
 
 deploy:
   provider: releases
+  skip_cleanup: true
   api_key:
     secure: Dkfy3/H3ft/Di5Sl3H1cdwZ5MnnCWa/5g4meKo0//ZRWOv+5dFiX9c4K4aBg33JKxSaSGouGz56wYuiNBpSPCId4JwUCLWdFqK51DaQHH2NkQWj+aHatoJYKRy8Yg0NOyflMltx4cTgSoG7vLlKp5E1eMa7n3uCWGNcLfsCSjfHQJAnZJLZ49qSP0U6cWNtM1994IcM+jOnu7zWTpUMAAqnPThu66bhnX6IFmzQwfFu2CeE1NYLog3lk/a5U09D1DdfcYHS0pnrLcaBYkHBeo7/tmnOvhiz52IGau4xHSGstMAVsRSp6F2vjR4nYsHR6nvAkfh1UE9vBjS9imZ7h+cVdSp8vVZncYZGhth7SGSREdMHJI8BM39VGsTO51ilpM7Kh9CC+/fhrB4Q5Ds2V4KbgqqW9+eoxMPcfaAKKDHj3D/BoC2CMYSkZD3RUiiVQdbgvRfa8wrG5hjgHRuV8JQbLFVhgkmSpyQqsoJxcRf9ny6XxyWqf9q5IgMmYNxSpeRfNcp5tKjJl7wEDhPYmfTMBTB8JLg822xhGn9dDYVN/HtuvsgrWGcblhMMVqbFz8b3UboDeKvWQJjBBw4dur6pDUh7yqWRhPDNwp7FS31I1lFggu1PnfcRiYVAmy0SmhTrnYrL4sWyiqlOAPG/X+d8jfCTLS535wWJU1FRqCKk=
-  file: b2*
+  file:
+    - b2t80s
+    - b2t80s.exe
   on:
     repo: laullon/b2t80s
     branch: dev
