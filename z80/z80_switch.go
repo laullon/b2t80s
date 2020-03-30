@@ -1754,7 +1754,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.writePort(getRR(cpu.b, cpu.c), cpu.d)
 
 	case 0xed59: // OUT (C),E
-		cpu.writePort(getRR(cpu.b, cpu.c), cpu.d)
+		cpu.writePort(getRR(cpu.b, cpu.c), cpu.e)
 
 	case 0xed61: // OUT (C),H
 		cpu.writePort(getRR(cpu.b, cpu.c), cpu.h)

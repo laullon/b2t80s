@@ -64,8 +64,8 @@ func (ss *soundSystem) Stream(samples [][2]float64) (int, bool) {
 		samples[i][0] /= float64(len(ss.sources))
 		samples[i][1] /= float64(len(ss.sources))
 
-		samples[i][0] /= 250.0
-		samples[i][1] /= 250.0
+		samples[i][0] /= 125.0
+		samples[i][1] /= 125.0
 	}
 
 	return n, true

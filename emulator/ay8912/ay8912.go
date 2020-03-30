@@ -124,9 +124,8 @@ func (ay *ay8912) ReadPort(port uint16) (byte, bool) {
 func (ay *ay8912) WritePort(port uint16, data byte) {
 	if port == 0xfffd {
 		ay.selectedReg = data
-	} else if port == 0xbefd {
-		ay.regs[ay.selectedReg] = data & regMasks[ay.selectedReg]
-		ay.update(ay.selectedReg)
+	} else {
+		ay.WriteRegister(ay.selectedReg, data)
 	}
 }
 
