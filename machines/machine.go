@@ -15,4 +15,5 @@ type Machine interface {
 	Run()
 	Debugger() emulator.Debugger
 	Display() image.Image
+	GetVolumeControl() func(float64)
 }

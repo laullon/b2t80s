@@ -109,7 +109,17 @@ func main() {
 	pas := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
 	ins := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true, Bold: true})
 	dis := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
+
 	status := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
+	volumen := widget.NewSlider(0, 90)
+	volumen.OnChanged = machine.GetVolumeControl()
+	volumen.MinSize()
+
+	statusBar := fyne.NewContainerWithLayout(
+		layout.NewBorderLayout(nil, nil, status, volumen),
+		status,
+		volumen,
+	)
 
 	if *debug {
 		debugger := widget.NewVBox(
@@ -131,6 +141,9 @@ func main() {
 				widget.NewButton("Dump 5 Frames", func() {
 					machine.Debugger().DumpNextFrame()
 				}),
+				widget.NewCheck("Dump", func(on bool) {
+					machine.Debugger().SetDump(on)
+				}),
 			),
 			reg,
 			pas,
@@ -140,18 +153,18 @@ func main() {
 
 		w.SetContent(
 			fyne.NewContainerWithLayout(
-				layout.NewBorderLayout(nil, status, nil, debugger),
+				layout.NewBorderLayout(nil, statusBar, nil, debugger),
 				display,
 				debugger,
-				status,
+				statusBar,
 			),
 		)
 	} else {
 		w.SetContent(
 			fyne.NewContainerWithLayout(
-				layout.NewBorderLayout(nil, status, nil, nil),
+				layout.NewBorderLayout(nil, statusBar, nil, nil),
 				display,
-				status,
+				statusBar,
 			),
 		)
 	}

@@ -333,7 +333,7 @@ func (cpu *z80) LoadTapeBlock() uint16 {
 
 	requestedLength := getRR(cpu.d, cpu.e)
 	startAddress := getRR(cpu.ixh, cpu.ixl)
-	// fmt.Printf("Loading block '%s' to 0x%04x (bl:0x%04x, l:0x%04x, bt:%d, a:%d)\n", block.Name(), startAddress, len(block.GetData()), requestedLength, block.Type(), cpu._a)
+	fmt.Printf("Loading block '%s' to 0x%04x (bl:0x%04x, l:0x%04x, bt:%d, a:%d)\n", block.Name(), startAddress, len(block.GetData()), requestedLength, block.Type(), cpu._a)
 	if cpu._a == block.Type() {
 		if cpu._f.C {
 			checksum := block.Type()

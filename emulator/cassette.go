@@ -35,6 +35,7 @@ type tapCassette struct {
 }
 
 type Block struct {
+	id   byte
 	flag byte
 	data []byte
 
@@ -94,6 +95,8 @@ func (c *tapCassette) LoadTapFile(rom string) {
 			c.blocks = append(c.blocks, block)
 		}
 	}
+
+	fmt.Printf("%v\n", c)
 }
 
 func (c *tapCassette) Ready() bool {
@@ -143,6 +146,7 @@ func (c *tapCassette) readTzxBlock(file []byte) []byte {
 			pilotLen = 3223
 		}
 		block := &Block{
+			id:          id,
 			pilot:       2168,
 			sync1:       667,
 			sync2:       735,
@@ -160,6 +164,7 @@ func (c *tapCassette) readTzxBlock(file []byte) []byte {
 	case 0x11:
 		len := uint32(file[0x0f]) | uint32(file[0x10])<<8 | uint32(file[0x11])<<16
 		block := &Block{
+			id:          id,
 			pilot:       uint(file[0x00]) | uint(file[0x01])<<8,
 			sync1:       uint(file[0x02]) | uint(file[0x03])<<8,
 			sync2:       uint(file[0x04]) | uint(file[0x05])<<8,
@@ -177,8 +182,33 @@ func (c *tapCassette) readTzxBlock(file []byte) []byte {
 	case 0x12: // Pure Tone
 		return file[4:]
 
+	case 0x13: // Group start
+		len := file[0] * 2
+		// txt := string(file[1 : 1+len])
+		// println("Group:", txt)
+		return file[1+len:]
+
+	case 0x14:
+		len := uint32(file[0x07]) | uint32(file[0x08])<<8 | uint32(file[0x09])<<16
+		block := &Block{
+			id:          id,
+			pilot:       0,
+			sync1:       0,
+			sync2:       0,
+			zero:        uint(file[0x00]) | uint(file[0x01])<<8,
+			one:         uint(file[0x02]) | uint(file[0x03])<<8,
+			pilotLen:    0,
+			pause:       uint(file[0x05]) | uint(file[0x06])<<8,
+			flag:        0,
+			data:        file[0x0a : len+0x0a],
+			lastBiteLen: int8(file[0x04]),
+		}
+		c.blocks = append(c.blocks, block)
+		return file[len+0x0a:]
+
 	case 0x20: // Pause
 		block := &Block{
+			id:    id,
 			pause: (uint(file[0x00]) | uint(file[0x01])<<8),
 		}
 		c.blocks = append(c.blocks, block)
@@ -189,6 +219,9 @@ func (c *tapCassette) readTzxBlock(file []byte) []byte {
 		// txt := string(file[1 : 1+len])
 		// println("Group:", txt)
 		return file[1+len:]
+
+	case 0x22: // Group end
+		return file
 
 	case 0x24: // Loop start
 		// loop := (uint(file[0x00]) | uint(file[0x01])<<8)
@@ -252,7 +285,9 @@ func (b *Block) GetData() []byte {
 }
 
 func (b *Block) String() string {
-	return fmt.Sprintf("(0x%02X) fileName: '%s' - datalen:%d - zero:%d one:%d", b.Type(), b.Name(), len(b.data), b.zero, b.one)
+	name := "" //b.Name()
+
+	return fmt.Sprintf("(0x%02X)(0x%02X) fileName: '%s' - datalen:%d - zero:%d one:%d", b.id, b.Type(), name, len(b.data), b.zero, b.one)
 }
 
 func (c *tapCassette) Ear() bool {

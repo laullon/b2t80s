@@ -10,6 +10,7 @@ import (
 type SoundSystem interface {
 	Ticker
 	AddSource(source SoundSource)
+	SetVolume(float64)
 }
 
 type SoundSource interface {
@@ -23,10 +24,11 @@ type SoundData struct {
 
 type soundSystem struct {
 	sources []SoundSource
+	volume  float64
 }
 
 func NewSoundSystem(sampleRate int) SoundSystem {
-	ss := &soundSystem{}
+	ss := &soundSystem{volume: 100}
 
 	sr := beep.SampleRate(sampleRate)
 	speaker.Init(sr, sr.N(time.Second/100))
@@ -43,6 +45,10 @@ func (ss *soundSystem) Tick() {
 	for _, source := range ss.sources {
 		source.SoundTick()
 	}
+}
+
+func (ss *soundSystem) SetVolume(volume float64) {
+	ss.volume = 100 - volume
 }
 
 func (ss *soundSystem) Stream(samples [][2]float64) (int, bool) {
@@ -64,8 +70,8 @@ func (ss *soundSystem) Stream(samples [][2]float64) (int, bool) {
 		samples[i][0] /= float64(len(ss.sources))
 		samples[i][1] /= float64(len(ss.sources))
 
-		samples[i][0] /= 125.0
-		samples[i][1] /= 125.0
+		samples[i][0] /= ss.volume
+		samples[i][1] /= ss.volume
 	}
 
 	return n, true
