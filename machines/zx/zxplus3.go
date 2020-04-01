@@ -23,8 +23,8 @@ func NewZXPlus3(cassette emulator.Cassette) machines.Machine {
 
 	ay8912 := ay8912.New()
 
-	ula := emulator.NewULA(mem, cassette)
-	cpu := z80.NewZ80(mem, ula, cassette)
+	ula := NewULA(mem, cassette)
+	cpu := z80.NewZ80(mem, cassette)
 	clock := emulator.NewCLock(CLOCK_128k)
 
 	fdc := NewZXFDC765()

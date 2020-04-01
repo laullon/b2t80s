@@ -1,4 +1,4 @@
-package emulator
+package zx
 
 import (
 	"image"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"fyne.io/fyne"
+	"github.com/laullon/b2t80s/emulator"
 )
 
 var palette = []color.RGBA{
@@ -29,9 +30,9 @@ var palette = []color.RGBA{
 }
 
 type ULA interface {
-	PortManager
-	Ticker
-	SoundSource
+	emulator.PortManager
+	emulator.Ticker
+	emulator.SoundSource
 
 	OnKeyEvent(event *fyne.KeyEvent)
 
@@ -44,7 +45,7 @@ type ULA interface {
 type ula struct {
 	tStates uint
 
-	memory Memory
+	memory emulator.Memory
 
 	keyboardRow  []byte
 	borderColour color.RGBA
@@ -57,16 +58,16 @@ type ula struct {
 	scanlinesData   [][]byte
 	scanlinesAttr   [][]byte
 
-	cassette       Cassette
+	cassette       emulator.Cassette
 	ear, earActive bool
 	buzzer         bool
-	out            []*SoundData
+	out            []*emulator.SoundData
 	mux            sync.Mutex
 
 	// tStatesPerSample uint
 }
 
-func NewULA(mem Memory, cassette Cassette) ULA {
+func NewULA(mem emulator.Memory, cassette emulator.Cassette) ULA {
 	ula := &ula{
 		memory:          mem,
 		keyboardRow:     make([]byte, 8),
@@ -151,10 +152,10 @@ func (ula *ula) SoundTick() {
 	if ula.buzzer || ula.ear {
 		v = 1
 	}
-	ula.out = append(ula.out, &SoundData{L: v, R: v})
+	ula.out = append(ula.out, &emulator.SoundData{L: v, R: v})
 }
 
-func (ula *ula) GetBuffer(max int) (res []*SoundData, l int) {
+func (ula *ula) GetBuffer(max int) (res []*emulator.SoundData, l int) {
 	ula.mux.Lock()
 	defer ula.mux.Unlock()
 

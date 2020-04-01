@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/hex"
 	"fmt"
-	"image"
 	"io/ioutil"
 	"log"
 	"os"
@@ -12,7 +11,6 @@ import (
 	"strings"
 	"testing"
 
-	"fyne.io/fyne"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/stretchr/testify/assert"
 )
@@ -78,9 +76,7 @@ func TestOPCodes(t *testing.T) {
 	memory.DisableSafeMode()
 	memory.SetClock(&dummyClock{})
 
-	ula := emulator.NewULA(memory, nil)
-
-	cpu := NewZ80(memory, ula, nil)
+	cpu := NewZ80(memory, nil)
 
 	debugger := NewDebugger(cpu, memory)
 	cpu.SetDebuger(debugger)
@@ -325,7 +321,7 @@ func TestZEXDoc(t *testing.T) {
 	mem.memory = append(mem.memory, zexdoc...)
 	mem.memory = append(mem.memory, make([]byte, 0x10000-len(mem.memory))...)
 
-	cpu := NewZ80(mem, &dummyULA{}, nil)
+	cpu := NewZ80(mem, nil)
 	cpu.SetClock(&dummyClock{})
 	cpu.SetPC(0x100)
 	cpu.RegisterTrap(0x5, func() uint16 {
@@ -435,19 +431,6 @@ func (dummyPM) WritePort(port uint16, data byte)  {}
 
 // ***
 // ***
-
-type dummyULA struct{}
-
-func (dummyULA) ReadPort(port uint16) (byte, bool)          { return byte(port >> 8), false }
-func (dummyULA) WritePort(port uint16, data byte)           {}
-func (dummyULA) OnKeyEvent(event *fyne.KeyEvent)            {}
-func (dummyULA) LoadCommand() uint16                        { return 0 }
-func (dummyULA) Tick()                                      {}
-func (dummyULA) FrameDone()                                 {}
-func (dummyULA) Display() image.Image                       { return nil }
-func (dummyULA) PlayCassette() uint16                       { return 0 }
-func (dummyULA) SoundTick()                                 {}
-func (dummyULA) GetBuffer(int) ([]*emulator.SoundData, int) { return nil, 0 }
 
 type dummyClock struct {
 	stopAtTSate uint

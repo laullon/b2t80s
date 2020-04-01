@@ -21,7 +21,6 @@ type z80 struct {
 	memory   emulator.Memory
 	cassette emulator.Cassette
 	debugger emulator.Debugger
-	ula      emulator.ULA
 
 	halt, haltDone bool
 	pc             uint16
@@ -96,14 +95,13 @@ func init() {
 
 }
 
-func NewZ80(mem emulator.Memory, ula emulator.ULA, cassette emulator.Cassette) emulator.CPU {
+func NewZ80(mem emulator.Memory, cassette emulator.Cassette) emulator.CPU {
 	LoadOPCodess()
 	cpu := &z80{
 		debug: false,
 
 		pc:       0,
 		memory:   mem,
-		ula:      ula,
 		cassette: cassette,
 		traps:    make(map[uint16]emulator.CPUTrap),
 		ports:    make(map[emulator.PortMask]emulator.PortManager),
