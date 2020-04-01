@@ -52,6 +52,6 @@ func NewZX48K(cassette emulator.Cassette) machines.Machine {
 	clock.AddTicker(80, sound)
 
 	return &zx48k{
-		zx: NewZX(cpu, ula, mem, cassette, nil),
+		zx: NewZX(cpu, ula, mem, cassette, sound, nil),
 	}
 }

@@ -31,8 +31,8 @@ type cpc struct {
 	ga       *gatearray
 	ppi      *ppi
 	cassette emulator.Cassette
-
-	clock emulator.Clock
+	sound    emulator.SoundSystem
+	clock    emulator.Clock
 
 	debugger emulator.Debugger
 }
@@ -97,6 +97,7 @@ func NewCPC(cpc464 bool, cassette emulator.Cassette) machines.Machine {
 		ga:       ga,
 		ppi:      ppi,
 		cassette: cassette,
+		sound:    sound,
 		clock:    emulator.NewCLock(4000000),
 		debugger: z80.NewDebugger(cpu, mem),
 	}
@@ -156,6 +157,10 @@ func (m *cpc) OnKeyEvent(event *fyne.KeyEvent) {
 
 func (m *cpc) Display() image.Image {
 	return m.ga.displayScaled
+}
+
+func (m *cpc) GetVolumeControl() func(float64) {
+	return m.sound.SetVolume
 }
 
 func (m *cpc) Run() {

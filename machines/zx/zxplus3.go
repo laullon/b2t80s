@@ -70,6 +70,6 @@ func NewZXPlus3(cassette emulator.Cassette) machines.Machine {
 
 	return &zx128k{
 		ay8912: ay8912,
-		zx:     NewZX(cpu, ula, mem, cassette, nil),
+		zx:     NewZX(cpu, ula, mem, cassette, sound, nil),
 	}
 }

@@ -135,6 +135,7 @@ func (ay *ay8912) ReadRegister(reg byte) byte {
 }
 
 func (ay *ay8912) WriteRegister(reg byte, data byte) {
+	// fmt.Printf("[ay8912] reg:%d data:%d\n", reg, data)
 	ay.selectedReg = reg
 	ay.regs[ay.selectedReg] = data & regMasks[ay.selectedReg]
 	ay.update(ay.selectedReg)
@@ -240,7 +241,7 @@ func (ay *ay8912) update(reg byte) {
 		ay.envelope.pos = 0
 	}
 
-	// fmt.Printf("regs -> %+v\n", ay.regs)
+	// fmt.Printf("[ay8912] regs -> %+v\n", ay.regs)
 	// for i, ch := range ay.channels {
 	// 	fmt.Printf("%d -> %+v\n", i, ch)
 	// }

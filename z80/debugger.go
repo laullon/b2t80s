@@ -40,6 +40,10 @@ func NewDebugger(cpu emulator.CPU, mem emulator.Memory) emulator.Debugger {
 	return debug
 }
 
+func (debug *debugger) SetDump(on bool) {
+	debug.dump = on
+}
+
 func (debug *debugger) SetBreakPoint(bp uint16) {
 	debug.cpu.RegisterTrap(bp, func() uint16 {
 		if debug.IsStoped() {
@@ -89,7 +93,7 @@ func (debug *debugger) AddLastInstruction(ins emulator.Instruction) {
 		// res.WriteString(fmt.Sprintf("  H:0x%02X    L:0x%02X  HL:0x%04X    0x%04X\n", regs[6], regs[7], uint16(regs[6])<<8|uint16(regs[7]), debug.memory.GetWord(sp+2)))
 		// res.WriteString(fmt.Sprintf("IXH:0x%02X  IXL:0x%02X  IX:0x%04X    0x%04X\n", regs[8], regs[9], uint16(regs[8])<<8|uint16(regs[9]), debug.memory.GetWord(sp+4)))
 		// res.WriteString(fmt.Sprintf("IYH:0x%02X  IYL:0x%02X  IY:0x%04X    0x%04X\n", regs[10], regs[10], uint16(regs[10])<<8|uint16(regs[11]), debug.memory.GetWord(sp+6)))
-		// fmt.Println(ins.Dump(debug.cpu.PC()))
+		fmt.Println(ins.Dump(debug.cpu.PC()))
 	}
 }
 

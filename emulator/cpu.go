@@ -54,6 +54,8 @@ type Debugger interface {
 	SetStatus(sts string)
 	GetStatus() string
 
+	SetDump(bool)
+
 	Stop()
 	StopNextFrame()
 	Continue()

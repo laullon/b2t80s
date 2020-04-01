@@ -25,22 +25,23 @@ type ZX interface {
 }
 
 type zx struct {
-	ula     emulator.ULA
-	cpu     emulator.CPU
-	mem     emulator.Memory
-	cassete emulator.Cassette
-
+	ula      emulator.ULA
+	cpu      emulator.CPU
+	mem      emulator.Memory
+	cassete  emulator.Cassette
+	sound    emulator.SoundSystem
 	debugger emulator.Debugger
 
 	onEndFrame func()
 }
 
-func NewZX(cpu emulator.CPU, ula emulator.ULA, mem emulator.Memory, cassete emulator.Cassette, onEndFrame func()) *zx {
+func NewZX(cpu emulator.CPU, ula emulator.ULA, mem emulator.Memory, cassete emulator.Cassette, sound emulator.SoundSystem, onEndFrame func()) *zx {
 	zx := &zx{
 		ula:        ula,
 		cpu:        cpu,
 		mem:        mem,
 		cassete:    cassete,
+		sound:      sound,
 		debugger:   z80.NewDebugger(cpu, mem),
 		onEndFrame: onEndFrame,
 	}
@@ -90,6 +91,10 @@ func (m *zx) OnKeyEvent(event *fyne.KeyEvent) {
 
 func (m *zx) Display() image.Image {
 	return m.ula.Display()
+}
+
+func (m *zx) GetVolumeControl() func(float64) {
+	return m.sound.SetVolume
 }
 
 func LoadZ80File(fileName string) machines.Machine {
