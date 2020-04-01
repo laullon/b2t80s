@@ -61,7 +61,7 @@ func NewCPC(cpc464 bool, cassette emulator.Cassette) machines.Machine {
 		mem.LoadRom(7, dos)
 	}
 
-	cpu := z80.NewZ80(mem, nil, cassette)
+	cpu := z80.NewZ80(mem, cassette)
 
 	ay8912 := ay8912.New()
 	sound := emulator.NewSoundSystem(CLOCK_CPC / 80)
