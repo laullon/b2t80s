@@ -11,7 +11,6 @@ func (cpu *z80) writePort(port uint16, data byte) {
 		// log.Printf("[writePort] (0x%04X) port:0x%04X (0x%04X)(0x%04X) data:%v", cpu.pc, port, port&portMask.Mask, portMask.Value, data)
 		if port&portMask.Mask == portMask.Value {
 			// println(reflect.TypeOf(portManager).String())
-			cpu.clock.ApplyDeplay()
 			portManager.WritePort(port, data)
 			ok = true
 		}
@@ -28,7 +27,6 @@ func (cpu *z80) readPort(port uint16) byte {
 		if port&portMask.Mask == portMask.Value {
 			// log.Printf("[readPort] (0x%04X) port:0x%04X (0x%04X)(0x%04X)", cpu.pc, port, port&portMask.Mask, portMask.Value)
 			// println(reflect.TypeOf(portManager).Elem().Name())
-			cpu.clock.ApplyDeplay()
 			data, skip := portManager.ReadPort(port)
 			if !skip {
 				cpu.f.S = data&0x0080 != 0
@@ -41,6 +39,8 @@ func (cpu *z80) readPort(port uint16) byte {
 		}
 	}
 	panic(fmt.Sprintf("[readPort]-(no PM)-> port:0x%04X pc:0x%04X", port, cpu.pc))
+	fmt.Printf("[readPort]-(no PM)-> port:0x%04X pc:0x%04X \n", port, cpu.pc)
+	return 0xff
 }
 
 func (cpu *z80) getIXn(n byte) uint16 {

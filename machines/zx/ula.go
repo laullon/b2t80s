@@ -30,8 +30,6 @@ var palette = []color.RGBA{
 }
 
 type ula struct {
-	tStates uint
-
 	memory *memory
 
 	keyboardRow  []byte
@@ -40,6 +38,7 @@ type ula struct {
 	frame   byte
 	display *image.RGBA
 
+	row             uint
 	scanline        uint
 	scanlinesBorder []color.RGBA
 	scanlinesData   [][]byte
@@ -51,6 +50,7 @@ type ula struct {
 	out            []*emulator.SoundData
 	mux            sync.Mutex
 
+	io bool
 	// tStatesPerSample uint
 }
 
@@ -65,6 +65,7 @@ func NewULA(mem *memory, cassette emulator.Cassette) *ula {
 		display:         image.NewRGBA(image.Rect(0, 0, 352, 296)),
 		// player:           SoundContext.NewPlayer(),
 		cassette: cassette,
+		row:      74,
 		// tStatesPerSample: uint(math.Round(float64(3500000) / float64(freq))),
 	}
 
@@ -85,17 +86,33 @@ func NewULA(mem *memory, cassette emulator.Cassette) *ula {
 	return ula
 }
 
-func (ula *ula) Tick() {
-	ula.tStates++
+func (ula *ula) Frame() {
+	ula.row = 74
+	ula.scanline = 0
+}
 
+func (ula *ula) Tick() {
 	// EAR
 	if ula.cassette != nil {
 		ula.ear = ula.cassette.Ear()
 	}
 
 	// SCREEN
-	scanline := (ula.tStates / 224)
-	if ula.scanline == scanline {
+	done := true
+	ula.row++
+	if ula.row == 224 {
+		done = false
+		ula.row = 0
+		ula.scanline++
+	}
+
+	if ula.row >= 48+24 && ula.row <= 48+24+128 && ula.scanline >= 16+48 && ula.scanline <= 16+48+192 {
+		ula.io = true
+	} else {
+		ula.io = false
+	}
+
+	if done {
 		return
 	}
 
@@ -114,16 +131,11 @@ func (ula *ula) Tick() {
 		attrAddr := uint16(((y >> 3) * 32) + 0x5800)
 		ula.scanlinesAttr[y] = ula.memory.GetBlock(attrAddr, 32)
 	}
-
-	ula.scanline = scanline
-	return
 }
 
 var s = 0
 
 func (ula *ula) FrameDone() {
-	ula.tStates = 0
-
 	ula.frame = (ula.frame + 1) & 0x1f
 	for y := 0; y < 296; y++ {
 		for x := 0; x < 352; x++ {
