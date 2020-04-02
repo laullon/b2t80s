@@ -435,6 +435,5 @@ type dummyClock struct {
 }
 
 func (c *dummyClock) AddTStates(ts uint)                    { c.ts += ts }
-func (c *dummyClock) ApplyDeplay()                          {}
 func (c *dummyClock) FrameDone() bool                       { return c.ts >= c.stopAtTSate }
 func (c *dummyClock) AddTicker(mod uint, t emulator.Ticker) {}

@@ -47,6 +47,8 @@ go run main.go --mode 48k -tap "./games/ManicMiner.tap"
 * The Complete Spectrum ROM Disassembly: <https://skoolkid.github.io/rom/maps/all.html#0038>
 * SPECTRUM 128 ROM 0 DISASSEMBLY <http://www.matthew-wilson.net/spectrum/rom/128_ROM0.html?LMCL=aH_qpw&LMCL=L7lymk#L1F45>
 * Roms: <http://www.shadowmagic.org.uk/spectrum/roms.html>
+* Contention Test Success <http://www.zxdesign.info/testSuccess.shtml>
+* Video Parameters <http://www.zxdesign.info/vidparam.shtml>
 
 ### CPC
 

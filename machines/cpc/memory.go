@@ -85,10 +85,6 @@ func (mem *memory) GetBlock(start, length uint16) []byte {
 }
 
 func (mem *memory) GetByte(addr uint16) byte {
-	if (addr & 0xc000) == 0x4000 {
-		mem.clock.ApplyDeplay()
-	}
-
 	page, bank, pos := mem.decodeAddress(addr)
 
 	if page == 0 && mem.lowerRomEnable {
