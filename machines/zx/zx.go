@@ -25,7 +25,7 @@ type ZX interface {
 }
 
 type zx struct {
-	ula      ULA
+	ula      *ula
 	cpu      emulator.CPU
 	mem      emulator.Memory
 	cassete  emulator.Cassette
@@ -35,7 +35,7 @@ type zx struct {
 	onEndFrame func()
 }
 
-func NewZX(cpu emulator.CPU, ula ULA, mem emulator.Memory, cassete emulator.Cassette, sound emulator.SoundSystem, onEndFrame func()) *zx {
+func NewZX(cpu emulator.CPU, ula *ula, mem emulator.Memory, cassete emulator.Cassette, sound emulator.SoundSystem, onEndFrame func()) *zx {
 	zx := &zx{
 		ula:        ula,
 		cpu:        cpu,

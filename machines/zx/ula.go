@@ -29,23 +29,10 @@ var palette = []color.RGBA{
 	color.RGBA{0xff, 0xff, 0xff, 0xff},
 }
 
-type ULA interface {
-	emulator.PortManager
-	emulator.Ticker
-	emulator.SoundSource
-
-	OnKeyEvent(event *fyne.KeyEvent)
-
-	LoadCommand() uint16
-
-	FrameDone()
-	Display() image.Image
-}
-
 type ula struct {
 	tStates uint
 
-	memory emulator.Memory
+	memory *memory
 
 	keyboardRow  []byte
 	borderColour color.RGBA
@@ -67,7 +54,7 @@ type ula struct {
 	// tStatesPerSample uint
 }
 
-func NewULA(mem emulator.Memory, cassette emulator.Cassette) ULA {
+func NewULA(mem *memory, cassette emulator.Cassette) *ula {
 	ula := &ula{
 		memory:          mem,
 		keyboardRow:     make([]byte, 8),

@@ -28,11 +28,11 @@ func (sp *stackPointer) Get() uint16 {
 
 func (sp *stackPointer) Push(w uint16) {
 	sp.pointer -= 2
-	sp.mem.PutWord(sp.pointer, w)
+	putWord(sp.mem, sp.pointer, w)
 }
 
 func (sp *stackPointer) Pop() uint16 {
-	v := sp.mem.GetWord(sp.pointer)
+	v := getWord(sp.mem, sp.pointer)
 	sp.pointer += 2
 	return v
 }
@@ -40,7 +40,7 @@ func (sp *stackPointer) Pop() uint16 {
 func (sp *stackPointer) Dump(n int) {
 	addr := sp.pointer
 	for i := 0; i < n; i++ {
-		fmt.Printf("0x%04X: 0x%04X\n", addr, sp.mem.GetWord(addr))
+		fmt.Printf("0x%04X: 0x%04X\n", addr, getWord(sp.mem, addr))
 		addr += 2
 	}
 }

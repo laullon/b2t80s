@@ -264,7 +264,7 @@ func (cpu *z80) execInterrupt() uint {
 		case 2:
 			ts = 19
 			pos := uint16(cpu.i)<<8 + 0xff
-			cpu.pc = cpu.memory.GetWord(pos)
+			cpu.pc = getWord(cpu.memory, pos)
 		}
 	}
 	return ts

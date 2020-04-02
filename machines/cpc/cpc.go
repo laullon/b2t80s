@@ -73,7 +73,7 @@ func NewCPC(cpc464 bool, cassette emulator.Cassette) machines.Machine {
 	ppi := newPPI(crtc, cassette, ay8912)
 	cpu.RegisterPort(emulator.PortMask{Mask: 0x0800, Value: 0x0000}, ppi)
 
-	ga := newGateArray(mem.(*memory), crtc)
+	ga := newGateArray(mem, crtc)
 	cpu.RegisterPort(emulator.PortMask{Mask: 0xc000, Value: 0x4000}, ga)
 
 	// cpu.RegisterPort(emulator.PortMask{Mask: 0xDF00, Value: 0xDF00}, mem)
