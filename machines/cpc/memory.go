@@ -24,7 +24,7 @@ type memory struct {
 	clock emulator.Clock
 }
 
-func NewCPCMemory() emulator.Memory {
+func NewCPCMemory() *memory {
 	res := &memory{
 		safe:           true,
 		lowerRom:       make(bank, 0x4000),
@@ -74,10 +74,6 @@ func (mem *memory) decodeAddress(addr uint16) (page byte, bank byte, pos uint16)
 
 func (mem *memory) SetClock(clock emulator.Clock) {
 	mem.clock = clock
-}
-
-func (mem *memory) DisableSafeMode() {
-	mem.safe = false
 }
 
 func (mem *memory) GetBlock(start, length uint16) []byte {

@@ -73,7 +73,6 @@ func TestOPCodes(t *testing.T) {
 	log.SetOutput(logger)
 
 	memory := &dummyMemory{mem: make([]byte, 0xffff)}
-	memory.DisableSafeMode()
 	memory.SetClock(&dummyClock{})
 
 	cpu := NewZ80(memory, nil)
@@ -371,7 +370,6 @@ type basicMemory struct {
 
 func (mem *basicMemory) LoadRom(idx int, rom []byte)       {}
 func (mem *basicMemory) Paging(config byte)                {}
-func (mem *basicMemory) DisableSafeMode()                  {}
 func (mem *basicMemory) ReadPort(port uint16) (byte, bool) { return 0, true }
 func (mem *basicMemory) WritePort(port uint16, data byte)  {}
 
@@ -416,7 +414,6 @@ func (m *dummyMemory) PutWord(addr, w uint16) {
 }
 
 func (m *dummyMemory) LoadRom(idx int, rom []byte)       {}
-func (m *dummyMemory) DisableSafeMode()                  {}
 func (m *dummyMemory) SetClock(c emulator.Clock)         {}
 func (m *dummyMemory) ReadPort(port uint16) (byte, bool) { return 0, false }
 func (m *dummyMemory) WritePort(port uint16, data byte)  {}

@@ -1,19 +1,10 @@
 package emulator
 
 type Memory interface {
-	PortManager
+	PortManager // TODO: remove
 
-	LoadRom(idx int, rom []byte)
-
-	GetBlock(start, length uint16) []byte
+	GetBlock(start, length uint16) []byte // TODO: just for debug ?
 
 	GetByte(pos uint16) byte
 	PutByte(pos uint16, b byte)
-
-	GetWord(pos uint16) uint16
-	PutWord(pos, w uint16)
-
-	DisableSafeMode()
-
-	SetClock(c Clock)
 }

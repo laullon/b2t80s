@@ -20,7 +20,7 @@ func NewZX48K(cassette emulator.Cassette) machines.Machine {
 	mem.LoadRom(0, rom48)
 
 	ula := NewULA(mem, cassette)
-	cpu := z80.NewZ80(mem, cassette)
+	cpu := z80.NewZ80(ula, cassette)
 	clock := emulator.NewCLock(CLOCK_48k)
 
 	sound := emulator.NewSoundSystem(CLOCK_48k / 80)

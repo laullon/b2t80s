@@ -24,16 +24,14 @@ type memory struct {
 	pages         []page
 	mode          MemoryMode
 	pagingDisable bool
-	safe          bool
 
 	clock emulator.Clock
 }
 
-func NewMemory(mode MemoryMode) emulator.Memory {
+func NewMemory(mode MemoryMode) *memory {
 	res := &memory{
 		mode:          mode,
 		pagingDisable: false,
-		safe:          true,
 	}
 
 	switch mode {
@@ -76,10 +74,6 @@ func (mem *memory) SetClock(clock emulator.Clock) {
 	mem.clock = clock
 }
 
-func (mem *memory) DisableSafeMode() {
-	mem.safe = false
-}
-
 func (mem *memory) GetBlock(start, length uint16) []byte {
 	res := make([]byte, length)
 	for i := uint16(0); i < length; i++ {
@@ -97,27 +91,13 @@ func (mem *memory) GetByte(addr uint16) byte {
 }
 
 func (mem *memory) PutByte(addr uint16, b byte) {
-	if addr < 0x4000 && mem.safe {
-		return
+	if addr > 0x3fff { // TODO: review for plus
+		// if (addr & 0xc000) == 0x4000 {
+		// 	mem.clock.ApplyDeplay()
+		// }
+		page, pos := mem.decodeAddress(addr)
+		(*mem.pages[page])[pos] = b
 	}
-	// if (addr & 0xc000) == 0x4000 {
-	// 	mem.clock.ApplyDeplay()
-	// }
-	page, pos := mem.decodeAddress(addr)
-	(*mem.pages[page])[pos] = b
-}
-
-func (mem *memory) GetWord(addr uint16) uint16 {
-	page, pos := mem.decodeAddress(addr + 1)
-	res := uint16((*mem.pages[page])[pos]) << 8
-	page, pos = mem.decodeAddress(addr)
-	res |= uint16((*mem.pages[page])[pos])
-	return res
-}
-
-func (mem *memory) PutWord(addr, w uint16) {
-	mem.PutByte(addr, uint8(w&0x00ff))
-	mem.PutByte(addr+1, uint8(w>>8))
 }
 
 func (mem *memory) LoadRom(idx int, rom []byte) {

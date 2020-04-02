@@ -1036,31 +1036,31 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 	case 0xed43: // LD (nn),BC
 		w := getRR(cpu.b, cpu.c)
 		nn := toWord(ins.Mem[2], ins.Mem[3])
-		cpu.memory.PutWord(nn, w)
+		putWord(cpu.memory, nn, w)
 
 	case 0xed53: // LD (nn),DE
 		w := getRR(cpu.d, cpu.e)
 		nn := toWord(ins.Mem[2], ins.Mem[3])
-		cpu.memory.PutWord(nn, w)
+		putWord(cpu.memory, nn, w)
 
 	case 0x22: // LD (nn),HL
 		w := getRR(cpu.h, cpu.l)
 		nn := toWord(ins.Mem[1], ins.Mem[2])
-		cpu.memory.PutWord(nn, w)
+		putWord(cpu.memory, nn, w)
 
 	case 0xdd22: // LD (NN),IX
 		w := getRR(cpu.ixh, cpu.ixl)
 		nn := toWord(ins.Mem[2], ins.Mem[3])
-		cpu.memory.PutWord(nn, w)
+		putWord(cpu.memory, nn, w)
 
 	case 0xfd22: // LD (NN),IY
 		w := getRR(cpu.iyh, cpu.iyl)
 		nn := toWord(ins.Mem[2], ins.Mem[3])
-		cpu.memory.PutWord(nn, w)
+		putWord(cpu.memory, nn, w)
 
 	case 0xed73: // LD (NN),SP
 		nn := toWord(ins.Mem[2], ins.Mem[3])
-		cpu.memory.PutWord(nn, cpu.sp.Get())
+		putWord(cpu.memory, nn, cpu.sp.Get())
 
 	case 0xdd21: // LD IX,NN
 		cpu.ixh = ins.Mem[3]
@@ -1617,21 +1617,21 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.l = te
 
 	case 0xdde3: // EX (SP),IX
-		spv := cpu.memory.GetWord(cpu.sp.Get())
+		spv := getWord(cpu.memory, cpu.sp.Get())
 		ix := getRR(cpu.ixh, cpu.ixl)
-		cpu.memory.PutWord(cpu.sp.Get(), ix)
+		putWord(cpu.memory, cpu.sp.Get(), ix)
 		cpu.ixh, cpu.ixl = setRR(spv)
 
 	case 0xfde3: // EX (SP),IY
-		spv := cpu.memory.GetWord(cpu.sp.Get())
+		spv := getWord(cpu.memory, cpu.sp.Get())
 		iy := getRR(cpu.iyh, cpu.iyl)
-		cpu.memory.PutWord(cpu.sp.Get(), iy)
+		putWord(cpu.memory, cpu.sp.Get(), iy)
 		cpu.iyh, cpu.iyl = setRR(spv)
 
 	case 0xe3: // EX (SP),HL
-		spv := cpu.memory.GetWord(cpu.sp.Get())
+		spv := getWord(cpu.memory, cpu.sp.Get())
 		hl := getRR(cpu.h, cpu.l)
-		cpu.memory.PutWord(cpu.sp.Get(), hl)
+		putWord(cpu.memory, cpu.sp.Get(), hl)
 		cpu.h, cpu.l = setRR(spv)
 
 	case 0xd9: // EXX
