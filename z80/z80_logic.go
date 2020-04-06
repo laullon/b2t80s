@@ -38,7 +38,7 @@ func (cpu *z80) readPort(port uint16) byte {
 			}
 		}
 	}
-	panic(fmt.Sprintf("[readPort]-(no PM)-> port:0x%04X pc:0x%04X", port, cpu.pc))
+	// panic(fmt.Sprintf("[readPort]-(no PM)-> port:0x%04X pc:0x%04X", port, cpu.pc))
 	fmt.Printf("[readPort]-(no PM)-> port:0x%04X pc:0x%04X \n", port, cpu.pc)
 	return 0xff
 }

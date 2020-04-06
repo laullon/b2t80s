@@ -4,9 +4,7 @@ import (
 	"image"
 	"image/color"
 	"sync"
-	"time"
 
-	"fyne.io/fyne"
 	"github.com/laullon/b2t80s/emulator"
 )
 
@@ -31,6 +29,7 @@ var palette = []color.RGBA{
 
 type ula struct {
 	memory *memory
+	cpu    emulator.CPU
 
 	keyboardRow  []byte
 	borderColour color.RGBA
@@ -38,11 +37,15 @@ type ula struct {
 	frame   byte
 	display *image.RGBA
 
-	row             uint
-	scanline        uint
-	scanlinesBorder []color.RGBA
-	scanlinesData   [][]byte
-	scanlinesAttr   [][]byte
+	col          int
+	tsPerRow     int
+	row          int
+	scanlines    int
+	displayStart int
+
+	scanlinesBorder [][]color.RGBA
+	pixlesData      [][]byte
+	pixlesAttr      [][]byte
 
 	cassette       emulator.Cassette
 	ear, earActive bool
@@ -50,23 +53,33 @@ type ula struct {
 	out            []*emulator.SoundData
 	mux            sync.Mutex
 
-	io bool
-	// tStatesPerSample uint
+	io    bool
+	clock emulator.Clock
 }
 
-func NewULA(mem *memory, cassette emulator.Cassette) *ula {
+func NewULA(mem *memory, cassette emulator.Cassette, clock emulator.Clock, plus bool) *ula {
 	ula := &ula{
 		memory:          mem,
 		keyboardRow:     make([]byte, 8),
 		borderColour:    palette[0],
-		scanlinesBorder: make([]color.RGBA, 296),
-		scanlinesData:   make([][]byte, 192),
-		scanlinesAttr:   make([][]byte, 192),
+		scanlinesBorder: make([][]color.RGBA, 313),
+		pixlesData:      make([][]byte, 192),
+		pixlesAttr:      make([][]byte, 192),
 		display:         image.NewRGBA(image.Rect(0, 0, 352, 296)),
-		// player:           SoundContext.NewPlayer(),
-		cassette: cassette,
-		row:      74,
-		// tStatesPerSample: uint(math.Round(float64(3500000) / float64(freq))),
+		cassette:        cassette,
+		clock:           clock,
+	}
+
+	if !plus {
+		// 48k
+		ula.tsPerRow = 224
+		ula.scanlines = 312
+		ula.displayStart = 64
+	} else {
+		// 128k
+		ula.tsPerRow = 228
+		ula.scanlines = 311
+		ula.displayStart = 63
 	}
 
 	ula.keyboardRow[0] = 0x1f
@@ -79,16 +92,15 @@ func NewULA(mem *memory, cassette emulator.Cassette) *ula {
 	ula.keyboardRow[7] = 0x1f
 
 	for y := 0; y < 192; y++ {
-		ula.scanlinesData[y] = make([]byte, 32)
-		ula.scanlinesAttr[y] = make([]byte, 32)
+		ula.pixlesData[y] = make([]byte, 32)
+		ula.pixlesAttr[y] = make([]byte, 32)
+	}
+
+	for y := 0; y < ula.scanlines; y++ {
+		ula.scanlinesBorder[y] = make([]color.RGBA, ula.tsPerRow)
 	}
 
 	return ula
-}
-
-func (ula *ula) Frame() {
-	ula.row = 74
-	ula.scanline = 0
 }
 
 func (ula *ula) Tick() {
@@ -98,79 +110,56 @@ func (ula *ula) Tick() {
 	}
 
 	// SCREEN
-	done := true
-	ula.row++
-	if ula.row == 224 {
-		done = false
-		ula.row = 0
-		ula.scanline++
-	}
 
-	if ula.row >= 48+24 && ula.row <= 48+24+128 && ula.scanline >= 16+48 && ula.scanline <= 16+48+192 {
-		ula.io = true
+	draw := false
+	if ula.col < 128 && ula.row >= ula.displayStart && ula.row < ula.displayStart+192 {
+		ula.io = (ula.col % 8) < 6
+		draw = ula.col%4 == 0
 	} else {
 		ula.io = false
 	}
 
-	if done {
-		return
-	}
+	ula.scanlinesBorder[ula.row][ula.col] = ula.borderColour
 
-	if ula.scanline < 296 {
-		ula.scanlinesBorder[ula.scanline] = ula.borderColour
-	}
-
-	if ula.scanline > 47 && ula.scanline < 240 {
-		y := uint16(ula.scanline - 48)
+	if draw {
+		y := uint16(ula.row - ula.displayStart)
+		x := uint16(ula.col) / 4
+		// print(y, ", ")
 		addr := uint16(0)
 		addr |= ((y & 0b00000111) | 0b01000000) << 8
 		addr |= ((y >> 3) & 0b00011000) << 8
 		addr |= ((y << 2) & 0b11100000)
-		ula.scanlinesData[y] = ula.memory.GetBlock(addr, 32)
+		ula.pixlesData[y][x] = ula.memory.GetByte(addr + x)
 
 		attrAddr := uint16(((y >> 3) * 32) + 0x5800)
-		ula.scanlinesAttr[y] = ula.memory.GetBlock(attrAddr, 32)
+		ula.pixlesAttr[y][x] = ula.memory.GetByte(attrAddr + x)
+	}
+
+	ula.col++
+	if ula.col == ula.tsPerRow {
+		ula.row++
+		if ula.row == ula.scanlines {
+			// println("-", ula.col, ula.col*ula.row, ula.row)
+			ula.row = 0
+			ula.cpu.Interrupt(true)
+		}
+		ula.col = 0
 	}
 }
-
-var s = 0
 
 func (ula *ula) FrameDone() {
 	ula.frame = (ula.frame + 1) & 0x1f
 	for y := 0; y < 296; y++ {
 		for x := 0; x < 352; x++ {
-			ula.display.Set(x, y, ula.getPixle(x, y))
+			ula.display.Set(x, y, ula.getPixel(x, y))
 		}
 	}
 }
 
-func (ula *ula) SoundTick() {
-	ula.mux.Lock()
-	defer ula.mux.Unlock()
-	v := 0.0
-	if ula.buzzer || ula.ear {
-		v = 1
-	}
-	ula.out = append(ula.out, &emulator.SoundData{L: v, R: v})
-}
-
-func (ula *ula) GetBuffer(max int) (res []*emulator.SoundData, l int) {
-	ula.mux.Lock()
-	defer ula.mux.Unlock()
-
-	if len(ula.out) > max {
-		res = ula.out[:max]
-		ula.out = ula.out[max:]
-		l = max
-	} else {
-		res = ula.out
-		ula.out = nil
-		l = len(res)
-	}
-	return
-}
-
 func (ula *ula) ReadPort(port uint16) (byte, bool) {
+	for ula.io {
+		ula.clock.AddTStates(1)
+	}
 	data := byte(0b00011111)
 	if port&0xfe == 0xfe {
 		readRow := port >> 8
@@ -193,8 +182,14 @@ func (ula *ula) ReadPort(port uint16) (byte, bool) {
 }
 
 func (ula *ula) WritePort(port uint16, data byte) {
+	for ula.io {
+		ula.clock.AddTStates(1)
+	}
 	if port&0xff == 0xfe {
-		ula.borderColour = palette[data&0x07]
+		if ula.borderColour != palette[data&0x07] {
+			ula.borderColour = palette[data&0x07]
+			// println("------", ula.col, ula.row)
+		}
 		ula.buzzer = ((data & 16) >> 4) != 0
 		ula.earActive = (data & 24) != 0
 		// println("ula.earActive:", ula.earActive, "ula.buzzer:", ula.buzzer)
@@ -205,168 +200,39 @@ func (ula *ula) WritePort(port uint16, data byte) {
 	// ula.keyboardRow[port] = data
 }
 
-func (ula *ula) OnKeyEvent(key *fyne.KeyEvent) {
-	// fmt.Println("key:", key.Name)
-	switch key.Name {
-
-	case fyne.Key1:
-		ula.keyboardRow[3] ^= 0b00000001
-	case fyne.Key2:
-		ula.keyboardRow[3] ^= 0b00000010
-	case fyne.Key3:
-		ula.keyboardRow[3] ^= 0b00000100
-	case fyne.Key4:
-		ula.keyboardRow[3] ^= 0b00001000
-	case fyne.Key5:
-		ula.keyboardRow[3] ^= 0b00010000
-
-	case fyne.Key0:
-		ula.keyboardRow[4] ^= 0b00000001
-	case fyne.Key9:
-		ula.keyboardRow[4] ^= 0b00000010
-	case fyne.Key8:
-		ula.keyboardRow[4] ^= 0b00000100
-	case fyne.Key7:
-		ula.keyboardRow[4] ^= 0b00001000
-	case fyne.Key6:
-		ula.keyboardRow[4] ^= 0b00010000
-
-	case fyne.KeyQ:
-		ula.keyboardRow[2] ^= 0b00000001
-	case fyne.KeyW:
-		ula.keyboardRow[2] ^= 0b00000010
-	case fyne.KeyE:
-		ula.keyboardRow[2] ^= 0b00000100
-	case fyne.KeyR:
-		ula.keyboardRow[2] ^= 0b00001000
-	case fyne.KeyT:
-		ula.keyboardRow[2] ^= 0b00010000
-
-	case fyne.KeyP:
-		ula.keyboardRow[5] ^= 0b00000001
-	case fyne.KeyO:
-		ula.keyboardRow[5] ^= 0b00000010
-	case fyne.KeyI:
-		ula.keyboardRow[5] ^= 0b00000100
-	case fyne.KeyU:
-		ula.keyboardRow[5] ^= 0b00001000
-	case fyne.KeyY:
-		ula.keyboardRow[5] ^= 0b00010000
-
-	case fyne.KeyA:
-		ula.keyboardRow[1] ^= 0b00000001
-	case fyne.KeyS:
-		ula.keyboardRow[1] ^= 0b00000010
-	case fyne.KeyD:
-		ula.keyboardRow[1] ^= 0b00000100
-	case fyne.KeyF:
-		ula.keyboardRow[1] ^= 0b00001000
-	case fyne.KeyG:
-		ula.keyboardRow[1] ^= 0b00010000
-
-	case fyne.KeyReturn:
-		ula.keyboardRow[6] ^= 0b00000001
-	case fyne.KeyL:
-		ula.keyboardRow[6] ^= 0b00000010
-	case fyne.KeyK:
-		ula.keyboardRow[6] ^= 0b00000100
-	case fyne.KeyJ:
-		ula.keyboardRow[6] ^= 0b00001000
-	case fyne.KeyH:
-		ula.keyboardRow[6] ^= 0b00010000
-
-	case "LeftShift":
-		ula.keyboardRow[0] ^= 0b00000001
-	case fyne.KeyZ:
-		ula.keyboardRow[0] ^= 0b00000010
-	case fyne.KeyX:
-		ula.keyboardRow[0] ^= 0b00000100
-	case fyne.KeyC:
-		ula.keyboardRow[0] ^= 0b00001000
-	case fyne.KeyV:
-		ula.keyboardRow[0] ^= 0b00010000
-
-	case "Space":
-		ula.keyboardRow[7] ^= 0b00000001
-	case "RightSuper":
-		ula.keyboardRow[7] ^= 0b00000010
-	case fyne.KeyM:
-		ula.keyboardRow[7] ^= 0b00000100
-	case fyne.KeyN:
-		ula.keyboardRow[7] ^= 0b00001000
-	case fyne.KeyB:
-		ula.keyboardRow[7] ^= 0b00010000
-
-	case "BackSpace":
-		ula.keyboardRow[0] ^= 0b00000001
-		ula.keyboardRow[4] ^= 0b00000001
-
-	case fyne.KeyUp:
-		ula.keyboardRow[0] ^= 0b00000001
-		ula.keyboardRow[4] ^= 0b00001000
-
-	case fyne.KeyDown:
-		ula.keyboardRow[0] ^= 0b00000001
-		ula.keyboardRow[4] ^= 0b00010000
-	}
-}
-
-var onlyOnce sync.Once
-
-func (ula *ula) LoadCommand() uint16 {
-	go onlyOnce.Do(func() {
-		time.Sleep(time.Second)
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyJ})
-		time.Sleep(150 * time.Millisecond)
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyJ})
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: "RightSuper"})
-		time.Sleep(150 * time.Millisecond)
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyP})
-		time.Sleep(150 * time.Millisecond)
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyP})
-		time.Sleep(150 * time.Millisecond)
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyP})
-		time.Sleep(150 * time.Millisecond)
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyP})
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: "RightSuper"})
-		time.Sleep(150 * time.Millisecond)
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyReturn})
-		time.Sleep(150 * time.Millisecond)
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyReturn})
-	})
-	return 0
-}
-
 func (ula *ula) Display() image.Image {
 	return ula.display
 }
 
-func (ula *ula) getPixle(rx, ry int) color.Color {
+func (ula *ula) getPixel(rx, ry int) color.Color {
 	border := false
-	if ry < 48 || ry > 47+192 {
+	if ry < ula.displayStart || ry >= ula.displayStart+192 {
 		border = true
 	} else if rx < 48 || rx > 47+256 {
 		border = true
 	}
 
 	if border {
-		return ula.scanlinesBorder[ry]
+		if ry == ula.displayStart || ry == 80 {
+			return palette[0]
+		}
+		return ula.scanlinesBorder[ry][rx/8]
 	}
 
+	ry -= int(ula.displayStart)
 	rx -= 48
-	ry -= 48
 
 	x := rx >> 3
 	b := rx & 0x07
 
-	attr := ula.scanlinesAttr[ry][x]
+	attr := ula.pixlesAttr[ry][x]
 
 	flash := (attr & 0x80) == 0x80
 	brg := (attr & 0x40) >> 6
 	paper := palette[((attr&0x38)>>3)+(brg*8)]
 	ink := palette[(attr&0x07)+(brg*8)]
 
-	data := ula.scanlinesData[ry][x]
+	data := ula.pixlesData[ry][x]
 	data = data << b
 	data &= 0b10000000
 	if flash && (ula.frame&0x10 != 0) {

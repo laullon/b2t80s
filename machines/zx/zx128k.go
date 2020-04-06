@@ -20,9 +20,10 @@ func NewZX128K(cassette emulator.Cassette) machines.Machine {
 
 	ay8912 := ay8912.New()
 
-	ula := NewULA(mem, cassette)
-	cpu := z80.NewZ80(ula, cassette)
 	clock := emulator.NewCLock(CLOCK_128k)
+	ula := NewULA(mem, cassette, clock, true)
+	cpu := z80.NewZ80(ula, cassette)
+	ula.cpu = cpu
 
 	sound := emulator.NewSoundSystem(CLOCK_128k / 80)
 	sound.AddSource(ay8912)
@@ -51,7 +52,6 @@ func NewZX128K(cassette emulator.Cassette) machines.Machine {
 	}
 
 	cpu.SetClock(clock)
-	mem.SetClock(clock)
 
 	clock.AddTicker(0, ula)
 	clock.AddTicker(2, ay8912)
