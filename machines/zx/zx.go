@@ -60,9 +60,6 @@ func (m *zx) Run() {
 			frameStart := time.Now()
 
 			m.Debugger().NextFrame()
-			if !m.debugger.IsStoped() {
-				m.cpu.Interrupt(true)
-			}
 			err := m.cpu.RunFrame()
 			if err != nil {
 				panic(err)

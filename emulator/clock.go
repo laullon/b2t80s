@@ -11,10 +11,6 @@ type Ticker interface {
 	Tick()
 }
 
-type FrameTicker interface {
-	Frame()
-}
-
 type ticker struct {
 	counter uint
 	mod     uint
@@ -42,13 +38,6 @@ func (c *clock) AddTStates(ts uint) {
 			if t.counter == t.mod || t.mod < 2 {
 				t.counter = 0
 				t.ticker.Tick()
-			}
-		}
-		if c.tStates == c.tStatesPerFrame {
-			for _, t := range c.tickers {
-				if ft, ok := t.ticker.(FrameTicker); ok {
-					ft.Frame()
-				}
 			}
 		}
 	}

@@ -77,7 +77,7 @@ func TestOPCodes(t *testing.T) {
 
 	cpu := NewZ80(memory, nil)
 
-	debugger := NewDebugger(cpu, memory)
+	debugger := NewDebugger(cpu.(*z80), memory)
 	cpu.SetDebuger(debugger)
 
 	cpu.RegisterPort(emulator.PortMask{Mask: 0, Value: 0}, &dummyPM{})
@@ -435,5 +435,6 @@ type dummyClock struct {
 }
 
 func (c *dummyClock) AddTStates(ts uint)                    { c.ts += ts }
+func (c *dummyClock) GetTStates() uint                      { return c.ts }
 func (c *dummyClock) FrameDone() bool                       { return c.ts >= c.stopAtTSate }
 func (c *dummyClock) AddTicker(mod uint, t emulator.Ticker) {}

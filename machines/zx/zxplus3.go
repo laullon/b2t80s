@@ -23,9 +23,10 @@ func NewZXPlus3(cassette emulator.Cassette) machines.Machine {
 
 	ay8912 := ay8912.New()
 
-	ula := NewULA(mem, cassette)
-	cpu := z80.NewZ80(ula, cassette)
 	clock := emulator.NewCLock(CLOCK_128k)
+	ula := NewULA(mem, cassette, clock, true)
+	cpu := z80.NewZ80(ula, cassette)
+	ula.cpu = cpu
 
 	fdc := NewZXFDC765()
 	cpu.RegisterPort(emulator.PortMask{Mask: 0xC002, Value: 0x0000}, fdc)
@@ -62,7 +63,6 @@ func NewZXPlus3(cassette emulator.Cassette) machines.Machine {
 	// }
 
 	cpu.SetClock(clock)
-	mem.SetClock(clock)
 
 	clock.AddTicker(0, ula)
 	clock.AddTicker(2, ay8912)

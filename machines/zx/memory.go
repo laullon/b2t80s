@@ -1,9 +1,5 @@
 package zx
 
-import (
-	"github.com/laullon/b2t80s/emulator"
-)
-
 type bank []byte
 type page *bank
 
@@ -24,8 +20,6 @@ type memory struct {
 	pages         []page
 	mode          MemoryMode
 	pagingDisable bool
-
-	clock emulator.Clock
 }
 
 func NewMemory(mode MemoryMode) *memory {
@@ -68,10 +62,6 @@ func NewMemory(mode MemoryMode) *memory {
 	}
 
 	return res
-}
-
-func (mem *memory) SetClock(clock emulator.Clock) {
-	mem.clock = clock
 }
 
 func (mem *memory) GetBlock(start, length uint16) []byte {

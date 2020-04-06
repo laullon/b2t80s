@@ -16,7 +16,7 @@ type logEntry struct {
 }
 
 type debugger struct {
-	cpu      emulator.CPU
+	cpu      *z80
 	memory   emulator.Memory
 	symbols  map[uint16]string
 	log      []*logEntry
@@ -30,7 +30,7 @@ type debugger struct {
 
 func NewDebugger(cpu emulator.CPU, mem emulator.Memory) emulator.Debugger {
 	debug := &debugger{
-		cpu:     cpu,
+		cpu:     cpu.(*z80),
 		memory:  mem,
 		symbols: make(map[uint16]string),
 		stop:    false,
@@ -83,11 +83,12 @@ func (debug *debugger) AddLastInstruction(ins emulator.Instruction) {
 	if debug.dump {
 		regs, _, _ := debug.cpu.DumpRegisters()
 		fmt.Printf(
-			"                                  A:0x%02X F:%08b BC:0x%04X DE:0x%04X HL:0x%04X\n",
+			"                                  A:0x%02X F:%08b BC:0x%04X DE:0x%04X HL:0x%04X SP:0x%04X\n",
 			uint16(regs[0]), uint16(regs[1]),
 			uint16(regs[2])<<8|uint16(regs[3]),
 			uint16(regs[4])<<8|uint16(regs[5]),
-			uint16(regs[6])<<8|uint16(regs[7]))
+			uint16(regs[6])<<8|uint16(regs[7]),
+			debug.cpu.sp.Get())
 		// res.WriteString(fmt.Sprintf("  B:0x%02X    C:0x%02X  BC:0x%04X    ---------\n", regs[2], regs[3], )
 		// res.WriteString(fmt.Sprintf("  D:0x%02X    E:0x%02X  DE:0x%04X    0x%04X\n", regs[4], regs[5], , debug.memory.GetWord(sp+0)))
 		// res.WriteString(fmt.Sprintf("  H:0x%02X    L:0x%02X  HL:0x%04X    0x%04X\n", regs[6], regs[7], uint16(regs[6])<<8|uint16(regs[7]), debug.memory.GetWord(sp+2)))
