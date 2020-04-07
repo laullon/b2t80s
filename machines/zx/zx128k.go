@@ -30,6 +30,7 @@ func NewZX128K(cassette emulator.Cassette) machines.Machine {
 	sound.AddSource(ula)
 
 	cpu.RegisterPort(emulator.PortMask{Mask: 0x00FF, Value: 0x00FE}, ula)
+	cpu.RegisterPort(emulator.PortMask{Mask: 0x00FF, Value: 0x00FF}, ula)
 	cpu.RegisterPort(emulator.PortMask{Mask: 0x00e0, Value: 0x0000}, &emulator.Kempston{})
 	cpu.RegisterPort(emulator.PortMask{Mask: 0xc002, Value: 0xc000}, ay8912)
 	cpu.RegisterPort(emulator.PortMask{Mask: 0xc002, Value: 0x8000}, ay8912)

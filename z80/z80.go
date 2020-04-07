@@ -296,7 +296,8 @@ func (cpu *z80) Step() {
 	}
 
 	if cpu.doInterrupt {
-		cpu.execInterrupt()
+		ts := cpu.execInterrupt()
+		cpu.clock.AddTStates(ts)
 	}
 
 	ins, err := GetOpCode(cpu.memory.GetBlock(cpu.pc, 4))
