@@ -46,6 +46,7 @@ type ula struct {
 	scanlinesBorder [][]color.RGBA
 	pixlesData      [][]byte
 	pixlesAttr      [][]byte
+	floatingBus     byte
 
 	cassette       emulator.Cassette
 	ear, earActive bool
@@ -117,6 +118,7 @@ func (ula *ula) Tick() {
 		draw = ula.col%4 == 0
 	} else {
 		ula.io = false
+		ula.floatingBus = 0xff
 	}
 
 	ula.scanlinesBorder[ula.row][ula.col] = ula.borderColour
@@ -133,6 +135,7 @@ func (ula *ula) Tick() {
 
 		attrAddr := uint16(((y >> 3) * 32) + 0x5800)
 		ula.pixlesAttr[y][x] = ula.memory.GetByte(attrAddr + x)
+		ula.floatingBus = ula.pixlesAttr[y][x]
 	}
 
 	ula.col++
@@ -157,16 +160,15 @@ func (ula *ula) FrameDone() {
 }
 
 func (ula *ula) ReadPort(port uint16) (byte, bool) {
-	for ula.io {
-		ula.clock.AddTStates(1)
-	}
-	data := byte(0b00011111)
-	if port&0xfe == 0xfe {
+	if port&0xff == 0xfe {
+		data := byte(0b00011111)
+		for ula.io {
+			ula.clock.AddTStates(1)
+		}
 		readRow := port >> 8
 		for row := 0; row < 8; row++ {
 			if (readRow & (1 << row)) == 0 {
 				data &= ula.keyboardRow[row]
-				// log.Printf("[read] data:0b%08b row:0b%08b (%d)", data, ula.keyboardRow[row], row)
 			}
 		}
 		if ula.earActive && ula.ear {
@@ -174,11 +176,10 @@ func (ula *ula) ReadPort(port uint16) (byte, bool) {
 		} else {
 			data |= 0b10100000
 		}
-		// } else {
-		// 	log.Printf("[read] port:0x%02x data:0b%08b", port, data)
+		return data, false
+	} else {
+		return ula.floatingBus, false
 	}
-	// log.Printf("[read] port:0x%02x data:0b%08b", port, data)
-	return data, false
 }
 
 func (ula *ula) WritePort(port uint16, data byte) {
@@ -213,9 +214,9 @@ func (ula *ula) getPixel(rx, ry int) color.Color {
 	}
 
 	if border {
-		if ry == ula.displayStart || ry == 80 {
-			return palette[0]
-		}
+		// if ry == ula.displayStart || ry == 80 {
+		// 	return palette[0]
+		// }
 		return ula.scanlinesBorder[ry][rx/8]
 	}
 
