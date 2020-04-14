@@ -97,6 +97,11 @@ func (mem *memory) GetByte(addr uint16) byte {
 	return mem.banks[bank][pos]
 }
 
+func (mem *memory) getScreenByte(addr uint16) byte {
+	_, bank, pos := mem.decodeAddress(addr)
+	return mem.banks[bank][pos]
+}
+
 func (mem *memory) PutByte(addr uint16, b byte) {
 	// fmt.Printf("-> addr:0x%08x b:0x%02x \n", addr, b)
 	_, bank, pos := mem.decodeAddress(addr)

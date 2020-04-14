@@ -14,14 +14,14 @@ type crtcStatus struct {
 	vSync  bool
 	hSync  bool
 	disPen bool
-	ma     uint16
+	ma     uint32
+	ra     int
 }
 
 type crtcCounters struct {
-	h      int
-	sl     int
-	row    int
-	raster int
+	hcc int // horizontal char counter
+	vlc int // vertical line counter
+	vcc int // vertical char counter // ra
 }
 
 type crtc struct {
@@ -32,9 +32,6 @@ type crtc struct {
 
 	regs      []byte
 	selectReg byte
-
-	cycles uint32
-	clock  uint32
 
 	addr uint32
 
@@ -63,7 +60,7 @@ func (crtc *crtc) WritePort(port uint16, data byte) {
 
 	case 1:
 		crtc.regs[crtc.selectReg] = data & regMasks[crtc.selectReg]
-		fmt.Printf("[crtc] reg: %2d = %d\n", crtc.selectReg, data)
+		// fmt.Printf("[crtc] reg: %2d = %d\n", crtc.selectReg, data)
 
 		crtc.recalcule()
 	default:
@@ -76,7 +73,7 @@ func (crtc *crtc) recalcule() {
 	// println("[crtc] addr:", crtc.addr)
 
 	crtc.vSyncOn = int(crtc.regs[7])
-	vSyncSize := int((crtc.regs[3] >> 4) & 0x0f)
+	vSyncSize := int((crtc.regs[3] >> 4) & 0x0f / 8)
 	crtc.vSyncOff = crtc.vSyncOn + vSyncSize
 	// println("[crtc] vSyncOn:", crtc.vSyncOn, "vSyncOff:", crtc.vSyncOff)
 
@@ -84,59 +81,43 @@ func (crtc *crtc) recalcule() {
 	hSyncSize := int(crtc.regs[3] & 0x0f)
 	crtc.hSyncOff = crtc.hSyncOn + hSyncSize
 	// println("[crtc] hSyncOn:", crtc.hSyncOn, "hSyncOff:", crtc.hSyncOff)
-
 }
 
 func (crtc *crtc) Tick() {
-	clock := crtc.cycles / 4
-	crtc.cycles++
-
-	if crtc.clock == clock {
-		return
-	}
-	crtc.clock = clock
-
 	R0 := int(crtc.regs[0])
 	R1 := int(crtc.regs[1])
 	R4 := int(crtc.regs[4])
 	R6 := int(crtc.regs[6])
 	R9 := int(crtc.regs[9])
 
-	if crtc.counters.h < R0 {
-		crtc.counters.h++
+	if crtc.counters.hcc < R0 {
+		crtc.counters.hcc++
 	} else {
-		crtc.counters.h = 0
-		if crtc.counters.sl < R9 {
-			crtc.counters.sl++
+		crtc.counters.hcc = 0
+		if crtc.counters.vlc < R9 {
+			crtc.counters.vlc++
 		} else {
-			crtc.counters.sl = 0
-			if crtc.counters.row < R4 {
-				crtc.counters.row++
+			crtc.counters.vlc = 0
+			if crtc.counters.vcc < R4 {
+				crtc.counters.vcc++
 			} else {
-				crtc.counters.row = 0
+				crtc.counters.vcc = 0
 			}
 		}
-		crtc.counters.raster = int(crtc.counters.row*(R9+1)) + int(crtc.counters.sl)
 	}
 
-	if crtc.counters.h == crtc.hSyncOff {
-		if crtc.counters.raster%52 == 0 {
-			crtc.cpu.Interrupt(true)
-		}
-	}
+	crtc.status.vSync = (crtc.counters.vcc >= crtc.vSyncOn) && (crtc.counters.vcc <= crtc.vSyncOff)
+	crtc.status.hSync = (crtc.counters.hcc >= crtc.hSyncOn) && (crtc.counters.hcc <= crtc.hSyncOff)
+	crtc.status.disPen = (crtc.counters.hcc < R1) && (crtc.counters.vcc < R6)
 
-	crtc.status.vSync = (crtc.counters.row >= crtc.vSyncOn) && (crtc.counters.row <= crtc.vSyncOff)
-	crtc.status.hSync = (crtc.counters.h >= crtc.hSyncOn) && (crtc.counters.h <= crtc.hSyncOff)
-	crtc.status.disPen = (crtc.counters.h < R1) && (crtc.counters.row < R6)
-
-	MA := crtc.addr + uint32(crtc.counters.row)*uint32(R1) + uint32(crtc.counters.h)
-	crtc.status.ma = uint16(((MA & 0x3FF) << 1) | ((uint32(crtc.counters.raster) & 7) << 11) | ((MA & 0x3000) << 2))
+	crtc.status.ma = crtc.addr + uint32(crtc.counters.vcc)*uint32(R1) + uint32(crtc.counters.hcc)
+	crtc.status.ra = crtc.counters.vlc
 
 	// if crtc.counters.h == 0 {
 	// 	fmt.Printf("=> %+v => %+v => 0x%04X\n", crtc.counters, crtc.status, crtc.status.ma)
 	// }
 }
 
-func (crtc *crtc) FrameEnded() {
-	crtc.cycles = 0
+func (st *crtcStatus) getAddress() uint16 {
+	return uint16(((st.ma & 0x3FF) << 1) | ((uint32(st.ra) & 7) << 11) | ((st.ma & 0x3000) << 2))
 }

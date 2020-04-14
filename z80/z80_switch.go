@@ -490,9 +490,11 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 
 	case 0xF3: // DI
 		cpu.iff1 = false
+		cpu.iff2 = false
 
 	case 0xfb: // EI
 		cpu.iff1 = true
+		cpu.iff2 = true
 
 	case 0xed46: // IM 0
 		cpu.interruptsMode = 0

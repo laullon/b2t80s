@@ -9,7 +9,6 @@ import (
 	"github.com/laullon/b2t80s/data"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/ay8912"
-	"github.com/laullon/b2t80s/emulator/fdc"
 	"github.com/laullon/b2t80s/emulator/files"
 	"github.com/laullon/b2t80s/machines"
 	"github.com/laullon/b2t80s/z80"
@@ -79,11 +78,11 @@ func NewCPC(cpc464 bool, cassette emulator.Cassette) machines.Machine {
 	// cpu.RegisterPort(emulator.PortMask{Mask: 0xDF00, Value: 0xDF00}, mem)
 	cpu.RegisterPort(emulator.PortMask{Mask: 0x2000, Value: 0x0000}, mem)
 
-	fdc := fdc.New765()
+	fdc := NewCPCFDC765()
 	cpu.RegisterPort(emulator.PortMask{Mask: 0x0400, Value: 0x0000}, fdc)
 	if len(*machines.DskAFile) > 0 {
 		disc := files.LoadDsk(*machines.DskAFile)
-		fdc.SetDiscA(disc)
+		fdc.chip.SetDiscA(disc)
 		// fmt.Printf("%v\n", disc)
 	}
 	// if len(*dskBFile) > 0 {
@@ -105,10 +104,10 @@ func NewCPC(cpc464 bool, cassette emulator.Cassette) machines.Machine {
 	cpu.SetClock(cpc.clock)
 	mem.SetClock(cpc.clock)
 
-	cpc.clock.AddTicker(0, crtc)
+	cpc.clock.AddTicker(4, crtc)
 	cpc.clock.AddTicker(0, cassette)
-	cpc.clock.AddTicker(0, ga)
-	cpc.clock.AddTicker(2, ay8912)
+	cpc.clock.AddTicker(4, ga)
+	cpc.clock.AddTicker(4, ay8912)
 	cpc.clock.AddTicker(80, sound)
 
 	// if *machines.LoadSlow {
@@ -156,7 +155,7 @@ func (m *cpc) OnKeyEvent(event *fyne.KeyEvent) {
 }
 
 func (m *cpc) Display() image.Image {
-	return m.ga.displayScaled
+	return m.ga.display
 }
 
 func (m *cpc) GetVolumeControl() func(float64) {
@@ -184,7 +183,7 @@ func (m *cpc) Run() {
 			frames++
 			frameTime := time.Now().Sub(frameStart)
 			runTime := time.Now().Sub(runStart)
-			m.Debugger().SetStatus(fmt.Sprintf("frame rate:%6.2f time:%6.2fms (%v) (ear:%v) (crtc.sl:%d)", frames/runTime.Seconds(), float64(frameTime.Microseconds())/1000, wait, m.cassette.Ear(), m.ga.crtc.cycles))
+			m.Debugger().SetStatus(fmt.Sprintf("frame rate:%6.2f time:%6.2fms (%v) (ear:%v)", frames/runTime.Seconds(), float64(frameTime.Microseconds())/1000, wait, m.cassette.Ear()))
 		}
 	}()
 }
