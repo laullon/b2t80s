@@ -42,3 +42,4 @@ deploy:
     - b2t80s.exe
   on:
     repo: laullon/b2t80s
+    branch: build
