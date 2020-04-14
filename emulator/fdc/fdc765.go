@@ -154,7 +154,7 @@ func (fdc *fdc765) LOAD_RESULT_WITH_CHRN() {
 
 func (fdc *fdc765) isDriveReady() bool {
 	val := fdc.cmd.args[CMD_UNIT] & 0b111
-	println("isDriveReady", fdc.discActive, fdc.motor)
+	// println("isDriveReady", fdc.discActive, fdc.motor)
 	if fdc.discs[fdc.discActive] == nil || (!fdc.motor) {
 		val |= 0x48 // Abnormal Termination + Not Ready
 	}
@@ -219,35 +219,4 @@ func (fdc *fdc765) ReadStatus() byte {
 
 func (fdc *fdc765) SetMotor(on bool) {
 	fdc.motor = on
-}
-
-// TODO: move theses 2 methods to a cpc specific
-func (fdc *fdc765) ReadPort(port uint16) (byte, bool) {
-	if (port & (1 << 10)) == 0 {
-		f := ((port & (1 << 8)) >> (8 - 1)) | (port & 0x01)
-		switch f {
-		case 2:
-			return fdc.ReadStatus(), false
-		case 3:
-			return fdc.ReadData(), false
-		default:
-			panic(f)
-		}
-	} else {
-		panic(fmt.Sprintf("port: 0x%04X", port))
-	}
-}
-
-func (fdc *fdc765) WritePort(port uint16, data byte) {
-	if (port & (1 << 7)) == 0 {
-		f := ((port & 0x0100) >> (8 - 1)) | (port & 0x01)
-		switch f {
-		case 0:
-			fdc.motor = data == 1
-		case 3:
-			fdc.WriteData(data)
-		default:
-			panic(fmt.Sprintf("port: 0x%04X data: 0x%02X f:%d", port, data, f))
-		}
-	}
 }

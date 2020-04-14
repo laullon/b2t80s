@@ -4,16 +4,11 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-
-	"golang.org/x/image/draw"
 )
 
 type gatearray struct {
 	mem  *memory
 	crtc *crtc
-
-	cycles uint32
-	clock  uint32
 
 	screenMode byte
 	decode     func(byte) []byte
@@ -25,83 +20,147 @@ type gatearray struct {
 	pen     byte
 	palette []color.RGBA
 
-	display       *image.RGBA
-	displayFrame  image.Rectangle
-	displayScaled *image.RGBA
+	display *image.RGBA
+
+	prevHSync, prevVSync           bool
+	hSyncCount, hSyncsInVSyncCount byte
+
+	x, y int
 }
 
 var colours = []color.RGBA{
-	color.RGBA{0x7f, 0x7f, 0x7f, 0xff},
-	color.RGBA{0x7f, 0x7f, 0x7f, 0xff},
-	color.RGBA{0x00, 0xff, 0x7f, 0xff},
-	color.RGBA{0xff, 0xff, 0x7f, 0xff},
-	color.RGBA{0x00, 0x00, 0x7f, 0xff},
-	color.RGBA{0xff, 0x00, 0x7f, 0xff},
-	color.RGBA{0x00, 0x7f, 0x7f, 0xff},
-	color.RGBA{0xff, 0x7f, 0x7f, 0xff},
-	color.RGBA{0xff, 0x00, 0x7f, 0xff},
-	color.RGBA{0xff, 0xff, 0x7f, 0xff},
-	color.RGBA{0xff, 0xff, 0x00, 0xff},
-	color.RGBA{0xff, 0xff, 0xff, 0xff},
-	color.RGBA{0xff, 0x00, 0x00, 0xff},
-	color.RGBA{0xff, 0x00, 0xff, 0xff},
-	color.RGBA{0xff, 0x7f, 0x00, 0xff},
-	color.RGBA{0xff, 0x7f, 0xff, 0xff},
-	color.RGBA{0x00, 0x00, 0x7f, 0xff},
-	color.RGBA{0x00, 0xff, 0x7f, 0xff},
-	color.RGBA{0x00, 0xff, 0x00, 0xff},
-	color.RGBA{0x00, 0xff, 0xff, 0xff},
-	color.RGBA{0x00, 0x00, 0x00, 0xff},
-	color.RGBA{0x00, 0x00, 0xff, 0xff},
-	color.RGBA{0x00, 0x7f, 0x00, 0xff},
-	color.RGBA{0x00, 0x7f, 0xff, 0xff},
-	color.RGBA{0x7f, 0x00, 0x7f, 0xff},
-	color.RGBA{0x7f, 0xff, 0x7f, 0xff},
-	color.RGBA{0x7f, 0xff, 0x00, 0xff},
-	color.RGBA{0x7f, 0xff, 0xff, 0xff},
-	color.RGBA{0x7f, 0x00, 0x00, 0xff},
-	color.RGBA{0x7f, 0x00, 0xff, 0xff},
-	color.RGBA{0x7f, 0x7f, 0x00, 0xff},
-	color.RGBA{0x7f, 0x7f, 0xff, 0xff},
+	{0x7f, 0x7f, 0x7f, 0xff},
+	{0x7f, 0x7f, 0x7f, 0xff},
+	{0x00, 0xff, 0x7f, 0xff},
+	{0xff, 0xff, 0x7f, 0xff},
+	{0x00, 0x00, 0x7f, 0xff},
+	{0xff, 0x00, 0x7f, 0xff},
+	{0x00, 0x7f, 0x7f, 0xff},
+	{0xff, 0x7f, 0x7f, 0xff},
+	{0xff, 0x00, 0x7f, 0xff},
+	{0xff, 0xff, 0x7f, 0xff},
+	{0xff, 0xff, 0x00, 0xff},
+	{0xff, 0xff, 0xff, 0xff},
+	{0xff, 0x00, 0x00, 0xff},
+	{0xff, 0x00, 0xff, 0xff},
+	{0xff, 0x7f, 0x00, 0xff},
+	{0xff, 0x7f, 0xff, 0xff},
+	{0x00, 0x00, 0x7f, 0xff},
+	{0x00, 0xff, 0x7f, 0xff},
+	{0x00, 0xff, 0x00, 0xff},
+	{0x00, 0xff, 0xff, 0xff},
+	{0x00, 0x00, 0x00, 0xff},
+	{0x00, 0x00, 0xff, 0xff},
+	{0x00, 0x7f, 0x00, 0xff},
+	{0x00, 0x7f, 0xff, 0xff},
+	{0x7f, 0x00, 0x7f, 0xff},
+	{0x7f, 0xff, 0x7f, 0xff},
+	{0x7f, 0xff, 0x00, 0xff},
+	{0x7f, 0xff, 0xff, 0xff},
+	{0x7f, 0x00, 0x00, 0xff},
+	{0x7f, 0x00, 0xff, 0xff},
+	{0x7f, 0x7f, 0x00, 0xff},
+	{0x7f, 0x7f, 0xff, 0xff},
 }
 
 func newGateArray(mem *memory, crtc *crtc) *gatearray {
-	return &gatearray{
-		mem:           mem,
-		crtc:          crtc,
-		palette:       make([]color.RGBA, 16),
-		displayScaled: image.NewRGBA(image.Rect(0, 0, 768, 576)),
-		display:       image.NewRGBA(image.Rect(0, 0, 640, 200)),
-		displayFrame:  image.Rect((768-640)/2, (576-400)/2, 640+(768-640)/2, 400+(576-400)/2),
+	ga := &gatearray{
+		mem:     mem,
+		crtc:    crtc,
+		palette: make([]color.RGBA, 16),
+		display: image.NewRGBA(image.Rect(0, 0, 512, 312)),
 
-		decode: to2bpp,
-		ppc:    8,
+		decode: to1bpp,
+		ppc:    16,
 	}
+
+	return ga
 }
 
 func (ga *gatearray) Tick() {
-	clock := ga.cycles / 4
-	ga.cycles++
-
-	if ga.clock == clock {
-		return
+	if !ga.prevHSync && ga.crtc.status.hSync {
+		ga.x = 0
+		ga.y++
 	}
-	ga.clock = clock
+
+	if !ga.prevVSync && ga.crtc.status.vSync {
+		ga.y = 0
+		ga.display.Rect.Min = image.Point{X: int(ga.crtc.regs[3]&0x0f) * 8, Y: 34}
+		ga.display.Rect.Max = image.Point{X: int(ga.crtc.regs[3]&0x0f)*8 + 384, Y: 34 + 272}
+	}
 
 	if ga.crtc.status.disPen {
-		page := ga.crtc.status.ma >> 14
-		pos := ga.crtc.status.ma & 0x3fff
-		cs := ga.decode(ga.mem.banks[page][pos])
-		cs = append(cs, ga.decode(ga.mem.banks[page][(pos+1)])...)
+		addr := ga.crtc.status.getAddress()
+		cs := ga.decode(ga.mem.getScreenByte(addr))
+		cs = append(cs, ga.decode(ga.mem.getScreenByte(addr+1))...)
 		for off, c := range cs {
-			ga.display.Set((ga.crtc.counters.h*ga.ppc)+off, ga.crtc.counters.raster, ga.palette[c])
+			ga.display.Set((ga.x*8)+off, ga.y, ga.palette[c])
+		}
+	} else {
+		for i := 0; i < 8; i++ {
+			ga.display.Set((ga.x*8)+i, ga.y, ga.borderColor)
+		}
+
+		// if ga.crtc.status.hSync || ga.crtc.status.vSync {
+		// 	for i := 0; i < 8; i += 2 {
+		// 		ga.display.Set((ga.x*8)+i, ga.y, color.RGBA{0x00, 0x00, 0x00, 0xff})
+		// 	}
+		// }
+
+		// if ga.x == 0 {
+		// 	if ga.screenMode == 0 {
+		// 		for i := 0; i < 8; i++ {
+		// 			ga.display.Set((ga.x*8)+i, ga.y, color.RGBA{0x00, 0xff, 0x00, 0xff})
+		// 		}
+		// 	} else if ga.screenMode == 1 {
+		// 		for i := 0; i < 8; i++ {
+		// 			ga.display.Set((ga.x*8)+i, ga.y, color.RGBA{0x00, 0x00, 0xff, 0xff})
+		// 		}
+		// 	}
+		// }
+
+		// if ga.x == 1 {
+		// 	if ga.hSyncCount == 0 {
+		// 		for i := 0; i < 8; i++ {
+		// 			ga.display.Set((ga.x*8)+i, ga.y, color.RGBA{0xff, 0x00, 0x00, 0xff})
+		// 		}
+		// 	}
+		// }
+	}
+
+	if !ga.prevVSync && ga.crtc.status.vSync {
+		ga.hSyncsInVSyncCount = 0
+	}
+
+	if !ga.prevHSync && ga.crtc.status.hSync {
+		ga.hSyncCount++
+		if ga.hSyncCount == 52 {
+			ga.hSyncCount = 0
+			ga.crtc.cpu.Interrupt(true)
+		}
+
+		ga.hSyncsInVSyncCount++
+		if ga.hSyncsInVSyncCount == 2 {
+			if ga.hSyncCount >= 32 {
+				ga.crtc.cpu.Interrupt(true)
+			}
+			ga.hSyncCount = 0
 		}
 	}
+
+	ga.x++
+
+	ga.prevHSync = ga.crtc.status.hSync
+	ga.prevVSync = ga.crtc.status.vSync
+
+	if ga.crtc.status.disPen {
+		ga.mem.clock.AddTStates(4)
+	}
+
 }
 
 func (ga *gatearray) FrameEnded() {
-	ga.cycles = 0
-	draw.NearestNeighbor.Scale(ga.displayScaled, ga.displayFrame, ga.display, ga.display.Bounds(), draw.Over, nil)
+	// draw.NearestNeighbor.Scale(ga.display, ga.displayFrame, ga.display, ga.display.Bounds(), draw.Over, nil)
 }
 
 func bit2value(b, bit, v byte) byte {
@@ -114,7 +173,7 @@ func bit2value(b, bit, v byte) byte {
 func to4bpp(b byte) []byte {
 	pixel1 := bit2value(b, 1, 0b1000) | bit2value(b, 5, 0b0100) | bit2value(b, 3, 0b0010) | bit2value(b, 7, 0b0001)
 	pixel2 := bit2value(b, 0, 0b1000) | bit2value(b, 4, 0b0100) | bit2value(b, 2, 0b0010) | bit2value(b, 6, 0b0001)
-	return []byte{pixel1, pixel2}
+	return []byte{pixel1, pixel1, pixel2, pixel2}
 }
 
 func to2bpp(b byte) []byte {
@@ -152,7 +211,8 @@ func (ga *gatearray) WritePort(port uint16, data byte) {
 		} else {
 			if ga.borderColor != colours[data&0x1f] {
 				ga.borderColor = colours[data&0x1f]
-				draw.Draw(ga.displayScaled, ga.displayScaled.Bounds(), &image.Uniform{ga.borderColor}, image.ZP, draw.Src)
+				println("ga.borderColor:", data&0x1f, ga.y)
+				// draw.Draw(ga.display, ga.display.Bounds(), &image.Uniform{ga.borderColor}, image.ZP, draw.Src)
 			}
 		}
 	} else if f == 2 {
@@ -161,29 +221,23 @@ func (ga *gatearray) WritePort(port uint16, data byte) {
 
 		if data&0x10 != 0 {
 			ga.crtc.cpu.Interrupt(false)
-			ga.crtc.counters.sl = 0
+			ga.hSyncCount = 0
 		}
 
 		screenMode := data & 0b00000011
 		if ga.screenMode != screenMode {
 			ga.screenMode = screenMode
-			// println("screenMode", screenMode)
 			switch screenMode {
 			case 0:
-				ga.display.Rect = image.Rect(0, 0, 160, 200)
 				ga.decode = to4bpp
-				ga.ppc = 4
 			case 1:
-				ga.display.Rect = image.Rect(0, 0, 320, 200)
 				ga.decode = to2bpp
-				ga.ppc = 8
 			case 2:
-				ga.display.Rect = image.Rect(0, 0, 640, 200)
 				ga.decode = to1bpp
-				ga.ppc = 16
 			default:
 				// panic(screenMode)
 			}
+			println("screenMode", screenMode, ga.y)
 		}
 		// println("[ga]", "lowerRomEnable:", ga.mem.lowerRomEnable, "upperRomEnable:", ga.mem.upperRomEnable, "screenMode:", ga.screenMode)
 	} else if f == 3 {
