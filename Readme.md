@@ -2,18 +2,9 @@
 # b2t80s
 Z80 Based Computers Emulator (back to the 80's)
 
-## Dependencies
+## Download
 
-```
-go get -u github.com/go-bindata/go-bindata/...
-```
-
-## Build and Run 
-
-```
-$HOME/go/bin/go-bindata -pkg data -o data/data.go data/...
-go run main.go --mode 48k -tap "./games/ManicMiner.tap"
-```
+<https://github.com/laullon/b2t80s/releases/latest>
 
 ## Usage
 
@@ -36,6 +27,19 @@ go run main.go --mode 48k -tap "./games/ManicMiner.tap"
         tap file to load
   -z80 string
         z80 file to load
+```
+
+## Build and Run 
+
+### Dependencies
+```
+go get -u github.com/go-bindata/go-bindata/...
+$HOME/go/bin/go-bindata -pkg data -o data/data.go data/...
+```
+
+### Run
+```
+go run main.go --mode 48k -tap "./games/ManicMiner.tap"
 ```
 
 ## links
