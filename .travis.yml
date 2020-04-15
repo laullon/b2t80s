@@ -19,29 +19,22 @@ env:
 before_install:
 - go get -u github.com/go-bindata/go-bindata/...
 - go-bindata -pkg data -o data/data.go data/...
+- if [[ $TRAVIS_OS_NAME == "windows" ]]; then export EXT=".exe" ; fi
 
 script:
 - go test -short -v ./...
-- go build
+- go build -o b2t80s_$TRAVIS_OS_NAME$EXT
 - ls -lrt
-
-before_deploy:
-  # Set up git user name and tag this commit
-  - git config --local user.name "laullon"
-  - git config --local user.email "laullon@gmail.com"
-  - export TRAVIS_TAG=$(git rev-parse --abbrev-ref HEAD)-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)
-  - git tag $TRAVIS_TAG
 
 deploy:
   provider: releases
   skip_cleanup: true
-  prerelease: true
-  draft: true
+  name: B2T80s $TRAVIS_TAG
   api_key:
     secure: Dkfy3/H3ft/Di5Sl3H1cdwZ5MnnCWa/5g4meKo0//ZRWOv+5dFiX9c4K4aBg33JKxSaSGouGz56wYuiNBpSPCId4JwUCLWdFqK51DaQHH2NkQWj+aHatoJYKRy8Yg0NOyflMltx4cTgSoG7vLlKp5E1eMa7n3uCWGNcLfsCSjfHQJAnZJLZ49qSP0U6cWNtM1994IcM+jOnu7zWTpUMAAqnPThu66bhnX6IFmzQwfFu2CeE1NYLog3lk/a5U09D1DdfcYHS0pnrLcaBYkHBeo7/tmnOvhiz52IGau4xHSGstMAVsRSp6F2vjR4nYsHR6nvAkfh1UE9vBjS9imZ7h+cVdSp8vVZncYZGhth7SGSREdMHJI8BM39VGsTO51ilpM7Kh9CC+/fhrB4Q5Ds2V4KbgqqW9+eoxMPcfaAKKDHj3D/BoC2CMYSkZD3RUiiVQdbgvRfa8wrG5hjgHRuV8JQbLFVhgkmSpyQqsoJxcRf9ny6XxyWqf9q5IgMmYNxSpeRfNcp5tKjJl7wEDhPYmfTMBTB8JLg822xhGn9dDYVN/HtuvsgrWGcblhMMVqbFz8b3UboDeKvWQJjBBw4dur6pDUh7yqWRhPDNwp7FS31I1lFggu1PnfcRiYVAmy0SmhTrnYrL4sWyiqlOAPG/X+d8jfCTLS535wWJU1FRqCKk=
-  file:
-    - b2t80s
-    - b2t80s.exe
+  file_glob: true
+  file: b2t80s*
   on:
     repo: laullon/b2t80s
     branch: master
+    tags: true
