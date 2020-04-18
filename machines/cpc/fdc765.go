@@ -39,6 +39,6 @@ func (fdc *fdc765) WritePort(port uint16, data byte) {
 	case 0xFB7F:
 		fdc.chip.WriteData(data)
 	default:
-		fmt.Printf("port: 0x%04X data: 0x%02X \n", port, data)
+		// fmt.Printf("port: 0x%04X data: 0x%02X \n", port, data)
 	}
 }
