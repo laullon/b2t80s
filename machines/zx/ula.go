@@ -154,7 +154,7 @@ func (ula *ula) FrameDone() {
 	ula.frame = (ula.frame + 1) & 0x1f
 	for y := 0; y < 296; y++ {
 		for x := 0; x < 352; x++ {
-			ula.display.Set(x, y, ula.getPixel(x, y))
+			ula.display.SetRGBA(x, y, ula.getPixel(x, y))
 		}
 	}
 }
@@ -205,7 +205,7 @@ func (ula *ula) Display() image.Image {
 	return ula.display
 }
 
-func (ula *ula) getPixel(rx, ry int) color.Color {
+func (ula *ula) getPixel(rx, ry int) color.RGBA {
 	border := false
 	if ry < ula.displayStart || ry >= ula.displayStart+192 {
 		border = true

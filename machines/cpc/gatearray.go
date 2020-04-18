@@ -94,27 +94,27 @@ func (ga *gatearray) Tick() {
 		cs := ga.decode(ga.mem.getScreenByte(addr))
 		cs = append(cs, ga.decode(ga.mem.getScreenByte(addr+1))...)
 		for off, c := range cs {
-			ga.display.Set((ga.x*8)+off, ga.y, ga.palette[c])
+			ga.display.SetRGBA((ga.x*8)+off, ga.y, ga.palette[c])
 		}
 	} else {
 		for i := 0; i < 8; i++ {
-			ga.display.Set((ga.x*8)+i, ga.y, ga.borderColor)
+			ga.display.SetRGBA((ga.x*8)+i, ga.y, ga.borderColor)
 		}
 
 		// if ga.crtc.status.hSync || ga.crtc.status.vSync {
 		// 	for i := 0; i < 8; i += 2 {
-		// 		ga.display.Set((ga.x*8)+i, ga.y, color.RGBA{0x00, 0x00, 0x00, 0xff})
+		// 		ga.display.SetRGBA((ga.x*8)+i, ga.y, color.RGBA{0x00, 0x00, 0x00, 0xff})
 		// 	}
 		// }
 
 		// if ga.x == 0 {
 		// 	if ga.screenMode == 0 {
 		// 		for i := 0; i < 8; i++ {
-		// 			ga.display.Set((ga.x*8)+i, ga.y, color.RGBA{0x00, 0xff, 0x00, 0xff})
+		// 			ga.display.SetRGBA((ga.x*8)+i, ga.y, color.RGBA{0x00, 0xff, 0x00, 0xff})
 		// 		}
 		// 	} else if ga.screenMode == 1 {
 		// 		for i := 0; i < 8; i++ {
-		// 			ga.display.Set((ga.x*8)+i, ga.y, color.RGBA{0x00, 0x00, 0xff, 0xff})
+		// 			ga.display.SetRGBA((ga.x*8)+i, ga.y, color.RGBA{0x00, 0x00, 0xff, 0xff})
 		// 		}
 		// 	}
 		// }
@@ -122,7 +122,7 @@ func (ga *gatearray) Tick() {
 		// if ga.x == 1 {
 		// 	if ga.hSyncCount == 0 {
 		// 		for i := 0; i < 8; i++ {
-		// 			ga.display.Set((ga.x*8)+i, ga.y, color.RGBA{0xff, 0x00, 0x00, 0xff})
+		// 			ga.display.SetRGBA((ga.x*8)+i, ga.y, color.RGBA{0xff, 0x00, 0x00, 0xff})
 		// 		}
 		// 	}
 		// }

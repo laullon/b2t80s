@@ -6,3 +6,4 @@ zout
 *.cdt
 dump.txt
 data.go
+cpu.prof
