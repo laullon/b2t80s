@@ -8,7 +8,7 @@ import (
 )
 
 func (ula *ula) OnKeyEvent(key *fyne.KeyEvent) {
-	// fmt.Println("key:", key.Name)
+	//fmt.Println("key:", key.Name)
 	switch key.Name {
 
 	case fyne.Key1:
@@ -77,7 +77,7 @@ func (ula *ula) OnKeyEvent(key *fyne.KeyEvent) {
 	case fyne.KeyH:
 		ula.keyboardRow[6] ^= 0b00010000
 
-	case "LeftShift":
+	case "LeftShift", "RightShift":
 		ula.keyboardRow[0] ^= 0b00000001
 	case fyne.KeyZ:
 		ula.keyboardRow[0] ^= 0b00000010
@@ -90,7 +90,7 @@ func (ula *ula) OnKeyEvent(key *fyne.KeyEvent) {
 
 	case "Space":
 		ula.keyboardRow[7] ^= 0b00000001
-	case "RightSuper":
+	case "LeftControl", "RightControl":
 		ula.keyboardRow[7] ^= 0b00000010
 	case fyne.KeyM:
 		ula.keyboardRow[7] ^= 0b00000100
