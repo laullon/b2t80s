@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+
+	"golang.org/x/image/draw"
 )
 
 type gatearray struct {
@@ -20,7 +22,8 @@ type gatearray struct {
 	pen     byte
 	palette []color.RGBA
 
-	display *image.RGBA
+	display       *image.RGBA
+	displayScaled *image.RGBA
 
 	prevHSync, prevVSync           bool
 	hSyncCount, hSyncsInVSyncCount byte
@@ -65,10 +68,11 @@ var colours = []color.RGBA{
 
 func newGateArray(mem *memory, crtc *crtc) *gatearray {
 	ga := &gatearray{
-		mem:     mem,
-		crtc:    crtc,
-		palette: make([]color.RGBA, 16),
-		display: image.NewRGBA(image.Rect(0, 0, 512, 312)),
+		mem:           mem,
+		crtc:          crtc,
+		palette:       make([]color.RGBA, 16),
+		displayScaled: image.NewRGBA(image.Rect(0, 0, 969, 642)),
+		display:       image.NewRGBA(image.Rect(0, 0, 960, 312)),
 
 		decode: to1bpp,
 		ppc:    16,
@@ -85,44 +89,48 @@ func (ga *gatearray) Tick() {
 
 	if !ga.prevVSync && ga.crtc.status.vSync {
 		ga.y = 0
-		ga.display.Rect.Min = image.Point{X: int(ga.crtc.regs[3]&0x0f) * 8, Y: 34}
-		ga.display.Rect.Max = image.Point{X: int(ga.crtc.regs[3]&0x0f)*8 + 384, Y: 34 + 272}
+		ga.display.Rect.Min = image.Point{X: (int(ga.crtc.regs[3]&0x0f) * 8) * 2, Y: 34}
+		ga.display.Rect.Max = image.Point{X: (int(ga.crtc.regs[3]&0x0f)*8 + 384) * 2, Y: (34 + 272)}
+		ga.displayScaled.Rect.Min = image.Point{X: (int(ga.crtc.regs[3]&0x0f) * 8) * 2, Y: 34 * 2}
+		ga.displayScaled.Rect.Max = image.Point{X: (int(ga.crtc.regs[3]&0x0f)*8 + 384) * 2, Y: (34 + 272) * 2}
 	}
 
+	pixles := 16
+	x := ga.x * pixles
 	if ga.crtc.status.disPen {
 		addr := ga.crtc.status.getAddress()
 		cs := ga.decode(ga.mem.getScreenByte(addr))
 		cs = append(cs, ga.decode(ga.mem.getScreenByte(addr+1))...)
 		for off, c := range cs {
-			ga.display.SetRGBA((ga.x*8)+off, ga.y, ga.palette[c])
+			ga.display.SetRGBA(x+off, ga.y, ga.palette[c])
 		}
 	} else {
-		for i := 0; i < 8; i++ {
-			ga.display.SetRGBA((ga.x*8)+i, ga.y, ga.borderColor)
+		for i := 0; i < pixles; i++ {
+			ga.display.SetRGBA(x+i, ga.y, ga.borderColor)
 		}
 
 		// if ga.crtc.status.hSync || ga.crtc.status.vSync {
-		// 	for i := 0; i < 8; i += 2 {
-		// 		ga.display.SetRGBA((ga.x*8)+i, ga.y, color.RGBA{0x00, 0x00, 0x00, 0xff})
+		// 	for i := 0; i < pixles; i += 2 {
+		// 		ga.display.SetRGBA(x+i, ga.y, color.RGBA{0x00, 0x00, 0x00, 0xff})
 		// 	}
 		// }
 
 		// if ga.x == 0 {
 		// 	if ga.screenMode == 0 {
-		// 		for i := 0; i < 8; i++ {
-		// 			ga.display.SetRGBA((ga.x*8)+i, ga.y, color.RGBA{0x00, 0xff, 0x00, 0xff})
+		// 		for i := 0; i < pixles; i++ {
+		// 			ga.display.SetRGBA(x+i, ga.y, color.RGBA{0x00, 0xff, 0x00, 0xff})
 		// 		}
 		// 	} else if ga.screenMode == 1 {
-		// 		for i := 0; i < 8; i++ {
-		// 			ga.display.SetRGBA((ga.x*8)+i, ga.y, color.RGBA{0x00, 0x00, 0xff, 0xff})
+		// 		for i := 0; i < pixles; i++ {
+		// 			ga.display.SetRGBA(x+i, ga.y, color.RGBA{0x00, 0x00, 0xff, 0xff})
 		// 		}
 		// 	}
 		// }
 
 		// if ga.x == 1 {
 		// 	if ga.hSyncCount == 0 {
-		// 		for i := 0; i < 8; i++ {
-		// 			ga.display.SetRGBA((ga.x*8)+i, ga.y, color.RGBA{0xff, 0x00, 0x00, 0xff})
+		// 		for i := 0; i < pixles; i++ {
+		// 			ga.display.SetRGBA(x+i, ga.y, color.RGBA{0xff, 0x00, 0x00, 0xff})
 		// 		}
 		// 	}
 		// }
@@ -160,7 +168,8 @@ func (ga *gatearray) Tick() {
 }
 
 func (ga *gatearray) FrameEnded() {
-	// draw.NearestNeighbor.Scale(ga.display, ga.displayFrame, ga.display, ga.display.Bounds(), draw.Over, nil)
+	// TODO write a custom function to double horizontal lines, no need for this
+	draw.NearestNeighbor.Scale(ga.displayScaled, ga.displayScaled.Bounds(), ga.display, ga.display.Bounds(), draw.Over, nil)
 }
 
 func bit2value(b, bit, v byte) byte {
@@ -173,7 +182,7 @@ func bit2value(b, bit, v byte) byte {
 func to4bpp(b byte) []byte {
 	pixel1 := bit2value(b, 1, 0b1000) | bit2value(b, 5, 0b0100) | bit2value(b, 3, 0b0010) | bit2value(b, 7, 0b0001)
 	pixel2 := bit2value(b, 0, 0b1000) | bit2value(b, 4, 0b0100) | bit2value(b, 2, 0b0010) | bit2value(b, 6, 0b0001)
-	return []byte{pixel1, pixel1, pixel2, pixel2}
+	return []byte{pixel1, pixel1, pixel1, pixel1, pixel2, pixel2, pixel2, pixel2}
 }
 
 func to2bpp(b byte) []byte {
@@ -181,7 +190,7 @@ func to2bpp(b byte) []byte {
 	pixel2 := bit2value(b, 2, 0b10) | bit2value(b, 6, 0b01)
 	pixel3 := bit2value(b, 1, 0b10) | bit2value(b, 5, 0b01)
 	pixel4 := bit2value(b, 0, 0b10) | bit2value(b, 4, 0b01)
-	return []byte{pixel1, pixel2, pixel3, pixel4}
+	return []byte{pixel1, pixel1, pixel2, pixel2, pixel3, pixel3, pixel4, pixel4}
 }
 
 func to1bpp(b byte) []byte {
