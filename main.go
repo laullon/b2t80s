@@ -66,21 +66,28 @@ func main() {
 	// log.Print(cassette)
 
 	var machine machines.Machine
+	var name string
 
 	if len(*z80File) > 0 {
 		machine = zx.LoadZ80File(*z80File)
+		name = "ZX Spectrum"
 	} else {
 		switch *mode {
 		case "48k":
 			machine = zx.NewZX48K(cassette)
+			name = "ZX Spectrum 48k"
 		case "128k":
 			machine = zx.NewZX128K(cassette)
+			name = "ZX Spectrum 128k"
 		case "plus3":
 			machine = zx.NewZXPlus3(cassette)
+			name = "ZX Spectrum +3"
 		case "cpc464", "cpc":
 			machine = cpc.NewCPC(true, cassette)
+			name = "Amstrad CPC 464"
 		case "cpc6128":
 			machine = cpc.NewCPC(false, cassette)
+			name = "Amstrad CPC 6128"
 		default:
 			panic(fmt.Errorf("mode '%s' not valid", *mode))
 		}
@@ -103,7 +110,7 @@ func main() {
 	display.ScalingFilter = canvas.NearestFilter
 	display.SetMinSize(fyne.NewSize(352*2, 296*2))
 
-	w := app.NewWindow("ZX Spectrum")
+	w := app.NewWindow(name + " - b2t80s Emulator")
 
 	reg := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
 	pas := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
@@ -190,6 +197,7 @@ func main() {
 		machine.Run()
 	}()
 
+	w.CenterOnScreen()
 	w.ShowAndRun()
 
 	if *memprofile != "" {

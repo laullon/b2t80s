@@ -62,7 +62,7 @@ func (mem *memory) Paging(config byte) {
 	case 7:
 		mem.activeBanks = []byte{0, 7, 2, 3}
 	}
-	fmt.Printf("[mem] mem.activeBanks: %v\n", mem.activeBanks)
+	// fmt.Printf("[mem] mem.activeBanks: %v\n", mem.activeBanks)
 }
 
 func (mem *memory) decodeAddress(addr uint16) (page byte, bank byte, pos uint16) {

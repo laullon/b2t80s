@@ -220,7 +220,7 @@ func (ga *gatearray) WritePort(port uint16, data byte) {
 		} else {
 			if ga.borderColor != colours[data&0x1f] {
 				ga.borderColor = colours[data&0x1f]
-				println("ga.borderColor:", data&0x1f, ga.y)
+				// println("ga.borderColor:", data&0x1f, ga.y)
 				// draw.Draw(ga.display, ga.display.Bounds(), &image.Uniform{ga.borderColor}, image.ZP, draw.Src)
 			}
 		}
@@ -246,7 +246,7 @@ func (ga *gatearray) WritePort(port uint16, data byte) {
 			default:
 				// panic(screenMode)
 			}
-			println("screenMode", screenMode, ga.y)
+			// println("screenMode", screenMode, ga.y)
 		}
 		// println("[ga]", "lowerRomEnable:", ga.mem.lowerRomEnable, "upperRomEnable:", ga.mem.upperRomEnable, "screenMode:", ga.screenMode)
 	} else if f == 3 {
