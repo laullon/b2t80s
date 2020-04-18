@@ -155,7 +155,7 @@ func (m *cpc) OnKeyEvent(event *fyne.KeyEvent) {
 }
 
 func (m *cpc) Display() image.Image {
-	return m.ga.display
+	return m.ga.displayScaled
 }
 
 func (m *cpc) GetVolumeControl() func(float64) {
