@@ -31,6 +31,21 @@ Z80 Based Computers Emulator (back to the 80's)
 
 ## Build and Run 
 
+### Requirements
+
+#### All OS
+- Go 1.13+
+
+#### Linux:
+- libgl1-mesa-dev
+- libegl1-mesa-dev
+- libgles2-mesa-dev
+- xorg-dev
+- libasound2-dev
+
+#### Macos:
+- Xcode (latest)
+
 ### Dependencies
 ```
 go get -u github.com/go-bindata/go-bindata/...
