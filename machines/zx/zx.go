@@ -9,6 +9,7 @@ import (
 
 	"fyne.io/fyne"
 	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/emulator/storage/cassette"
 	"github.com/laullon/b2t80s/machines"
 	"github.com/laullon/b2t80s/z80"
 )
@@ -28,14 +29,14 @@ type zx struct {
 	ula      *ula
 	cpu      emulator.CPU
 	mem      emulator.Memory
-	cassete  emulator.Cassette
+	cassete  cassette.Cassette
 	sound    emulator.SoundSystem
 	debugger emulator.Debugger
 
 	onEndFrame func()
 }
 
-func NewZX(cpu emulator.CPU, ula *ula, mem emulator.Memory, cassete emulator.Cassette, sound emulator.SoundSystem, onEndFrame func()) *zx {
+func NewZX(cpu emulator.CPU, ula *ula, mem emulator.Memory, cassete cassette.Cassette, sound emulator.SoundSystem, onEndFrame func()) *zx {
 	zx := &zx{
 		ula:        ula,
 		cpu:        cpu,

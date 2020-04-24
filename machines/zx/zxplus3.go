@@ -5,6 +5,7 @@ import (
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/ay8912"
 	"github.com/laullon/b2t80s/emulator/files"
+	"github.com/laullon/b2t80s/emulator/storage/cassette"
 	"github.com/laullon/b2t80s/machines"
 	"github.com/laullon/b2t80s/z80"
 )
@@ -14,7 +15,7 @@ type zxplus3 struct {
 	ay8912 ay8912.AY8912
 }
 
-func NewZXPlus3(cassette emulator.Cassette) machines.Machine {
+func NewZXPlus3(cassette cassette.Cassette) machines.Machine {
 	mem := NewMemory(ZXPLUS3)
 	mem.LoadRom(0, data.MustAsset("data/roms/plus3/Spectrum+3_Spanish_ROM0.bin"))
 	mem.LoadRom(1, data.MustAsset("data/roms/plus3/Spectrum+3_Spanish_ROM1.bin"))

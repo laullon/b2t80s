@@ -10,6 +10,7 @@ import (
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/ay8912"
 	"github.com/laullon/b2t80s/emulator/files"
+	"github.com/laullon/b2t80s/emulator/storage/cassette"
 	"github.com/laullon/b2t80s/machines"
 	"github.com/laullon/b2t80s/z80"
 )
@@ -29,14 +30,14 @@ type cpc struct {
 	mem      emulator.Memory
 	ga       *gatearray
 	ppi      *ppi
-	cassette emulator.Cassette
+	cassette cassette.Cassette
 	sound    emulator.SoundSystem
 	clock    emulator.Clock
 
 	debugger emulator.Debugger
 }
 
-func NewCPC(cpc464 bool, cassette emulator.Cassette) machines.Machine {
+func NewCPC(cpc464 bool, cassette cassette.Cassette) machines.Machine {
 	romFile := "data/roms/cpc6128.rom"
 	if cpc464 {
 		romFile = "data/roms/cpc464.rom"
@@ -71,6 +72,7 @@ func NewCPC(cpc464 bool, cassette emulator.Cassette) machines.Machine {
 
 	ppi := newPPI(crtc, cassette, ay8912)
 	cpu.RegisterPort(emulator.PortMask{Mask: 0x0800, Value: 0x0000}, ppi)
+	sound.AddSource(ppi)
 
 	ga := newGateArray(mem, crtc)
 	cpu.RegisterPort(emulator.PortMask{Mask: 0xc000, Value: 0x4000}, ga)
@@ -118,33 +120,32 @@ func NewCPC(cpc464 bool, cassette emulator.Cassette) machines.Machine {
 	// } else {
 	// }
 
-	if *machines.LoadSlow {
-		// if cpc464 {
-		// 	cpu.RegisterTrap(0x2836, cassette.Play)
-		// } else {
-		// 	cpu.RegisterTrap(0x29A6, cassette.Play)
-		// }
-	} else {
-		if cassette.Ready() {
-			if cpc464 {
-				cpu.RegisterTrap(0x2836, cpc.loadTapeBlockCPC464)
-			} else {
-				cpu.RegisterTrap(0x29A6, cpc.loadTapeBlockCPC6128)
-			}
-		}
-	}
+	// if *machines.LoadSlow {
+	// 	// if cpc464 {
+	// 	// 	cpu.RegisterTrap(0x2836, cassette.Play)
+	// 	// } else {
+	// 	// 	cpu.RegisterTrap(0x29A6, cassette.Play)
+	// 	// }
+	// } else {
+	// 	if cassette.Ready() {
+	// 		if cpc464 {
+	// 			cpu.RegisterTrap(0x2836, cpc.loadTapeBlockCPC464)
+	// 		} else {
+	// 			cpu.RegisterTrap(0x29A6, cpc.loadTapeBlockCPC6128)
+	// 		}
+	// 	}
+	// }
 
-	cpc.cassette.Play()
 	return cpc
 }
 
-func (m *cpc) loadTapeBlockCPC464() uint16 {
-	return m.cpu.LoadTapeBlockCPC(0x2872)
-}
+// func (m *cpc) loadTapeBlockCPC464() uint16 {
+// 	return m.cpu.LoadTapeBlockCPC(0x2872)
+// }
 
-func (m *cpc) loadTapeBlockCPC6128() uint16 {
-	return m.cpu.LoadTapeBlockCPC(0x29E2)
-}
+// func (m *cpc) loadTapeBlockCPC6128() uint16 {
+// 	return m.cpu.LoadTapeBlockCPC(0x29E2)
+// }
 
 func (m *cpc) Debugger() emulator.Debugger {
 	return m.debugger

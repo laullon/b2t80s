@@ -1,9 +1,12 @@
 package cpc
 
 import (
+	"sync"
+
 	"fyne.io/fyne"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/ay8912"
+	"github.com/laullon/b2t80s/emulator/storage/cassette"
 )
 
 const (
@@ -15,7 +18,7 @@ const (
 
 type ppi struct {
 	crtc     *crtc
-	cassette emulator.Cassette
+	cassette cassette.Cassette
 
 	keyboardRows []byte
 	keyboardLine byte
@@ -28,9 +31,12 @@ type ppi struct {
 	a, b, c byte
 
 	aInput, bInput, clInput, chInput bool
+
+	soundOut []*emulator.SoundData
+	mux      sync.Mutex
 }
 
-func newPPI(crtc *crtc, cassette emulator.Cassette, psg ay8912.AY8912) *ppi {
+func newPPI(crtc *crtc, cassette cassette.Cassette, psg ay8912.AY8912) *ppi {
 	ppi := &ppi{
 		psg:          psg,
 		crtc:         crtc,
@@ -375,4 +381,30 @@ func (ppi *ppi) OnKeyEvent(key *fyne.KeyEvent) {
 		// default:
 		// fmt.Println("key:", key.Name)
 	}
+}
+
+func (ppi *ppi) SoundTick() {
+	ppi.mux.Lock()
+	defer ppi.mux.Unlock()
+	v := 0.0
+	if ppi.cassette.Ear() {
+		v = 1
+	}
+	ppi.soundOut = append(ppi.soundOut, &emulator.SoundData{L: v, R: v})
+}
+
+func (ppi *ppi) GetBuffer(max int) (res []*emulator.SoundData, l int) {
+	ppi.mux.Lock()
+	defer ppi.mux.Unlock()
+
+	if len(ppi.soundOut) > max {
+		res = ppi.soundOut[:max]
+		ppi.soundOut = ppi.soundOut[max:]
+		l = max
+	} else {
+		res = ppi.soundOut
+		ppi.soundOut = nil
+		l = len(res)
+	}
+	return
 }

@@ -62,6 +62,7 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/spf13/afero v1.1.2/go.mod h1:j4pytiNVoe2o6bmDsKpLACNPDBIoEAkihy7loJ1B0CQ=
 github.com/spf13/pflag v1.0.3/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
+github.com/sqs/goreturns v0.0.0-20181028201513-538ac6014518/go.mod h1:CKI4AZ4XmGV240rTHfO0hfE83S6/a3/Q1siZJ/vXf7A=
 github.com/srwiley/oksvg v0.0.0-20190829233741-58e08c8fe40e h1:LJUrNHytcMXWKxnULIHPe5SCb1jDpO9o672VB1x2EuQ=
 github.com/srwiley/oksvg v0.0.0-20190829233741-58e08c8fe40e/go.mod h1:afMbS0qvv1m5tfENCwnOdZGOF8RGR/FsZ7bvBxQGZG4=
 github.com/srwiley/oksvg v0.0.0-20200311192757-870daf9aa564 h1:HunZiaEKNGVdhTRQOVpMmj5MQnGnv+e8uZNu3xFLgyM=

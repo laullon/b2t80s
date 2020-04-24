@@ -17,8 +17,10 @@ import (
 	"fyne.io/fyne/canvas"
 	"fyne.io/fyne/driver/desktop"
 	"fyne.io/fyne/layout"
+	"fyne.io/fyne/theme"
 	"fyne.io/fyne/widget"
-	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/data"
+	"github.com/laullon/b2t80s/emulator/storage/cassette"
 	"github.com/laullon/b2t80s/machines"
 	"github.com/laullon/b2t80s/machines/cpc"
 	"github.com/laullon/b2t80s/machines/zx"
@@ -59,11 +61,11 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	cassette := emulator.NewTapCassette()
+	cassette := cassette.New()
 	if len(*tapFile) > 0 {
 		cassette.LoadTapFile(*tapFile)
+		log.Print(cassette)
 	}
-	// log.Print(cassette)
 
 	var machine machines.Machine
 	var name string
@@ -105,6 +107,7 @@ func main() {
 	}
 
 	app := app.New()
+	app.Settings().SetTheme(theme.LightTheme())
 	display := canvas.NewImageFromImage(machine.Display())
 	display.FillMode = canvas.ImageFillOriginal
 	display.ScalingFilter = canvas.NearestFilter
@@ -122,8 +125,16 @@ func main() {
 	volumen.OnChanged = machine.GetVolumeControl()
 	volumen.MinSize()
 
+	toolbar := widget.NewToolbar(widget.NewToolbarSpacer(),
+		widget.NewToolbarSeparator(),
+		widget.NewToolbarAction(fyne.NewStaticResource("pp", data.MustAsset("data/icons/cassette.png")), func() {}),
+		widget.NewToolbarAction(fyne.NewStaticResource("pp", data.MustAsset("data/icons/controls-play.png")), func() { cassette.Motor(true) }),
+		widget.NewToolbarAction(fyne.NewStaticResource("pp", data.MustAsset("data/icons/controls-stop.png")), func() { cassette.Motor(false) }),
+	)
+
 	statusBar := fyne.NewContainerWithLayout(
-		layout.NewBorderLayout(nil, nil, status, volumen),
+		layout.NewBorderLayout(toolbar, nil, status, volumen),
+		toolbar,
 		status,
 		volumen,
 	)

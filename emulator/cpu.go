@@ -34,8 +34,8 @@ type CPU interface {
 	RegisterTrap(pc uint16, trap CPUTrap)
 	RegisterPort(mask PortMask, manager PortManager)
 
-	LoadTapeBlock() uint16
-	LoadTapeBlockCPC(uint16) uint16
+	// LoadTapeBlock() uint16
+	// LoadTapeBlockCPC(uint16) uint16
 
 	SetClock(c Clock)
 

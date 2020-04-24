@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/emulator/storage/cassette"
 )
 
 var overflowAddTable = []bool{false, false, false, true, true, false, false, false}
@@ -19,7 +20,7 @@ var parityTable = make([]bool, 0x100)
 
 type z80 struct {
 	memory   emulator.Memory
-	cassette emulator.Cassette
+	cassette cassette.Cassette
 	debugger emulator.Debugger
 
 	halt, haltDone bool
@@ -95,7 +96,7 @@ func init() {
 
 }
 
-func NewZ80(mem emulator.Memory, cassette emulator.Cassette) emulator.CPU {
+func NewZ80(mem emulator.Memory, cassette cassette.Cassette) emulator.CPU {
 	LoadOPCodess()
 	cpu := &z80{
 		debug: false,
@@ -324,60 +325,60 @@ func (cpu *z80) Step() {
 	return
 }
 
-func (cpu *z80) LoadTapeBlock() uint16 {
-	block := cpu.cassette.NextBlock()
-	for len(block.GetData()) == 0 {
-		block = cpu.cassette.NextBlock()
-	}
+// func (cpu *z80) LoadTapeBlock() uint16 {
+// block := cpu.cassette.NextBlock()
+// for len(block.GetData()) == 0 {
+// 	block = cpu.cassette.NextBlock()
+// }
 
-	requestedLength := getRR(cpu.d, cpu.e)
-	startAddress := getRR(cpu.ixh, cpu.ixl)
-	fmt.Printf("Loading block '%s' to 0x%04x (bl:0x%04x, l:0x%04x, bt:%d, a:%d)\n", block.Name(), startAddress, len(block.GetData()), requestedLength, block.Type(), cpu._a)
-	if cpu._a == block.Type() {
-		if cpu._f.C {
-			checksum := block.Type()
-			data := block.GetData()
-			for i := uint16(0); i < requestedLength; i++ {
-				loadedByte := data[i+1]
-				cpu.memory.PutByte(startAddress+i, loadedByte)
-				checksum ^= loadedByte
-			}
-			cpu.f.C = checksum == data[requestedLength+1]
-		} else {
-			cpu.f.C = true
-		}
-		// log.Print("done")
-	} else {
-		cpu.f.C = false
-		// log.Print("BAD Block")
-	}
-	return 0x05e2
-}
+// requestedLength := getRR(cpu.d, cpu.e)
+// startAddress := getRR(cpu.ixh, cpu.ixl)
+// fmt.Printf("Loading block '%s' to 0x%04x (bl:0x%04x, l:0x%04x, bt:%d, a:%d)\n", block.Name(), startAddress, len(block.GetData()), requestedLength, block.Type(), cpu._a)
+// if cpu._a == block.Type() {
+// 	if cpu._f.C {
+// 		checksum := block.Type()
+// 		data := block.GetData()
+// 		for i := uint16(0); i < requestedLength; i++ {
+// 			loadedByte := data[i+1]
+// 			cpu.memory.PutByte(startAddress+i, loadedByte)
+// 			checksum ^= loadedByte
+// 		}
+// 		cpu.f.C = checksum == data[requestedLength+1]
+// 	} else {
+// 		cpu.f.C = true
+// 	}
+// 	// log.Print("done")
+// } else {
+// 	cpu.f.C = false
+// 	// log.Print("BAD Block")
+// }
+// return 0x05e2
+// }
 
 // TODO: move out
-func (cpu *z80) LoadTapeBlockCPC(exit uint16) uint16 {
-	block := cpu.cassette.NextBlock()
-	if len(block.GetData()) == 0 {
-		block = cpu.cassette.NextBlock()
-	}
+// func (cpu *z80) LoadTapeBlockCPC(exit uint16) uint16 {
+// 	block := cpu.cassette.NextBlock()
+// 	if len(block.GetData()) == 0 {
+// 		block = cpu.cassette.NextBlock()
+// 	}
 
-	requestedLength := getRR(cpu.d, cpu.e)
-	startAddress := getRR(cpu.h, cpu.l)
-	t := cpu.a
-	// fmt.Printf("Loading block '%s' to 0x%04x (bl:0x%04x, l:0x%04x, bt:0x%02X, t:0x%02X)\n", block.Name(), startAddress, len(block.GetData()), requestedLength, block.Type(), t)
-	if t == block.Type() {
-		data := block.GetData()
-		for i := uint16(0); i < requestedLength; i++ {
-			cpu.memory.PutByte(startAddress+i, data[i+1])
-		}
-		cpu.f.setByte(0x45)
-		// log.Print("Done")
-		// println(hex.Dump(cpu.memory.GetBlock(startAddress, requestedLength)))
-	} else {
-		// log.Print("BAD Block")
-	}
-	return exit
-}
+// 	requestedLength := getRR(cpu.d, cpu.e)
+// 	startAddress := getRR(cpu.h, cpu.l)
+// 	t := cpu.a
+// 	// fmt.Printf("Loading block '%s' to 0x%04x (bl:0x%04x, l:0x%04x, bt:0x%02X, t:0x%02X)\n", block.Name(), startAddress, len(block.GetData()), requestedLength, block.Type(), t)
+// 	if t == block.Type() {
+// 		data := block.GetData()
+// 		for i := uint16(0); i < requestedLength; i++ {
+// 			cpu.memory.PutByte(startAddress+i, data[i+1])
+// 		}
+// 		cpu.f.setByte(0x45)
+// 		// log.Print("Done")
+// 		// println(hex.Dump(cpu.memory.GetBlock(startAddress, requestedLength)))
+// 	} else {
+// 		// log.Print("BAD Block")
+// 	}
+// 	return exit
+// }
 
 func (cpu *z80) pause() {
 	fmt.Print("Press 'Enter' to continue...")
