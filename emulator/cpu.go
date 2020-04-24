@@ -20,15 +20,8 @@ type CPU interface {
 
 	Interrupt(bool)
 
-	PC() uint16
-	SetPC(pc uint16)
+	Registers() interface{}
 
-	SP() StackPointer
-
-	DumpRegisters() ([]byte, uint16, uint16)
-	SetRegisters(regs []byte, i, r, iff1, mode byte)
-
-	SetRegistersStr(line string, otherReg []byte)
 	SetDebuger(debugger Debugger)
 
 	RegisterTrap(pc uint16, trap CPUTrap)

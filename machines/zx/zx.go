@@ -136,16 +136,16 @@ func LoadZ80File(fileName string) machines.Machine {
 	// log.Printf("Loading z80 file '%s' v:%d h:%dk (%d)", fileName, version, model, h)
 
 	var machine machines.Machine
-	var cpu emulator.CPU
+	// var cpu emulator.CPU
 	var mem emulator.Memory
 	switch model {
 	case 48:
 		machine = NewZX48K(nil)
-		cpu = machine.(*zx48k).cpu
+		// cpu = machine.(*zx48k).cpu
 		mem = machine.(*zx48k).mem
 	case 128:
 		machine = NewZX128K(nil)
-		cpu = machine.(*zx128k).cpu
+		// cpu = machine.(*zx128k).cpu
 		mem = machine.(*zx128k).mem
 	}
 
@@ -161,17 +161,17 @@ func LoadZ80File(fileName string) machines.Machine {
 	regs = append(regs, file[18], file[17])    // _DE
 	regs = append(regs, file[20], file[19])    // _HL
 
-	cpu.SetRegisters(regs, file[10], file[11], file[27], file[29]&3)
-	cpu.SP().Set(getUint16(file[9], file[8]))
+	// cpu.SetRegisters(regs, file[10], file[11], file[27], file[29]&3)
+	// cpu.SP().Set(getUint16(file[9], file[8]))
 
 	if version == 1 {
-		pc := getUint16(file[7], file[6])
-		cpu.SetPC(pc)
+		// pc := getUint16(file[7], file[6])
+		// cpu.SetPC(pc)
 		data := file[30:]
 		copyMemoryBlock(data, uint16(len(data)), mem, uint16(0x4000))
 	} else {
-		pc := getUint16(file[33], file[32])
-		cpu.SetPC(pc)
+		// pc := getUint16(file[33], file[32])
+		// cpu.SetPC(pc)
 
 		block := file[30+file[30]+2:]
 		for len(block) > 0 {

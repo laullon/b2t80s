@@ -15,7 +15,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestST(t *testing.T) {
+func TestRegPair(t *testing.T) {
+	cpu := NewZ80(nil, nil)
+	cpu.Registers().(*Z80Registers).B = 0x0A
+	cpu.Registers().(*Z80Registers).C = 0x0B
+	assert.Equal(t, uint16(0x0A0B), cpu.Registers().(*Z80Registers).BC.get())
+}
+
+func TestSP(t *testing.T) {
 	memory := &dummyMemory{mem: make([]byte, 0xffff)}
 	sp := NewStackPointer(memory)
 
@@ -99,7 +106,8 @@ func TestOPCodes(t *testing.T) {
 			continue
 		}
 
-		cpu.SetRegistersStr(test.registers, test.otherReg)
+		setRegistersStr(cpu.Registers().(*Z80Registers), test.registers, test.otherReg)
+
 		for _, mem := range test.memory {
 			for i, b := range mem.bytes {
 				memory.PutByte(mem.start+uint16(i), b)
@@ -140,13 +148,13 @@ func TestOPCodes(t *testing.T) {
 				}
 			}
 
-			regis, sp, pc := cpu.DumpRegisters()
+			regs := cpu.Registers().(*Z80Registers)
 			registers := fmt.Sprintf(
 				"%02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %04x %04x",
-				regis[0], regis[1]&0b11010111, regis[2], regis[3], regis[4], regis[5], regis[6], regis[7],
-				regis[12], regis[13]&0b11010111, regis[14], regis[15], regis[16], regis[17], regis[18], regis[19],
-				regis[8], regis[9], regis[10], regis[11],
-				sp, pc,
+				regs.A, regs.F.getByte()&0b11010111, regs.B, regs.C, regs.D, regs.E, regs.H, regs.L,
+				regs._A, regs._F.getByte()&0b11010111, regs._B, regs._C, regs._D, regs._E, regs._H, regs._L,
+				regs.IXH, regs.IXL, regs.IYH, regs.IYL,
+				regs.SP.Get(), regs.PC,
 			)
 
 			t := assert.Equal(t, result.registers, registers, "test '%s' registers fail", test.name)
@@ -158,6 +166,38 @@ func TestOPCodes(t *testing.T) {
 			panic(fmt.Sprintf("result for test '%s' not found", test.name))
 		}
 	}
+}
+
+func setRegistersStr(cpu *Z80Registers, line string, otherReg []byte) {
+	regs := strings.Split(line, " ")
+	cpu.A, _ = setRRstr(regs[0])
+	cpu.B, cpu.C = setRRstr(regs[1])
+	cpu.D, cpu.E = setRRstr(regs[2])
+	cpu.H, cpu.L = setRRstr(regs[3])
+
+	cpu._A, _ = setRRstr(regs[4])
+	cpu._B, cpu._C = setRRstr(regs[5])
+	cpu._D, cpu._E = setRRstr(regs[6])
+	cpu._H, cpu._L = setRRstr(regs[7])
+
+	cpu.IXH, cpu.IXL = setRRstr(regs[8])
+	cpu.IYH, cpu.IYL = setRRstr(regs[9])
+
+	s, p := setRRstr(regs[10])
+	cpu.SP.Set(uint16(s)<<8 | uint16(p))
+
+	p, c := setRRstr(regs[11])
+	cpu.PC = uint16(p)<<8 | uint16(c)
+
+	_, f := setRRstr(regs[0])
+	cpu.F.setByte(f)
+	_, _f := setRRstr(regs[4])
+	cpu._F.setByte(_f)
+
+	cpu.I = otherReg[0]
+	cpu.R = otherReg[1]
+	cpu.R7 = otherReg[1]
+	cpu.IFF2 = otherReg[3] != 0
 }
 
 func parseMemory(str string) (pos uint16, b []byte) {
@@ -322,31 +362,38 @@ func TestZEXDoc(t *testing.T) {
 
 	cpu := NewZ80(mem, nil)
 	cpu.SetClock(&dummyClock{})
-	cpu.SetPC(0x100)
+	cpu.Registers().(*Z80Registers).PC = uint16(0x100)
 	cpu.RegisterTrap(0x5, func() uint16 {
-		regs, _, _ := cpu.DumpRegisters()
-		return printChar(regs[3], regs[4], regs[5], cpu.SP(), mem)
+		return printChar(cpu.Registers().(*Z80Registers), mem)
 	})
 
 	for {
 		cpu.Step()
-		if cpu.PC() == 0 {
+		if cpu.Registers().(*Z80Registers).PC == 0 {
 			assert.NotContains(t, cpmScreen, "ERROR")
 			return
 		}
 	}
 }
 
+func setRRstr(hl string) (uint8, uint8) {
+	decoded, err := hex.DecodeString(hl)
+	if err != nil {
+		panic(fmt.Sprintf("string: '%v' error: %v", hl, err))
+	}
+	return decoded[0], decoded[1]
+}
+
 // Emulate CP/M call 5; function is in register C.
 // Function 2: print char in register E
 // Function 9: print $ terminated string pointer in DE
-func printChar(cpu_c, cpu_d, cpu_e byte, cpu_sp emulator.StackPointer, memory emulator.Memory) uint16 {
-	switch byte(cpu_c) {
+func printChar(regs *Z80Registers, memory emulator.Memory) uint16 {
+	switch byte(regs.C) {
 	case 2:
-		cpmScreen = append(cpmScreen, cpu_e)
-		fmt.Printf("%c", cpu_e)
+		cpmScreen = append(cpmScreen, regs.E)
+		fmt.Printf("%c", regs.E)
 	case 9:
-		de := getRR(cpu_d, cpu_e)
+		de := regs.DE.get()
 		for addr := de; ; addr++ {
 			ch := memory.GetByte(addr)
 			if ch == '$' {
@@ -356,7 +403,7 @@ func printChar(cpu_c, cpu_d, cpu_e byte, cpu_sp emulator.StackPointer, memory em
 			fmt.Printf("%c", ch)
 		}
 	}
-	return cpu_sp.Pop()
+	return regs.SP.Pop()
 }
 
 // ***
