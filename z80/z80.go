@@ -25,15 +25,15 @@ type Z80Registers struct {
 
 	B  byte
 	C  byte
-	BC *regPair
+	BC *RegPair
 
 	D  byte
 	E  byte
-	DE *regPair
+	DE *RegPair
 
 	H  byte
 	L  byte
-	HL *regPair
+	HL *RegPair
 
 	I  byte
 	R  byte
@@ -44,20 +44,20 @@ type Z80Registers struct {
 
 	IXH byte
 	IXL byte
-	IX  *regPair
+	IX  *RegPair
 
 	IYH byte
 	IYL byte
-	IY  *regPair
+	IY  *RegPair
 
-	_A byte
-	_F *flags
-	_B byte
-	_C byte
-	_D byte
-	_E byte
-	_H byte
-	_L byte
+	Aalt byte
+	Falt *flags
+	Balt byte
+	Calt byte
+	Dalt byte
+	Ealt byte
+	Halt byte
+	Lalt byte
 }
 
 type z80 struct {
@@ -119,7 +119,7 @@ func NewZ80(mem emulator.Memory, cassette cassette.Cassette) emulator.CPU {
 				P: true,
 				N: true,
 			},
-			_F: &flags{
+			Falt: &flags{
 				Z: true,
 				C: true,
 				S: true,
@@ -131,11 +131,11 @@ func NewZ80(mem emulator.Memory, cassette cassette.Cassette) emulator.CPU {
 		},
 	}
 
-	cpu.regs.BC = &regPair{&cpu.regs.B, &cpu.regs.C}
-	cpu.regs.DE = &regPair{&cpu.regs.D, &cpu.regs.E}
-	cpu.regs.HL = &regPair{&cpu.regs.H, &cpu.regs.L}
-	cpu.regs.IX = &regPair{&cpu.regs.IXH, &cpu.regs.IXL}
-	cpu.regs.IY = &regPair{&cpu.regs.IYH, &cpu.regs.IYL}
+	cpu.regs.BC = &RegPair{&cpu.regs.B, &cpu.regs.C}
+	cpu.regs.DE = &RegPair{&cpu.regs.D, &cpu.regs.E}
+	cpu.regs.HL = &RegPair{&cpu.regs.H, &cpu.regs.L}
+	cpu.regs.IX = &RegPair{&cpu.regs.IXH, &cpu.regs.IXL}
+	cpu.regs.IY = &RegPair{&cpu.regs.IYH, &cpu.regs.IYL}
 	cpu.regs.SP = NewStackPointer(cpu.memory)
 
 	return cpu
@@ -170,14 +170,14 @@ func (cpu *z80) SetRegisters(regs []byte, i, r, iff1, mode byte) {
 	cpu.regs.IXL = regs[9]
 	cpu.regs.IYH = regs[10]
 	cpu.regs.IYL = regs[11]
-	cpu.regs._A = regs[12]
-	cpu.regs._F.setByte(regs[13])
-	cpu.regs._B = regs[14]
-	cpu.regs._C = regs[15]
-	cpu.regs._D = regs[16]
-	cpu.regs._E = regs[17]
-	cpu.regs._H = regs[18]
-	cpu.regs._L = regs[19]
+	cpu.regs.Aalt = regs[12]
+	cpu.regs.Falt.setByte(regs[13])
+	cpu.regs.Balt = regs[14]
+	cpu.regs.Calt = regs[15]
+	cpu.regs.Dalt = regs[16]
+	cpu.regs.Ealt = regs[17]
+	cpu.regs.Halt = regs[18]
+	cpu.regs.Lalt = regs[19]
 
 	cpu.regs.I = i
 	cpu.regs.R = r
@@ -287,7 +287,7 @@ func (cpu *z80) Step() {
 // requestedLength := getRR(cpu.regs.D, cpu.regs.E)
 // startAddress := getRR(cpu.regs.IXH, cpu.regs.IXL)
 // fmt.Printf("Loading block '%s' to 0x%04x (bl:0x%04x, l:0x%04x, bt:%d, a:%d)\n", block.Name(), startAddress, len(block.GetData()), requestedLength, block.Type(), cpu.regs._A)
-// if cpu.regs._A == block.Type() {
+// if cpu.regs.Aalt  == block.Type() {
 // 	if cpu.regs._F.C {
 // 		checksum := block.Type()
 // 		data := block.GetData()

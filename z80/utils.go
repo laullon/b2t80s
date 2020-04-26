@@ -15,15 +15,15 @@ func putWord(mem emulator.Memory, addr, w uint16) {
 	mem.PutByte(addr+1, uint8(w>>8))
 }
 
-type regPair struct {
+type RegPair struct {
 	h, l *byte
 }
 
-func (reg *regPair) get() uint16 {
+func (reg *RegPair) Get() uint16 {
 	return uint16(*reg.h)<<8 | uint16(*reg.l)
 }
 
-func (reg *regPair) set(hl uint16) {
+func (reg *RegPair) Set(hl uint16) {
 	*reg.h = byte(hl >> 8)
 	*reg.l = byte(hl & 0x00ff)
 }

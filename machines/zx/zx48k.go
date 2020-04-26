@@ -20,32 +20,17 @@ func NewZX48K(cassette cassette.Cassette) machines.Machine {
 	}
 	mem.LoadRom(0, rom48)
 
-	clock := emulator.NewCLock(CLOCK_48k)
+	clock := emulator.NewCLock(clock48k)
 	ula := NewULA(mem, cassette, clock, false)
 	cpu := z80.NewZ80(ula, cassette)
 	ula.cpu = cpu
 
-	sound := emulator.NewSoundSystem(CLOCK_48k / 80)
+	sound := emulator.NewSoundSystem(clock48k / 80)
 	sound.AddSource(ula)
 
 	cpu.RegisterPort(emulator.PortMask{Mask: 0x00FF, Value: 0x00FE}, ula)
 	cpu.RegisterPort(emulator.PortMask{Mask: 0x00FF, Value: 0x00FF}, ula)
 	cpu.RegisterPort(emulator.PortMask{Mask: 0x00e0, Value: 0x0000}, &emulator.Kempston{})
-
-	// if cassette != nil && cassette.Ready() {
-	// 	if *machines.LoadSlow {
-	// 		cpu.RegisterTrap(0x056b, func() uint16 {
-	// 			if !cassette.IsMotorON() {
-	// 				cassette.Motor(true)
-	// 				cassette.Play()
-	// 			}
-	// 			return emulator.CONTINUE
-	// 		})
-	// 	} else {
-	// 		cpu.RegisterTrap(0x056b, cpu.LoadTapeBlock)
-	// 		cpu.RegisterTrap(0x12A9, ula.LoadCommand)
-	// 	}
-	// }
 
 	cpu.SetClock(clock)
 
@@ -53,7 +38,14 @@ func NewZX48K(cassette cassette.Cassette) machines.Machine {
 	clock.AddTicker(0, cassette)
 	clock.AddTicker(80, sound)
 
+	zx := NewZX(cpu, ula, mem, cassette, sound, nil)
+
+	if !*machines.LoadSlow {
+		cpu.RegisterTrap(0x056b, zx.loadDataBlock)
+		cpu.RegisterTrap(0x12A9, ula.LoadCommand)
+	}
+
 	return &zx48k{
-		zx: NewZX(cpu, ula, mem, cassette, sound, nil),
+		zx: zx,
 	}
 }

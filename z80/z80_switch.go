@@ -39,9 +39,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.rl(&cpu.regs.L)
 
 	case 0xcb16: // RL (HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.rl(&b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xfdcb16: // RL (IY+N)
 		iy := cpu.getIYn(ins.Mem[2])
@@ -71,9 +71,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.rr(&cpu.regs.L)
 
 	case 0xcb1e: // RR (HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.rr(&b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xfdcb1e: // RR (IY+N)
 		iy := cpu.getIYn(ins.Mem[2])
@@ -103,9 +103,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.sra(&cpu.regs.L)
 
 	case 0xcb2e: // SRA (HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.sra(&b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xcb27: // SLA A
 		cpu.sla(&cpu.regs.A)
@@ -129,9 +129,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.sla(&cpu.regs.L)
 
 	case 0xcb26: // SLA (HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.sla(&b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xfdcb26: // SLA (IY+N)
 		iy := cpu.getIYn(ins.Mem[2])
@@ -161,9 +161,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.rlc(&cpu.regs.L)
 
 	case 0xcb06: // RLC (HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.rlc(&b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xfdcb06: // RLC (IY+N)
 		iy := cpu.getIYn(ins.Mem[2])
@@ -193,9 +193,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.rrc(&cpu.regs.L)
 
 	case 0xcb0e: // RRC (HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.rrc(&b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xfdcb0e: // RRC (IY+N)
 		iy := cpu.getIYn(ins.Mem[2])
@@ -230,7 +230,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.regs.F.N = false
 
 	case 0xed67: // RRD
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		hlv := cpu.memory.GetByte(hl)
 		cpu.memory.PutByte(hl, (cpu.regs.A<<4 | hlv>>4))
 		cpu.regs.A = (cpu.regs.A & 0xf0) | (hlv & 0x0f)
@@ -242,7 +242,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.regs.F.N = false
 
 	case 0xed6f: // RLD
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		hlv := cpu.memory.GetByte(hl)
 		cpu.memory.PutByte(hl, (hlv<<4 | cpu.regs.A&0x0f))
 		cpu.regs.A = (cpu.regs.A & 0xf0) | (hlv >> 4)
@@ -443,23 +443,23 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.regs.SP.Push(af)
 
 	case 0xc5: // PUSH BC
-		bc := cpu.regs.BC.get()
+		bc := cpu.regs.BC.Get()
 		cpu.regs.SP.Push(bc)
 
 	case 0xd5: // PUSH DE
-		de := cpu.regs.DE.get()
+		de := cpu.regs.DE.Get()
 		cpu.regs.SP.Push(de)
 
 	case 0xe5: // PUSH HL
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		cpu.regs.SP.Push(hl)
 
 	case 0xdde5: // PUSH IX
-		ix := cpu.regs.IX.get()
+		ix := cpu.regs.IX.Get()
 		cpu.regs.SP.Push(ix)
 
 	case 0xfde5: // PUSH IY
-		iy := cpu.regs.IY.get()
+		iy := cpu.regs.IY.Get()
 		cpu.regs.SP.Push(iy)
 
 	case 0xf1: // POP AF
@@ -469,23 +469,23 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 
 	case 0xc1: // POP BC
 		bc := cpu.regs.SP.Pop()
-		cpu.regs.BC.set(bc)
+		cpu.regs.BC.Set(bc)
 
 	case 0xd1: // POP DE
 		de := cpu.regs.SP.Pop()
-		cpu.regs.DE.set(de)
+		cpu.regs.DE.Set(de)
 
 	case 0xe1: // POP HL
 		hl := cpu.regs.SP.Pop()
-		cpu.regs.HL.set(hl)
+		cpu.regs.HL.Set(hl)
 
 	case 0xdde1: // POP IX
 		ix := cpu.regs.SP.Pop()
-		cpu.regs.IX.set(ix)
+		cpu.regs.IX.Set(ix)
 
 	case 0xfde1: // POP IY
 		iy := cpu.regs.SP.Pop()
-		cpu.regs.IY.set(iy)
+		cpu.regs.IY.Set(iy)
 
 	case 0xF3: // DI
 		cpu.regs.IFF1 = false
@@ -548,18 +548,18 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.xor(cpu.regs.L)
 
 	case 0xae: // XOR (HL)
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		cpu.xor(cpu.memory.GetByte(hl))
 
 	case 0xee: // XOR N
 		cpu.xor(ins.Mem[1])
 
 	case 0x02: // LD (BC),A
-		pos := cpu.regs.BC.get()
+		pos := cpu.regs.BC.Get()
 		cpu.memory.PutByte(pos, cpu.regs.A)
 
 	case 0x12: // LD (DE),A
-		pos := cpu.regs.DE.get()
+		pos := cpu.regs.DE.Get()
 		cpu.memory.PutByte(pos, cpu.regs.A)
 
 	case 0x7f: // LD A,A
@@ -623,7 +623,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.regs.B = cpu.regs.L
 
 	case 0x46: // LD B,(HL)
-		cpu.regs.B = cpu.memory.GetByte(cpu.regs.HL.get())
+		cpu.regs.B = cpu.memory.GetByte(cpu.regs.HL.Get())
 
 	case 0x4f: // LD C,A
 		cpu.regs.C = cpu.regs.A
@@ -706,7 +706,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.regs.H = cpu.regs.L
 
 	case 0x66: // LD H,(HL)
-		cpu.regs.H = cpu.memory.GetByte(cpu.regs.HL.get())
+		cpu.regs.H = cpu.memory.GetByte(cpu.regs.HL.Get())
 
 	case 0x69: // LD L,C
 		cpu.regs.L = cpu.regs.C
@@ -723,7 +723,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.regs.L = ins.Mem[1]
 
 	case 0x6e: // LD L,(HL)
-		cpu.regs.L = cpu.memory.GetByte(cpu.regs.HL.get())
+		cpu.regs.L = cpu.memory.GetByte(cpu.regs.HL.Get())
 
 	case 0xed4f: // LD R,A
 		cpu.regs.R = cpu.regs.A
@@ -755,28 +755,28 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.regs.E = cpu.memory.GetByte(nn)
 
 	case 0x0a: // LD A,(BC)
-		bc := cpu.regs.BC.get()
+		bc := cpu.regs.BC.Get()
 		cpu.regs.A = cpu.memory.GetByte(bc)
 
 	case 0x1a: // LD A,(DE)
-		de := cpu.regs.DE.get()
+		de := cpu.regs.DE.Get()
 		cpu.regs.A = cpu.memory.GetByte(de)
 
 	case 0x7e: // LD A,(HL)
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		cpu.regs.A = cpu.memory.GetByte(hl)
 
 	case 0x4e: // LD C,(HL)
 		// TODO join all LD r,(HL)
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		cpu.regs.C = cpu.memory.GetByte(hl)
 
 	case 0x56: // LD D,(HL)
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		cpu.regs.D = cpu.memory.GetByte(hl)
 
 	case 0x5e: // LD E,(HL)
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		cpu.regs.E = cpu.memory.GetByte(hl)
 
 	case 0x21: // LD HL,nn
@@ -793,13 +793,13 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.regs.H = cpu.memory.GetByte(nn + 1)
 
 	case 0x70: // LD (HL),B
-		cpu.memory.PutByte(cpu.regs.HL.get(), cpu.regs.B)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), cpu.regs.B)
 
 	case 0x71: // LD (HL),C
-		cpu.memory.PutByte(cpu.regs.HL.get(), cpu.regs.C)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), cpu.regs.C)
 
 	case 0x75: // LD (HL),L
-		cpu.memory.PutByte(cpu.regs.HL.get(), cpu.regs.L)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), cpu.regs.L)
 
 	case 0x76: // HALT
 		if cpu.haltDone {
@@ -982,15 +982,15 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		needPcUpdate = false
 
 	case 0xdde9: // JP (IX)
-		cpu.regs.PC = cpu.regs.IX.get()
+		cpu.regs.PC = cpu.regs.IX.Get()
 		needPcUpdate = false
 
 	case 0xfde9: // JP (IY)
-		cpu.regs.PC = cpu.regs.IY.get()
+		cpu.regs.PC = cpu.regs.IY.Get()
 		needPcUpdate = false
 
 	case 0xe9: // JP (HL)
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		cpu.regs.PC = hl
 		needPcUpdate = false
 
@@ -1010,24 +1010,24 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.regs.L = cpu.regs.E
 
 	case 0x36: // LD (HL),n
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		v := ins.Mem[1]
 		cpu.memory.PutByte(hl, v)
 
 	case 0x77: // LD (HL),A
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		cpu.memory.PutByte(hl, cpu.regs.A)
 
 	case 0x72: // LD (HL),D
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		cpu.memory.PutByte(hl, cpu.regs.D)
 
 	case 0x73: // LD (HL),E
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		cpu.memory.PutByte(hl, cpu.regs.E)
 
 	case 0x74: // LD (HL),H
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		cpu.memory.PutByte(hl, cpu.regs.H)
 
 	case 0x32: // LD (nn),A
@@ -1035,27 +1035,27 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.memory.PutByte(nn, cpu.regs.A)
 
 	case 0xed43: // LD (nn),BC
-		w := cpu.regs.BC.get()
+		w := cpu.regs.BC.Get()
 		nn := toWord(ins.Mem[2], ins.Mem[3])
 		putWord(cpu.memory, nn, w)
 
 	case 0xed53: // LD (nn),DE
-		w := cpu.regs.DE.get()
+		w := cpu.regs.DE.Get()
 		nn := toWord(ins.Mem[2], ins.Mem[3])
 		putWord(cpu.memory, nn, w)
 
 	case 0x22: // LD (nn),HL
-		w := cpu.regs.HL.get()
+		w := cpu.regs.HL.Get()
 		nn := toWord(ins.Mem[1], ins.Mem[2])
 		putWord(cpu.memory, nn, w)
 
 	case 0xdd22: // LD (NN),IX
-		w := cpu.regs.IX.get()
+		w := cpu.regs.IX.Get()
 		nn := toWord(ins.Mem[2], ins.Mem[3])
 		putWord(cpu.memory, nn, w)
 
 	case 0xfd22: // LD (NN),IY
-		w := cpu.regs.IY.get()
+		w := cpu.regs.IY.Get()
 		nn := toWord(ins.Mem[2], ins.Mem[3])
 		putWord(cpu.memory, nn, w)
 
@@ -1104,13 +1104,13 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.regs.IYL = ins.Mem[2]
 
 	case 0xf9: // LD SP,HL
-		cpu.regs.SP.Set(cpu.regs.HL.get())
+		cpu.regs.SP.Set(cpu.regs.HL.Get())
 
 	case 0xddf9: // LD SP,IX
-		cpu.regs.SP.Set(cpu.regs.IX.get())
+		cpu.regs.SP.Set(cpu.regs.IX.Get())
 
 	case 0xfdf9: // LD SP,IY
-		cpu.regs.SP.Set(cpu.regs.IY.get())
+		cpu.regs.SP.Set(cpu.regs.IY.Get())
 
 	case 0x31: // LD SP,NN
 		cpu.regs.SP.Set(toWord(ins.Mem[1], ins.Mem[2]))
@@ -1120,7 +1120,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 
 	case 0xedb0: // LDIR
 		cpu.ldi()
-		bc := cpu.regs.BC.get()
+		bc := cpu.regs.BC.Get()
 		if bc != 0 {
 			needPcUpdate = false
 		}
@@ -1130,7 +1130,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 
 	case 0xedb8: // LDDR
 		cpu.ldd()
-		bc := cpu.regs.BC.get()
+		bc := cpu.regs.BC.Get()
 		if bc != 0 {
 			needPcUpdate = false
 		}
@@ -1171,29 +1171,29 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 
 	case 0x2b: // DEC HL
 		// TODO join all DEC rr
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		hl--
-		cpu.regs.HL.set(hl)
+		cpu.regs.HL.Set(hl)
 
 	case 0x0b: // DEC BC
-		bc := cpu.regs.BC.get()
+		bc := cpu.regs.BC.Get()
 		bc--
-		cpu.regs.BC.set(bc)
+		cpu.regs.BC.Set(bc)
 
 	case 0x1b: // DEC DE
-		de := cpu.regs.DE.get()
+		de := cpu.regs.DE.Get()
 		de--
-		cpu.regs.DE.set(de)
+		cpu.regs.DE.Set(de)
 
 	case 0xdd2b: // DEC IX
-		ix := cpu.regs.IX.get()
+		ix := cpu.regs.IX.Get()
 		ix--
-		cpu.regs.IX.set(ix)
+		cpu.regs.IX.Set(ix)
 
 	case 0xfd2b: // DEC IY
-		iy := cpu.regs.IY.get()
+		iy := cpu.regs.IY.Get()
 		iy--
-		cpu.regs.IY.set(iy)
+		cpu.regs.IY.Set(iy)
 
 	case 0x3c: // INC A
 		cpu.incR(&cpu.regs.A)
@@ -1217,33 +1217,33 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.incR(&cpu.regs.L)
 
 	case 0x03: // INC BC
-		bc := cpu.regs.BC.get()
+		bc := cpu.regs.BC.Get()
 		bc++
-		cpu.regs.BC.set(bc)
+		cpu.regs.BC.Set(bc)
 
 	case 0x13: // INC DE
-		de := cpu.regs.DE.get()
+		de := cpu.regs.DE.Get()
 		de++
-		cpu.regs.DE.set(de)
+		cpu.regs.DE.Set(de)
 
 	case 0x23: // INC HL
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		hl++
-		cpu.regs.HL.set(hl)
+		cpu.regs.HL.Set(hl)
 
 	case 0x33: // INC SP
 		sp := cpu.regs.SP.Get()
 		cpu.regs.SP.Set(sp + 1)
 
 	case 0xdd23: // INC IX
-		ix := cpu.regs.IX.get()
+		ix := cpu.regs.IX.Get()
 		ix++
-		cpu.regs.IX.set(ix)
+		cpu.regs.IX.Set(ix)
 
 	case 0xfd23: // INC IY
-		iy := cpu.regs.IY.get()
+		iy := cpu.regs.IY.Get()
 		iy++
-		cpu.regs.IY.set(iy)
+		cpu.regs.IY.Set(iy)
 
 	case 0xdd34: // INC (IX+N)
 		ix := cpu.getIXn(ins.Mem[2])
@@ -1274,13 +1274,13 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.regs.SP.Set(sp - 1)
 
 	case 0x34: // INC (HL)
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		b := cpu.memory.GetByte(hl)
 		cpu.incR(&b)
 		cpu.memory.PutByte(hl, b)
 
 	case 0x35: // DEC (HL)
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		b := cpu.memory.GetByte(hl)
 		cpu.decR(&b)
 		cpu.memory.PutByte(hl, b)
@@ -1311,21 +1311,21 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.cp(n)
 
 	case 0xbe: // CP (HL)
-		cpu.cp(cpu.memory.GetByte(cpu.regs.HL.get()))
+		cpu.cp(cpu.memory.GetByte(cpu.regs.HL.Get()))
 
 	case 0xeda1: // CPI
 		cpu.cpi()
 
 	case 0xedb1: // CPIR
 		diff := cpu.cpi()
-		bc := cpu.regs.BC.get()
+		bc := cpu.regs.BC.Get()
 		if (bc != 0) && (diff != 0) {
 			needPcUpdate = false
 		}
 
 	case 0xedb9: // CPDR
 		diff := cpu.cpd()
-		bc := cpu.regs.BC.get()
+		bc := cpu.regs.BC.Get()
 		if (bc == 0) || (diff == 0) {
 			cpu.regs.F.P = bc != 0
 		} else {
@@ -1398,7 +1398,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.and(ins.Mem[1])
 
 	case 0xa6: // AND (HL)
-		cpu.and(cpu.memory.GetByte(cpu.regs.HL.get()))
+		cpu.and(cpu.memory.GetByte(cpu.regs.HL.Get()))
 
 	case 0xb7: // OR A
 		cpu.or(cpu.regs.A)
@@ -1422,7 +1422,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.or(cpu.regs.L)
 
 	case 0xb6: // OR (HL)
-		cpu.or(cpu.memory.GetByte(cpu.regs.HL.get()))
+		cpu.or(cpu.memory.GetByte(cpu.regs.HL.Get()))
 
 	case 0xf6: // OR N
 		cpu.or(ins.Mem[1])
@@ -1431,49 +1431,49 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.sbc(ins.Mem[1])
 
 	case 0xed52: // SBC HL,DE
-		cpu.sbcHL(cpu.regs.DE.get())
+		cpu.sbcHL(cpu.regs.DE.Get())
 
 	case 0xed42: // SBC HL,BC
-		cpu.sbcHL(cpu.regs.BC.get())
+		cpu.sbcHL(cpu.regs.BC.Get())
 
 	case 0xed62: // SBC HL,HL
-		cpu.sbcHL(cpu.regs.HL.get())
+		cpu.sbcHL(cpu.regs.HL.Get())
 
 	case 0xed72: // SBC HL,SP
 		cpu.sbcHL(cpu.regs.SP.Get())
 
 	case 0x09: // ADD HL,BC
-		cpu.addHL(cpu.regs.BC.get())
+		cpu.addHL(cpu.regs.BC.Get())
 
 	case 0x19: // ADD HL,DE
-		cpu.addHL(cpu.regs.DE.get())
+		cpu.addHL(cpu.regs.DE.Get())
 
 	case 0x29: // ADD HL,HL
-		cpu.addHL(cpu.regs.HL.get())
+		cpu.addHL(cpu.regs.HL.Get())
 
 	case 0x39: // ADD HL,SP
 		cpu.addHL(cpu.regs.SP.Get())
 
 	case 0xdd09: // ADD IX,BC
-		cpu.addIX(cpu.regs.BC.get())
+		cpu.addIX(cpu.regs.BC.Get())
 
 	case 0xdd19: // ADD IX,DE
-		cpu.addIX(cpu.regs.DE.get())
+		cpu.addIX(cpu.regs.DE.Get())
 
 	case 0xdd29: // ADD IX,IX
-		cpu.addIX(cpu.regs.IX.get())
+		cpu.addIX(cpu.regs.IX.Get())
 
 	case 0xdd39: // ADD IX,SP
 		cpu.addIX(cpu.regs.SP.Get())
 
 	case 0xfd09: // ADD IY,BC
-		cpu.addIY(cpu.regs.BC.get())
+		cpu.addIY(cpu.regs.BC.Get())
 
 	case 0xfd19: // ADD IY,DE
-		cpu.addIY(cpu.regs.DE.get())
+		cpu.addIY(cpu.regs.DE.Get())
 
 	case 0xfd29: // ADD IY,IY
-		cpu.addIY(cpu.regs.IY.get())
+		cpu.addIY(cpu.regs.IY.Get())
 
 	case 0xfd39: // ADD IY,SP
 		cpu.addIY(cpu.regs.SP.Get())
@@ -1503,7 +1503,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.addA(ins.Mem[1])
 
 	case 0x86: // ADD A,(HL)
-		cpu.addA(cpu.memory.GetByte(cpu.regs.HL.get()))
+		cpu.addA(cpu.memory.GetByte(cpu.regs.HL.Get()))
 
 	case 0xfd86: // ADD A,(IY+N)
 		iy := cpu.getIYn(ins.Mem[2])
@@ -1531,19 +1531,19 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.adc(cpu.regs.L)
 
 	case 0x8e: // ADC A,(HL)
-		cpu.adc(cpu.memory.GetByte(cpu.regs.HL.get()))
+		cpu.adc(cpu.memory.GetByte(cpu.regs.HL.Get()))
 
 	case 0xce: // ADC A,N
 		cpu.adc(ins.Mem[1])
 
 	case 0xed4a: // ADC HL,BC
-		cpu.adcHL(cpu.regs.BC.get())
+		cpu.adcHL(cpu.regs.BC.Get())
 
 	case 0xed5a: // ADC HL,DE
-		cpu.adcHL(cpu.regs.DE.get())
+		cpu.adcHL(cpu.regs.DE.Get())
 
 	case 0xed6a: // ADC HL,HL
-		cpu.adcHL(cpu.regs.HL.get())
+		cpu.adcHL(cpu.regs.HL.Get())
 
 	case 0xed7a: // ADC HL,SP
 		cpu.adcHL(cpu.regs.SP.Get())
@@ -1570,7 +1570,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.subA(cpu.regs.L)
 
 	case 0x96: // SUB (HL)
-		cpu.subA(cpu.memory.GetByte(cpu.regs.HL.get()))
+		cpu.subA(cpu.memory.GetByte(cpu.regs.HL.Get()))
 
 	case 0xd6: // SUB N
 		cpu.subA(ins.Mem[1])
@@ -1597,16 +1597,16 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.sbc(cpu.regs.L)
 
 	case 0x9e: // SBC (HL)
-		cpu.sbc(cpu.memory.GetByte(cpu.regs.HL.get()))
+		cpu.sbc(cpu.memory.GetByte(cpu.regs.HL.Get()))
 
 	case 0x08: // EX AF,AF'
 		ta := cpu.regs.A
-		cpu.regs.A = cpu.regs._A
-		cpu.regs._A = ta
+		cpu.regs.A = cpu.regs.Aalt
+		cpu.regs.Aalt = ta
 
 		tf := cpu.regs.F
-		cpu.regs.F = cpu.regs._F
-		cpu.regs._F = tf
+		cpu.regs.F = cpu.regs.Falt
+		cpu.regs.Falt = tf
 
 	case 0xeb: // EX DE,HL
 		td := cpu.regs.D
@@ -1619,46 +1619,46 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 
 	case 0xdde3: // EX (SP),IX
 		spv := getWord(cpu.memory, cpu.regs.SP.Get())
-		ix := cpu.regs.IX.get()
+		ix := cpu.regs.IX.Get()
 		putWord(cpu.memory, cpu.regs.SP.Get(), ix)
-		cpu.regs.IX.set(spv)
+		cpu.regs.IX.Set(spv)
 
 	case 0xfde3: // EX (SP),IY
 		spv := getWord(cpu.memory, cpu.regs.SP.Get())
-		iy := cpu.regs.IY.get()
+		iy := cpu.regs.IY.Get()
 		putWord(cpu.memory, cpu.regs.SP.Get(), iy)
-		cpu.regs.IY.set(spv)
+		cpu.regs.IY.Set(spv)
 
 	case 0xe3: // EX (SP),HL
 		spv := getWord(cpu.memory, cpu.regs.SP.Get())
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		putWord(cpu.memory, cpu.regs.SP.Get(), hl)
-		cpu.regs.HL.set(spv)
+		cpu.regs.HL.Set(spv)
 
 	case 0xd9: // EXX
 		tb := cpu.regs.B
-		cpu.regs.B = cpu.regs._B
-		cpu.regs._B = tb
+		cpu.regs.B = cpu.regs.Balt
+		cpu.regs.Balt = tb
 
 		tc := cpu.regs.C
-		cpu.regs.C = cpu.regs._C
-		cpu.regs._C = tc
+		cpu.regs.C = cpu.regs.Calt
+		cpu.regs.Calt = tc
 
 		td := cpu.regs.D
-		cpu.regs.D = cpu.regs._D
-		cpu.regs._D = td
+		cpu.regs.D = cpu.regs.Dalt
+		cpu.regs.Dalt = td
 
 		te := cpu.regs.E
-		cpu.regs.E = cpu.regs._E
-		cpu.regs._E = te
+		cpu.regs.E = cpu.regs.Ealt
+		cpu.regs.Ealt = te
 
 		th := cpu.regs.H
-		cpu.regs.H = cpu.regs._H
-		cpu.regs._H = th
+		cpu.regs.H = cpu.regs.Halt
+		cpu.regs.Halt = th
 
 		tl := cpu.regs.L
-		cpu.regs.L = cpu.regs._L
-		cpu.regs._L = tl
+		cpu.regs.L = cpu.regs.Lalt
+		cpu.regs.Lalt = tl
 
 	case 0xcb37: // SLL A
 		cpu.sll(&cpu.regs.A)
@@ -1682,9 +1682,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.sll(&cpu.regs.L)
 
 	case 0xcb36: // SLL (HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.sll(&b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xcb3f: // SRL A
 		cpu.srl(&cpu.regs.A)
@@ -1708,17 +1708,17 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.srl(&cpu.regs.L)
 
 	case 0xcb3e: // SRL (HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.srl(&b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xeda3: // OUTI
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		b := cpu.memory.GetByte(hl)
 		cpu.regs.B--
-		cpu.writePort(cpu.regs.BC.get(), b)
+		cpu.writePort(cpu.regs.BC.Get(), b)
 		hl++
-		cpu.regs.HL.set(hl)
+		cpu.regs.HL.Set(hl)
 		cpu.regs.F.Z = cpu.regs.B == 0
 		cpu.regs.F.S = cpu.regs.B&0x80 != 0
 		cpu.regs.F.N = cpu.regs.B&0x80 == 0
@@ -1726,12 +1726,12 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.regs.F.P = parityTable[cpu.regs.B]
 
 	case 0xedab: // OUTD
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		b := cpu.memory.GetByte(hl)
 		cpu.regs.B--
-		cpu.writePort(cpu.regs.BC.get(), b)
+		cpu.writePort(cpu.regs.BC.Get(), b)
 		hl--
-		cpu.regs.HL.set(hl)
+		cpu.regs.HL.Set(hl)
 		cpu.regs.F.Z = cpu.regs.B == 0
 		cpu.regs.F.S = cpu.regs.B&0x80 != 0
 		cpu.regs.F.N = cpu.regs.B&0x80 == 0
@@ -1743,56 +1743,56 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.writePort(port, cpu.regs.A)
 
 	case 0xed79: // OUT (C),A
-		cpu.writePort(cpu.regs.BC.get(), cpu.regs.A)
+		cpu.writePort(cpu.regs.BC.Get(), cpu.regs.A)
 
 	case 0xed41: // OUT (C),B
-		cpu.writePort(cpu.regs.BC.get(), cpu.regs.B)
+		cpu.writePort(cpu.regs.BC.Get(), cpu.regs.B)
 
 	case 0xed49: // OUT (C),C
-		cpu.writePort(cpu.regs.BC.get(), cpu.regs.C)
+		cpu.writePort(cpu.regs.BC.Get(), cpu.regs.C)
 
 	case 0xed51: // OUT (C),D
-		cpu.writePort(cpu.regs.BC.get(), cpu.regs.D)
+		cpu.writePort(cpu.regs.BC.Get(), cpu.regs.D)
 
 	case 0xed59: // OUT (C),E
-		cpu.writePort(cpu.regs.BC.get(), cpu.regs.E)
+		cpu.writePort(cpu.regs.BC.Get(), cpu.regs.E)
 
 	case 0xed61: // OUT (C),H
-		cpu.writePort(cpu.regs.BC.get(), cpu.regs.H)
+		cpu.writePort(cpu.regs.BC.Get(), cpu.regs.H)
 
 	case 0xed69: // OUT (C),L
-		cpu.writePort(cpu.regs.BC.get(), cpu.regs.L)
+		cpu.writePort(cpu.regs.BC.Get(), cpu.regs.L)
 
 	case 0xed71: // OUT (C),0
-		cpu.writePort(cpu.regs.BC.get(), 0)
+		cpu.writePort(cpu.regs.BC.Get(), 0)
 
 	case 0xed78: // IN A,(C)
-		cpu.regs.A = cpu.readPort(cpu.regs.BC.get())
+		cpu.regs.A = cpu.readPort(cpu.regs.BC.Get())
 
 	case 0xed40: // IN B,(C)
-		cpu.regs.B = cpu.readPort(cpu.regs.BC.get())
+		cpu.regs.B = cpu.readPort(cpu.regs.BC.Get())
 
 	case 0xed48: // IN C,(C)
-		cpu.regs.C = cpu.readPort(cpu.regs.BC.get())
+		cpu.regs.C = cpu.readPort(cpu.regs.BC.Get())
 
 	case 0xed50: // IN D,(C)
-		cpu.regs.D = cpu.readPort(cpu.regs.BC.get())
+		cpu.regs.D = cpu.readPort(cpu.regs.BC.Get())
 
 	case 0xed58: // IN E,(C)
-		cpu.regs.E = cpu.readPort(cpu.regs.BC.get())
+		cpu.regs.E = cpu.readPort(cpu.regs.BC.Get())
 
 	case 0xed60: // IN H,(C)
-		cpu.regs.H = cpu.readPort(cpu.regs.BC.get())
+		cpu.regs.H = cpu.readPort(cpu.regs.BC.Get())
 
 	case 0xed68: // IN L,(C)
-		cpu.regs.L = cpu.readPort(cpu.regs.BC.get())
+		cpu.regs.L = cpu.readPort(cpu.regs.BC.Get())
 
 	case 0xed70: // IN (C)
-		cpu.readPort(cpu.regs.BC.get())
+		cpu.readPort(cpu.regs.BC.Get())
 
 	case 0xeda2: // INI
-		hl := cpu.regs.HL.get()
-		v := cpu.readPort(cpu.regs.BC.get())
+		hl := cpu.regs.HL.Get()
+		v := cpu.readPort(cpu.regs.BC.Get())
 		cpu.memory.PutByte(hl, v)
 		cpu.regs.B--
 		hl++
@@ -1801,7 +1801,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		// cpu.regs.F.H = v == 0
 		// cpu.regs.F.C = false
 		// cpu.regs.F.P = false
-		cpu.regs.HL.set(hl)
+		cpu.regs.HL.Set(hl)
 
 	case 0xdb: // IN A,(N)
 		f := cpu.regs.F.getByte()
@@ -1810,12 +1810,12 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.regs.F.setByte(f)
 
 	case 0xedb3: // OTIR
-		hl := cpu.regs.HL.get()
+		hl := cpu.regs.HL.Get()
 		c := cpu.memory.GetByte(hl)
 		cpu.readPort(uint16(c) << 8)
 		cpu.regs.B--
 		hl++
-		cpu.regs.HL.set(hl)
+		cpu.regs.HL.Set(hl)
 		if cpu.regs.B != 0 {
 			cpu.regs.PC -= 2
 		} else {
@@ -1866,7 +1866,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.bit(0, cpu.regs.L)
 
 	case 0xcb46: // BIT 0,(HL)
-		cpu.bit(0, cpu.memory.GetByte(cpu.regs.HL.get()))
+		cpu.bit(0, cpu.memory.GetByte(cpu.regs.HL.Get()))
 
 	case 0xcb4f: // BIT 1,A
 		cpu.bit(1, cpu.regs.A)
@@ -1890,7 +1890,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.bit(1, cpu.regs.L)
 
 	case 0xcb4e: // BIT 1,(HL)
-		cpu.bit(1, cpu.memory.GetByte(cpu.regs.HL.get()))
+		cpu.bit(1, cpu.memory.GetByte(cpu.regs.HL.Get()))
 
 	case 0xcb57: // BIT 2,A
 		cpu.bit(2, cpu.regs.A)
@@ -1914,7 +1914,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.bit(2, cpu.regs.L)
 
 	case 0xcb56: // BIT 2,(HL)
-		cpu.bit(2, cpu.memory.GetByte(cpu.regs.HL.get()))
+		cpu.bit(2, cpu.memory.GetByte(cpu.regs.HL.Get()))
 
 	case 0xcb5f: // BIT 3,A
 		cpu.bit(3, cpu.regs.A)
@@ -1938,7 +1938,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.bit(3, cpu.regs.L)
 
 	case 0xcb5e: // BIT 3,(HL)
-		cpu.bit(3, cpu.memory.GetByte(cpu.regs.HL.get()))
+		cpu.bit(3, cpu.memory.GetByte(cpu.regs.HL.Get()))
 
 	case 0xcb67: // BIT 4,A
 		cpu.bit(4, cpu.regs.A)
@@ -1962,7 +1962,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.bit(4, cpu.regs.L)
 
 	case 0xcb66: // BIT 4,(HL)
-		cpu.bit(4, cpu.memory.GetByte(cpu.regs.HL.get()))
+		cpu.bit(4, cpu.memory.GetByte(cpu.regs.HL.Get()))
 
 	case 0xcb6f: // BIT 5,A
 		cpu.bit(5, cpu.regs.A)
@@ -1986,7 +1986,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.bit(5, cpu.regs.L)
 
 	case 0xcb6e: // BIT 5,(HL)
-		cpu.bit(5, cpu.memory.GetByte(cpu.regs.HL.get()))
+		cpu.bit(5, cpu.memory.GetByte(cpu.regs.HL.Get()))
 
 	case 0xcb77: // BIT 6,A
 		cpu.bit(6, cpu.regs.A)
@@ -2010,7 +2010,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.bit(6, cpu.regs.L)
 
 	case 0xcb76: // BIT 6,(HL)
-		cpu.bit(6, cpu.memory.GetByte(cpu.regs.HL.get()))
+		cpu.bit(6, cpu.memory.GetByte(cpu.regs.HL.Get()))
 
 	case 0xcb7f: // BIT 7,A
 		cpu.bit(7, cpu.regs.A)
@@ -2034,7 +2034,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.bit(7, cpu.regs.L)
 
 	case 0xcb7e: // BIT 7,(HL)
-		cpu.bit(7, cpu.memory.GetByte(cpu.regs.HL.get()))
+		cpu.bit(7, cpu.memory.GetByte(cpu.regs.HL.Get()))
 
 	case 0xcb80: // RES 0,B
 		cpu.res(0, &cpu.regs.B)
@@ -2055,9 +2055,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.res(0, &cpu.regs.L)
 
 	case 0xcb86: // RES 0,(HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.res(0, &b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xcb87: // RES 0,A
 		cpu.res(0, &cpu.regs.A)
@@ -2081,9 +2081,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.res(1, &cpu.regs.L)
 
 	case 0xcb8e: // RES 1,(HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.res(1, &b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xcb8f: // RES 1,A
 		cpu.res(1, &cpu.regs.A)
@@ -2107,9 +2107,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.res(2, &cpu.regs.L)
 
 	case 0xcb96: // RES 2,(HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.res(2, &b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xcb97: // RES 2,A
 		cpu.res(2, &cpu.regs.A)
@@ -2133,9 +2133,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.res(3, &cpu.regs.L)
 
 	case 0xcb9e: // RES 3,(HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.res(3, &b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xcb9f: // RES 3,A
 		cpu.res(3, &cpu.regs.A)
@@ -2159,9 +2159,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.res(4, &cpu.regs.L)
 
 	case 0xcba6: // RES 4,(HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.res(4, &b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xcba7: // RES 4,A
 		cpu.res(4, &cpu.regs.A)
@@ -2185,9 +2185,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.res(5, &cpu.regs.L)
 
 	case 0xcbae: // RES 5,(HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.res(5, &b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xcbaf: // RES 5,A
 		cpu.res(5, &cpu.regs.A)
@@ -2211,9 +2211,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.res(6, &cpu.regs.L)
 
 	case 0xcbb6: // RES 6,(HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.res(6, &b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xcbb7: // RES 6,A
 		cpu.res(6, &cpu.regs.A)
@@ -2237,9 +2237,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.res(7, &cpu.regs.L)
 
 	case 0xcbbe: // RES 7,(HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.res(7, &b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xcbbf: // RES 7,A
 		cpu.res(7, &cpu.regs.A)
@@ -2263,9 +2263,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.set(0, &cpu.regs.L)
 
 	case 0xcbc6: // SET 0,(HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.set(0, &b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xcbc7: // SET 0,A
 		cpu.set(0, &cpu.regs.A)
@@ -2289,9 +2289,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.set(1, &cpu.regs.L)
 
 	case 0xcbce: // SET 1,(HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.set(1, &b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xcbcf: // SET 1,A
 		cpu.set(1, &cpu.regs.A)
@@ -2315,9 +2315,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.set(2, &cpu.regs.L)
 
 	case 0xcbd6: // SET 2,(HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.set(2, &b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xcbd7: // SET 2,A
 		cpu.set(2, &cpu.regs.A)
@@ -2341,9 +2341,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.set(3, &cpu.regs.L)
 
 	case 0xcbde: // SET 3,(HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.set(3, &b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xcbdf: // SET 3,A
 		cpu.set(3, &cpu.regs.A)
@@ -2367,9 +2367,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.set(4, &cpu.regs.L)
 
 	case 0xcbe6: // SET 4,(HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.set(4, &b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xcbe7: // SET 4,A
 		cpu.set(4, &cpu.regs.A)
@@ -2393,9 +2393,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.set(5, &cpu.regs.L)
 
 	case 0xcbee: // SET 5,(HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.set(5, &b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xcbef: // SET 5,A
 		cpu.set(5, &cpu.regs.A)
@@ -2419,9 +2419,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.set(6, &cpu.regs.L)
 
 	case 0xcbf6: // SET 6,(HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.set(6, &b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xcbf7: // SET 6,A
 		cpu.set(6, &cpu.regs.A)
@@ -2445,9 +2445,9 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.set(7, &cpu.regs.L)
 
 	case 0xcbfe: // SET 7,(HL)
-		b := cpu.memory.GetByte(cpu.regs.HL.get())
+		b := cpu.memory.GetByte(cpu.regs.HL.Get())
 		cpu.set(7, &b)
-		cpu.memory.PutByte(cpu.regs.HL.get(), b)
+		cpu.memory.PutByte(cpu.regs.HL.Get(), b)
 
 	case 0xcbff: // SET 7,A
 		cpu.set(7, &cpu.regs.A)

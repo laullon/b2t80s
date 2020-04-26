@@ -19,7 +19,7 @@ func TestRegPair(t *testing.T) {
 	cpu := NewZ80(nil, nil)
 	cpu.Registers().(*Z80Registers).B = 0x0A
 	cpu.Registers().(*Z80Registers).C = 0x0B
-	assert.Equal(t, uint16(0x0A0B), cpu.Registers().(*Z80Registers).BC.get())
+	assert.Equal(t, uint16(0x0A0B), cpu.Registers().(*Z80Registers).BC.Get())
 }
 
 func TestSP(t *testing.T) {
@@ -152,7 +152,7 @@ func TestOPCodes(t *testing.T) {
 			registers := fmt.Sprintf(
 				"%02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %04x %04x",
 				regs.A, regs.F.getByte()&0b11010111, regs.B, regs.C, regs.D, regs.E, regs.H, regs.L,
-				regs._A, regs._F.getByte()&0b11010111, regs._B, regs._C, regs._D, regs._E, regs._H, regs._L,
+				regs.Aalt, regs.Falt.getByte()&0b11010111, regs.Balt, regs.Calt, regs.Dalt, regs.Ealt, regs.Halt, regs.Lalt,
 				regs.IXH, regs.IXL, regs.IYH, regs.IYL,
 				regs.SP.Get(), regs.PC,
 			)
@@ -175,10 +175,10 @@ func setRegistersStr(cpu *Z80Registers, line string, otherReg []byte) {
 	cpu.D, cpu.E = setRRstr(regs[2])
 	cpu.H, cpu.L = setRRstr(regs[3])
 
-	cpu._A, _ = setRRstr(regs[4])
-	cpu._B, cpu._C = setRRstr(regs[5])
-	cpu._D, cpu._E = setRRstr(regs[6])
-	cpu._H, cpu._L = setRRstr(regs[7])
+	cpu.Aalt, _ = setRRstr(regs[4])
+	cpu.Balt, cpu.Calt = setRRstr(regs[5])
+	cpu.Dalt, cpu.Ealt = setRRstr(regs[6])
+	cpu.Halt, cpu.Lalt = setRRstr(regs[7])
 
 	cpu.IXH, cpu.IXL = setRRstr(regs[8])
 	cpu.IYH, cpu.IYL = setRRstr(regs[9])
@@ -192,7 +192,7 @@ func setRegistersStr(cpu *Z80Registers, line string, otherReg []byte) {
 	_, f := setRRstr(regs[0])
 	cpu.F.setByte(f)
 	_, _f := setRRstr(regs[4])
-	cpu._F.setByte(_f)
+	cpu.Falt.setByte(_f)
 
 	cpu.I = otherReg[0]
 	cpu.R = otherReg[1]
@@ -393,7 +393,7 @@ func printChar(regs *Z80Registers, memory emulator.Memory) uint16 {
 		cpmScreen = append(cpmScreen, regs.E)
 		fmt.Printf("%c", regs.E)
 	case 9:
-		de := regs.DE.get()
+		de := regs.DE.Get()
 		for addr := de; ; addr++ {
 			ch := memory.GetByte(addr)
 			if ch == '$' {

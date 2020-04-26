@@ -45,14 +45,14 @@ func (cpu *z80) readPort(port uint16) byte {
 
 func (cpu *z80) getIXn(n byte) uint16 {
 	i := int16(int8(n))
-	ix := cpu.regs.IX.get()
+	ix := cpu.regs.IX.Get()
 	ix = uint16(int16(ix) + i)
 	return ix
 }
 
 func (cpu *z80) getIYn(n byte) uint16 {
 	i := int16(int8(n))
-	iy := cpu.regs.IY.get()
+	iy := cpu.regs.IY.Get()
 	iy = uint16(int16(iy) + i)
 	return iy
 }
@@ -93,14 +93,14 @@ func (cpu *z80) adc(s byte) {
 }
 
 func (cpu *z80) adcHL(ss uint16) {
-	hl := cpu.regs.HL.get()
+	hl := cpu.regs.HL.Get()
 	res := int32(hl) + int32(ss)
 	if cpu.regs.F.C {
 		res++
 	}
 	lookup := byte(((hl & 0x8800) >> 11) | ((ss & 0x8800) >> 10) | ((uint16(res) & 0x8800) >> 9))
 	hl = uint16(res)
-	cpu.regs.HL.set(hl)
+	cpu.regs.HL.Set(hl)
 	cpu.regs.F.S = cpu.regs.H&0x80 != 0
 	cpu.regs.F.Z = hl == 0
 	cpu.regs.F.H = halfcarryAddTable[lookup&0x07]
@@ -124,8 +124,8 @@ func (cpu *z80) cp(r byte) byte {
 }
 
 func (cpu *z80) cpd() byte {
-	bc := cpu.regs.BC.get()
-	hl := cpu.regs.HL.get()
+	bc := cpu.regs.BC.Get()
+	hl := cpu.regs.HL.Get()
 
 	val := cpu.memory.GetByte(hl)
 	result := cpu.regs.A - val
@@ -134,8 +134,8 @@ func (cpu *z80) cpd() byte {
 	bc--
 	hl--
 
-	cpu.regs.BC.set(bc)
-	cpu.regs.HL.set(hl)
+	cpu.regs.BC.Set(bc)
+	cpu.regs.HL.Set(hl)
 
 	cpu.regs.F.S = result&0x80 != 0
 	cpu.regs.F.Z = result == 0
@@ -147,8 +147,8 @@ func (cpu *z80) cpd() byte {
 }
 
 func (cpu *z80) cpi() byte {
-	bc := cpu.regs.BC.get()
-	hl := cpu.regs.HL.get()
+	bc := cpu.regs.BC.Get()
+	hl := cpu.regs.HL.Get()
 
 	val := cpu.memory.GetByte(hl)
 	result := cpu.regs.A - val
@@ -157,8 +157,8 @@ func (cpu *z80) cpi() byte {
 	bc--
 	hl++
 
-	cpu.regs.BC.set(bc)
-	cpu.regs.HL.set(hl)
+	cpu.regs.BC.Set(bc)
+	cpu.regs.HL.Set(hl)
 
 	cpu.regs.F.S = result&0x80 != 0
 	cpu.regs.F.Z = result == 0
@@ -361,12 +361,12 @@ func (cpu *z80) sbc(s byte) {
 }
 
 func (cpu *z80) sbcHL(ss uint16) {
-	hl := cpu.regs.HL.get()
+	hl := cpu.regs.HL.Get()
 	res := uint32(hl) - uint32(ss)
 	if cpu.regs.F.C {
 		res--
 	}
-	cpu.regs.HL.set(uint16(res))
+	cpu.regs.HL.Set(uint16(res))
 
 	lookup := byte(((hl & 0x8800) >> 11) | ((ss & 0x8800) >> 10) | ((uint16(res) & 0x8800) >> 9))
 	cpu.regs.F.N = true
@@ -378,9 +378,9 @@ func (cpu *z80) sbcHL(ss uint16) {
 }
 
 func (cpu *z80) ldd() {
-	bc := cpu.regs.BC.get()
-	de := cpu.regs.DE.get()
-	hl := cpu.regs.HL.get()
+	bc := cpu.regs.BC.Get()
+	de := cpu.regs.DE.Get()
+	hl := cpu.regs.HL.Get()
 
 	v := cpu.memory.GetByte(hl)
 	cpu.memory.PutByte(de, v)
@@ -389,9 +389,9 @@ func (cpu *z80) ldd() {
 	de--
 	hl--
 
-	cpu.regs.BC.set(bc)
-	cpu.regs.DE.set(de)
-	cpu.regs.HL.set(hl)
+	cpu.regs.BC.Set(bc)
+	cpu.regs.DE.Set(de)
+	cpu.regs.HL.Set(hl)
 
 	cpu.regs.F.P = bc != 0
 	cpu.regs.F.H = false
@@ -399,9 +399,9 @@ func (cpu *z80) ldd() {
 }
 
 func (cpu *z80) ldi() {
-	bc := cpu.regs.BC.get()
-	de := cpu.regs.DE.get()
-	hl := cpu.regs.HL.get()
+	bc := cpu.regs.BC.Get()
+	de := cpu.regs.DE.Get()
+	hl := cpu.regs.HL.Get()
 
 	v := cpu.memory.GetByte(hl)
 	cpu.memory.PutByte(de, v)
@@ -410,9 +410,9 @@ func (cpu *z80) ldi() {
 	de++
 	hl++
 
-	cpu.regs.BC.set(bc)
-	cpu.regs.DE.set(de)
-	cpu.regs.HL.set(hl)
+	cpu.regs.BC.Set(bc)
+	cpu.regs.DE.Set(de)
+	cpu.regs.HL.Set(hl)
 
 	cpu.regs.F.P = bc != 0
 	cpu.regs.F.H = false
@@ -421,10 +421,10 @@ func (cpu *z80) ldi() {
 
 //TODO Join these 3
 func (cpu *z80) addHL(ss uint16) {
-	hl := cpu.regs.HL.get()
+	hl := cpu.regs.HL.Get()
 	var result = uint32(hl) + uint32(ss)
 	var lookup = byte(((hl & 0x0800) >> 11) | ((ss & 0x0800) >> 10) | ((uint16(result) & 0x0800) >> 9))
-	cpu.regs.HL.set(uint16(result))
+	cpu.regs.HL.Set(uint16(result))
 
 	cpu.regs.F.N = false
 	cpu.regs.F.H = halfcarryAddTable[lookup]
@@ -432,10 +432,10 @@ func (cpu *z80) addHL(ss uint16) {
 }
 
 func (cpu *z80) addIX(ss uint16) {
-	ix := cpu.regs.IX.get()
+	ix := cpu.regs.IX.Get()
 	var result = uint32(ix) + uint32(ss)
 	var lookup = byte(((ix & 0x0800) >> 11) | ((ss & 0x0800) >> 10) | ((uint16(result) & 0x0800) >> 9))
-	cpu.regs.IX.set(uint16(result))
+	cpu.regs.IX.Set(uint16(result))
 
 	cpu.regs.F.N = false
 	cpu.regs.F.H = halfcarryAddTable[lookup]
@@ -443,10 +443,10 @@ func (cpu *z80) addIX(ss uint16) {
 }
 
 func (cpu *z80) addIY(ss uint16) {
-	iy := cpu.regs.IY.get()
+	iy := cpu.regs.IY.Get()
 	var result = uint32(iy) + uint32(ss)
 	var lookup = byte(((iy & 0x0800) >> 11) | ((ss & 0x0800) >> 10) | ((uint16(result) & 0x0800) >> 9))
-	cpu.regs.IY.set(uint16(result))
+	cpu.regs.IY.Set(uint16(result))
 
 	cpu.regs.F.N = false
 	cpu.regs.F.H = halfcarryAddTable[lookup]

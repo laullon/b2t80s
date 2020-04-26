@@ -121,7 +121,7 @@ func (ula *ula) LoadCommand() uint16 {
 		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyJ})
 		time.Sleep(150 * time.Millisecond)
 		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyJ})
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: "RightSuper"})
+		ula.OnKeyEvent(&fyne.KeyEvent{Name: "LeftControl"})
 		time.Sleep(150 * time.Millisecond)
 		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyP})
 		time.Sleep(150 * time.Millisecond)
@@ -130,8 +130,18 @@ func (ula *ula) LoadCommand() uint16 {
 		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyP})
 		time.Sleep(150 * time.Millisecond)
 		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyP})
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: "RightSuper"})
+		ula.OnKeyEvent(&fyne.KeyEvent{Name: "LeftControl"})
 		time.Sleep(150 * time.Millisecond)
+		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyReturn})
+		time.Sleep(150 * time.Millisecond)
+		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyReturn})
+	})
+	return 0
+}
+
+func (ula *ula) LoadCommand128() uint16 {
+	go onlyOnce.Do(func() {
+		time.Sleep(time.Second)
 		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyReturn})
 		time.Sleep(150 * time.Millisecond)
 		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyReturn})

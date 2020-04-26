@@ -24,7 +24,7 @@ func NewZXPlus3(cassette cassette.Cassette) machines.Machine {
 
 	ay8912 := ay8912.New()
 
-	clock := emulator.NewCLock(CLOCK_128k)
+	clock := emulator.NewCLock(clock128k)
 	ula := NewULA(mem, cassette, clock, true)
 	cpu := z80.NewZ80(ula, cassette)
 	ula.cpu = cpu
@@ -36,7 +36,7 @@ func NewZXPlus3(cassette cassette.Cassette) machines.Machine {
 		fdc.chip.SetDiscA(disc)
 	}
 
-	sound := emulator.NewSoundSystem(CLOCK_128k / 80)
+	sound := emulator.NewSoundSystem(clock128k / 80)
 	sound.AddSource(ay8912)
 	sound.AddSource(ula)
 

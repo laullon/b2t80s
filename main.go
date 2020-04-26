@@ -71,8 +71,8 @@ func main() {
 	var name string
 
 	if len(*z80File) > 0 {
-		machine = zx.LoadZ80File(*z80File)
-		name = "ZX Spectrum"
+		// machine = file.LoadZ80File(*z80File)
+		// name = "ZX Spectrum"
 	} else {
 		switch *mode {
 		case "48k":

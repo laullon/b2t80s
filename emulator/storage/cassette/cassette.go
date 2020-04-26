@@ -14,6 +14,8 @@ type Cassette interface {
 	Ear() bool
 	Motor(bool)
 	IsMotorON() bool
+
+	NextDataBlock() []byte
 }
 
 type pulse struct {
@@ -28,6 +30,7 @@ type cassette struct {
 	ear              bool
 	earChannel       chan *pulse
 	motor            bool
+	nextBlogIdx      int
 }
 
 func New() Cassette {
@@ -36,6 +39,19 @@ func New() Cassette {
 		earChannel: make(chan *pulse, 0xffff*8),
 	}
 	return c
+}
+
+func (c *cassette) NextDataBlock() []byte {
+	if c.nextBlogIdx == len(c.tap.blocks) {
+		return nil
+	}
+
+	b, ok := c.tap.blocks[c.nextBlogIdx].(*dataBlock)
+	c.nextBlogIdx++
+	if ok {
+		return b.data
+	}
+	return c.NextDataBlock()
 }
 
 func (c *cassette) LoadTapFile(path string) {
