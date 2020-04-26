@@ -35,14 +35,16 @@ func NewZX48K(cassette cassette.Cassette) machines.Machine {
 	cpu.SetClock(clock)
 
 	clock.AddTicker(0, ula)
-	clock.AddTicker(0, cassette)
 	clock.AddTicker(80, sound)
 
 	zx := NewZX(cpu, ula, mem, cassette, sound, nil)
 
-	if !*machines.LoadSlow {
-		cpu.RegisterTrap(0x056b, zx.loadDataBlock)
-		cpu.RegisterTrap(0x12A9, ula.LoadCommand)
+	if cassette != nil {
+		clock.AddTicker(0, cassette)
+		if !*machines.LoadSlow {
+			cpu.RegisterTrap(0x056b, zx.loadDataBlock)
+			cpu.RegisterTrap(0x12A9, ula.LoadCommand)
+		}
 	}
 
 	return &zx48k{

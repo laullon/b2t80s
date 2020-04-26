@@ -58,6 +58,8 @@ type Z80Registers struct {
 	Ealt byte
 	Halt byte
 	Lalt byte
+
+	InterruptsMode byte
 }
 
 type z80 struct {
@@ -69,8 +71,7 @@ type z80 struct {
 
 	halt, haltDone bool
 
-	interruptsMode byte
-	doInterrupt    bool
+	doInterrupt bool
 
 	actualOPCode int32
 
@@ -157,35 +158,6 @@ func (cpu *z80) RegisterTrap(pc uint16, trap emulator.CPUTrap) {
 	cpu.traps[pc] = trap
 }
 
-func (cpu *z80) SetRegisters(regs []byte, i, r, iff1, mode byte) {
-	cpu.regs.A = regs[0]
-	cpu.regs.F.SetByte(regs[1])
-	cpu.regs.B = regs[2]
-	cpu.regs.C = regs[3]
-	cpu.regs.D = regs[4]
-	cpu.regs.E = regs[5]
-	cpu.regs.H = regs[6]
-	cpu.regs.L = regs[7]
-	cpu.regs.IXH = regs[8]
-	cpu.regs.IXL = regs[9]
-	cpu.regs.IYH = regs[10]
-	cpu.regs.IYL = regs[11]
-	cpu.regs.Aalt = regs[12]
-	cpu.regs.Falt.SetByte(regs[13])
-	cpu.regs.Balt = regs[14]
-	cpu.regs.Calt = regs[15]
-	cpu.regs.Dalt = regs[16]
-	cpu.regs.Ealt = regs[17]
-	cpu.regs.Halt = regs[18]
-	cpu.regs.Lalt = regs[19]
-
-	cpu.regs.I = i
-	cpu.regs.R = r
-	cpu.regs.IFF1 = iff1 != 0
-	cpu.regs.IFF2 = !cpu.regs.IFF1
-	cpu.interruptsMode = mode
-}
-
 func (cpu *z80) Registers() interface{} {
 	return cpu.regs
 }
@@ -211,7 +183,7 @@ func (cpu *z80) execInterrupt() uint {
 
 		cpu.regs.SP.Push(cpu.regs.PC)
 
-		switch cpu.interruptsMode {
+		switch cpu.regs.InterruptsMode {
 		case 0, 1:
 			ts = 13
 			cpu.regs.PC = 0x38
@@ -277,61 +249,6 @@ func (cpu *z80) Step() {
 	cpu.clock.AddTStates(ts)
 	return
 }
-
-// func (cpu *z80) LoadTapeBlock() uint16 {
-// block := cpu.regs.Cassette.NextBlock()
-// for len(block.GetData()) == 0 {
-// 	block = cpu.regs.Cassette.NextBlock()
-// }
-
-// requestedLength := getRR(cpu.regs.D, cpu.regs.E)
-// startAddress := getRR(cpu.regs.IXH, cpu.regs.IXL)
-// fmt.Printf("Loading block '%s' to 0x%04x (bl:0x%04x, l:0x%04x, bt:%d, a:%d)\n", block.Name(), startAddress, len(block.GetData()), requestedLength, block.Type(), cpu.regs._A)
-// if cpu.regs.Aalt  == block.Type() {
-// 	if cpu.regs._F.C {
-// 		checksum := block.Type()
-// 		data := block.GetData()
-// 		for i := uint16(0); i < requestedLength; i++ {
-// 			loadedByte := data[i+1]
-// 			cpu.memory.PutByte(startAddress+i, loadedByte)
-// 			checksum ^= loadedByte
-// 		}
-// 		cpu.regs.F.C = checksum == data[requestedLength+1]
-// 	} else {
-// 		cpu.regs.F.C = true
-// 	}
-// 	// log.Print("done")
-// } else {
-// 	cpu.regs.F.C = false
-// 	// log.Print("BAD Block")
-// }
-// return 0x05e2
-// }
-
-// TODO: move out
-// func (cpu *z80) LoadTapeBlockCPC(exit uint16) uint16 {
-// 	block := cpu.regs.Cassette.NextBlock()
-// 	if len(block.GetData()) == 0 {
-// 		block = cpu.regs.Cassette.NextBlock()
-// 	}
-
-// 	requestedLength := getRR(cpu.regs.D, cpu.regs.E)
-// 	startAddress := getRR(cpu.regs.H, cpu.regs.L)
-// 	t := cpu.regs.A
-// 	// fmt.Printf("Loading block '%s' to 0x%04x (bl:0x%04x, l:0x%04x, bt:0x%02X, t:0x%02X)\n", block.Name(), startAddress, len(block.GetData()), requestedLength, block.Type(), t)
-// 	if t == block.Type() {
-// 		data := block.GetData()
-// 		for i := uint16(0); i < requestedLength; i++ {
-// 			cpu.memory.PutByte(startAddress+i, data[i+1])
-// 		}
-// 		cpu.regs.F.setByte(0x45)
-// 		// log.Print("Done")
-// 		// println(hex.Dump(cpu.memory.GetBlock(startAddress, requestedLength)))
-// 	} else {
-// 		// log.Print("BAD Block")
-// 	}
-// 	return exit
-// }
 
 func (cpu *z80) pause() {
 	fmt.Print("Press 'Enter' to continue...")

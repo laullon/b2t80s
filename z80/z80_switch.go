@@ -496,13 +496,13 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.regs.IFF2 = true
 
 	case 0xed46: // IM 0
-		cpu.interruptsMode = 0
+		cpu.regs.InterruptsMode = 0
 
 	case 0xed56: // IM 1
-		cpu.interruptsMode = 1
+		cpu.regs.InterruptsMode = 1
 
 	case 0xed5e: // IM 2
-		cpu.interruptsMode = 2
+		cpu.regs.InterruptsMode = 2
 
 	case 0x27: // DAA
 		c := cpu.regs.F.C

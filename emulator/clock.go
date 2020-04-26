@@ -52,5 +52,8 @@ func (c *clock) FrameDone() bool {
 }
 
 func (c *clock) AddTicker(mod uint, t Ticker) {
+	if t == nil {
+		panic("NIL Ticker")
+	}
 	c.tickers = append(c.tickers, &ticker{mod: mod, ticker: t})
 }
