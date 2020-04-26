@@ -26,19 +26,19 @@ type zx struct {
 	ula      *ula
 	cpu      emulator.CPU
 	mem      emulator.Memory
-	cassete  cassette.Cassette
+	cassette cassette.Cassette
 	sound    emulator.SoundSystem
 	debugger emulator.Debugger
 
 	onEndFrame func()
 }
 
-func NewZX(cpu emulator.CPU, ula *ula, mem emulator.Memory, cassete cassette.Cassette, sound emulator.SoundSystem, onEndFrame func()) *zx {
+func NewZX(cpu emulator.CPU, ula *ula, mem emulator.Memory, cassette cassette.Cassette, sound emulator.SoundSystem, onEndFrame func()) *zx {
 	zx := &zx{
 		ula:        ula,
 		cpu:        cpu,
 		mem:        mem,
-		cassete:    cassete,
+		cassette:   cassette,
 		sound:      sound,
 		debugger:   z80.NewDebugger(cpu, mem),
 		onEndFrame: onEndFrame,
@@ -93,7 +93,7 @@ func (m *zx) GetVolumeControl() func(float64) {
 }
 
 func (zx *zx) loadDataBlock() uint16 {
-	data := zx.cassete.NextDataBlock()
+	data := zx.cassette.NextDataBlock()
 	if data == nil {
 		return emulator.CONTINUE
 	}

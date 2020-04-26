@@ -21,7 +21,7 @@ type flags struct {
 	S  bool
 }
 
-func (f *flags) getByte() byte {
+func (f *flags) GetByte() byte {
 	res := byte(0)
 	if f.C {
 		res |= 0b00000001
@@ -50,7 +50,7 @@ func (f *flags) getByte() byte {
 	return res
 }
 
-func (f *flags) setByte(b byte) {
+func (f *flags) SetByte(b byte) {
 	f.C = b&0b00000001 != 0
 	f.N = b&0b00000010 != 0
 	f.P = b&0b00000100 != 0

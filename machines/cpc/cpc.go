@@ -112,40 +112,49 @@ func NewCPC(cpc464 bool, cassette cassette.Cassette) machines.Machine {
 	cpc.clock.AddTicker(4, ay8912)
 	cpc.clock.AddTicker(80, sound)
 
-	// if *machines.LoadSlow {
-	// 	// cpu.RegisterTrap(0x2bbb, cassette.Play)
-	// 	go func() {
-	// 		cassette.Play()
-	// 	}()
-	// } else {
-	// }
-
-	// if *machines.LoadSlow {
-	// 	// if cpc464 {
-	// 	// 	cpu.RegisterTrap(0x2836, cassette.Play)
-	// 	// } else {
-	// 	// 	cpu.RegisterTrap(0x29A6, cassette.Play)
-	// 	// }
-	// } else {
-	// 	if cassette.Ready() {
-	// 		if cpc464 {
-	// 			cpu.RegisterTrap(0x2836, cpc.loadTapeBlockCPC464)
-	// 		} else {
-	// 			cpu.RegisterTrap(0x29A6, cpc.loadTapeBlockCPC6128)
-	// 		}
-	// 	}
-	// }
+	if !*machines.LoadSlow {
+		if cpc464 {
+			cpu.RegisterTrap(0x2836, cpc.loadTapeBlockCPC464)
+		} else {
+			cpu.RegisterTrap(0x29A6, cpc.loadTapeBlockCPC6128)
+		}
+	}
 
 	return cpc
 }
 
-// func (m *cpc) loadTapeBlockCPC464() uint16 {
-// 	return m.cpu.LoadTapeBlockCPC(0x2872)
-// }
+func (m *cpc) loadTapeBlockCPC464() uint16 {
+	return m.LoadTapeBlockCPC(0x2872)
+}
 
-// func (m *cpc) loadTapeBlockCPC6128() uint16 {
-// 	return m.cpu.LoadTapeBlockCPC(0x29E2)
-// }
+func (m *cpc) loadTapeBlockCPC6128() uint16 {
+	return m.LoadTapeBlockCPC(0x29E2)
+}
+
+func (m *cpc) LoadTapeBlockCPC(exit uint16) uint16 {
+	data := m.cassette.NextDataBlock()
+	if data == nil {
+		return emulator.CONTINUE
+	}
+
+	regs := m.cpu.Registers().(*z80.Z80Registers)
+	requestedLength := regs.DE.Get()
+	startAddress := regs.HL.Get()
+	t := regs.A
+	// fmt.Printf("Loading block to 0x%04x (bl:0x%04x, l:0x%04x, bt:0x%02X, t:0x%02X)\n", startAddress, len(data), requestedLength, data[0], t)
+	if t == data[0] {
+		for i := uint16(0); i < requestedLength; i++ {
+			m.mem.PutByte(startAddress+i, data[i+1])
+		}
+		regs.F.SetByte(0x45)
+		// println("Done")
+		// println(hex.Dump(data[:requestedLength]))
+		// println(hex.Dump(m.mem.GetBlock(startAddress, requestedLength)))
+		// } else {
+		// 	println("BAD Block")
+	}
+	return exit
+}
 
 func (m *cpc) Debugger() emulator.Debugger {
 	return m.debugger

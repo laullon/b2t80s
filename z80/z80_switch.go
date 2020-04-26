@@ -439,7 +439,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		needPcUpdate = false
 
 	case 0xf5: // PUSH AF
-		af := uint16(cpu.regs.A)<<8 | uint16(cpu.regs.F.getByte())
+		af := uint16(cpu.regs.A)<<8 | uint16(cpu.regs.F.GetByte())
 		cpu.regs.SP.Push(af)
 
 	case 0xc5: // PUSH BC
@@ -465,7 +465,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 	case 0xf1: // POP AF
 		af := cpu.regs.SP.Pop()
 		cpu.regs.A = byte(af >> 8)
-		cpu.regs.F.setByte(byte(af & 0xff))
+		cpu.regs.F.SetByte(byte(af & 0xff))
 
 	case 0xc1: // POP BC
 		bc := cpu.regs.SP.Pop()
@@ -1804,10 +1804,10 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.regs.HL.Set(hl)
 
 	case 0xdb: // IN A,(N)
-		f := cpu.regs.F.getByte()
+		f := cpu.regs.F.GetByte()
 		port := toWord(ins.Mem[1], cpu.regs.A)
 		cpu.regs.A = cpu.readPort(port)
-		cpu.regs.F.setByte(f)
+		cpu.regs.F.SetByte(f)
 
 	case 0xedb3: // OTIR
 		hl := cpu.regs.HL.Get()

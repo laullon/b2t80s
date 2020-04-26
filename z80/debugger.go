@@ -84,7 +84,7 @@ func (debug *debugger) AddLastInstruction(ins emulator.Instruction) {
 		regs := debug.cpu.Registers().(*Z80Registers)
 		fmt.Printf(
 			"                                  A:0x%02X F:%08b BC:0x%04X DE:0x%04X HL:0x%04X SP:0x%04X\n",
-			regs.A, regs.F.getByte(),
+			regs.A, regs.F.GetByte(),
 			uint16(regs.B)<<8|uint16(regs.C),
 			uint16(regs.D)<<8|uint16(regs.E),
 			uint16(regs.H)<<8|uint16(regs.L),
@@ -177,12 +177,12 @@ func (debug *debugger) GetLog() string {
 func (debug *debugger) GetRegisters() string {
 	var res strings.Builder
 	regs := debug.cpu.Registers().(*Z80Registers)
-	res.WriteString(fmt.Sprintf("  A:0x%02X    F:0x%02X  AF:0x%04X    SP:0x%04X\n", regs.A, regs.F.getByte(), uint16(regs.A)<<8|uint16(regs.F.getByte()), regs.SP.Get()))
+	res.WriteString(fmt.Sprintf("  A:0x%02X    F:0x%02X  AF:0x%04X    SP:0x%04X\n", regs.A, regs.F.GetByte(), uint16(regs.A)<<8|uint16(regs.F.GetByte()), regs.SP.Get()))
 	res.WriteString(fmt.Sprintf("  B:0x%02X    C:0x%02X  BC:0x%04X    ---------\n", regs.B, regs.C, uint16(regs.B)<<8|uint16(regs.C)))
 	res.WriteString(fmt.Sprintf("  D:0x%02X    E:0x%02X  DE:0x%04X    0x%04X\n", regs.D, regs.E, uint16(regs.D)<<8|uint16(regs.E), getWord(debug.memory, regs.SP.Get()+0)))
 	res.WriteString(fmt.Sprintf("  H:0x%02X    L:0x%02X  HL:0x%04X    0x%04X\n", regs.H, regs.L, uint16(regs.H)<<8|uint16(regs.L), getWord(debug.memory, regs.SP.Get()+2)))
 	res.WriteString(fmt.Sprintf("IXH:0x%02X  IXL:0x%02X  IX:0x%04X    0x%04X\n", regs.IXH, regs.IXL, uint16(regs.IXH)<<8|uint16(regs.IXL), getWord(debug.memory, regs.SP.Get()+4)))
 	res.WriteString(fmt.Sprintf("IYH:0x%02X  IYL:0x%02X  IY:0x%04X    0x%04X\n", regs.IYH, regs.IYL, uint16(regs.IYH)<<8|uint16(regs.IYL), getWord(debug.memory, regs.SP.Get()+6)))
-	res.WriteString(fmt.Sprintf("SZ5H3PNC\n%08b", regs.F.getByte()))
+	res.WriteString(fmt.Sprintf("SZ5H3PNC\n%08b", regs.F.GetByte()))
 	return res.String()
 }

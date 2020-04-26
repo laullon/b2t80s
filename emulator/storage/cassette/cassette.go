@@ -48,7 +48,7 @@ func (c *cassette) NextDataBlock() []byte {
 
 	b, ok := c.tap.blocks[c.nextBlogIdx].(*dataBlock)
 	c.nextBlogIdx++
-	if ok {
+	if ok && len(b.data) > 0 {
 		return b.data
 	}
 	return c.NextDataBlock()
@@ -57,18 +57,18 @@ func (c *cassette) NextDataBlock() []byte {
 func (c *cassette) LoadTapFile(path string) {
 	c.tap = &tap{}
 	c.tap.load(path)
-	go func() {
-		for idx, block := range c.tap.blocks {
-			fmt.Printf("%d - playing: %v \n", idx, block)
-			if dataBlock, ok := block.(*dataBlock); ok {
-				c.playDataBlock(dataBlock)
-			} else if pulseSeqBlock, ok := block.(*pulseSeqBlock); ok {
-				c.playPulseSeqBlock(pulseSeqBlock)
-			} else {
-				panic(block)
-			}
-		}
-	}()
+	// go func() {
+	// 	for idx, block := range c.tap.blocks {
+	// 		fmt.Printf("%d - playing: %v \n", idx, block)
+	// 		if dataBlock, ok := block.(*dataBlock); ok {
+	// 			c.playDataBlock(dataBlock)
+	// 		} else if pulseSeqBlock, ok := block.(*pulseSeqBlock); ok {
+	// 			c.playPulseSeqBlock(pulseSeqBlock)
+	// 		} else {
+	// 			panic(block)
+	// 		}
+	// 	}
+	// }()
 }
 
 func (c *cassette) Motor(on bool) {

@@ -159,7 +159,7 @@ func (cpu *z80) RegisterTrap(pc uint16, trap emulator.CPUTrap) {
 
 func (cpu *z80) SetRegisters(regs []byte, i, r, iff1, mode byte) {
 	cpu.regs.A = regs[0]
-	cpu.regs.F.setByte(regs[1])
+	cpu.regs.F.SetByte(regs[1])
 	cpu.regs.B = regs[2]
 	cpu.regs.C = regs[3]
 	cpu.regs.D = regs[4]
@@ -171,7 +171,7 @@ func (cpu *z80) SetRegisters(regs []byte, i, r, iff1, mode byte) {
 	cpu.regs.IYH = regs[10]
 	cpu.regs.IYL = regs[11]
 	cpu.regs.Aalt = regs[12]
-	cpu.regs.Falt.setByte(regs[13])
+	cpu.regs.Falt.SetByte(regs[13])
 	cpu.regs.Balt = regs[14]
 	cpu.regs.Calt = regs[15]
 	cpu.regs.Dalt = regs[16]

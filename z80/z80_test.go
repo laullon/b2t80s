@@ -151,8 +151,8 @@ func TestOPCodes(t *testing.T) {
 			regs := cpu.Registers().(*Z80Registers)
 			registers := fmt.Sprintf(
 				"%02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %04x %04x",
-				regs.A, regs.F.getByte()&0b11010111, regs.B, regs.C, regs.D, regs.E, regs.H, regs.L,
-				regs.Aalt, regs.Falt.getByte()&0b11010111, regs.Balt, regs.Calt, regs.Dalt, regs.Ealt, regs.Halt, regs.Lalt,
+				regs.A, regs.F.GetByte()&0b11010111, regs.B, regs.C, regs.D, regs.E, regs.H, regs.L,
+				regs.Aalt, regs.Falt.GetByte()&0b11010111, regs.Balt, regs.Calt, regs.Dalt, regs.Ealt, regs.Halt, regs.Lalt,
 				regs.IXH, regs.IXL, regs.IYH, regs.IYL,
 				regs.SP.Get(), regs.PC,
 			)
@@ -190,9 +190,9 @@ func setRegistersStr(cpu *Z80Registers, line string, otherReg []byte) {
 	cpu.PC = uint16(p)<<8 | uint16(c)
 
 	_, f := setRRstr(regs[0])
-	cpu.F.setByte(f)
+	cpu.F.SetByte(f)
 	_, _f := setRRstr(regs[4])
-	cpu.Falt.setByte(_f)
+	cpu.Falt.SetByte(_f)
 
 	cpu.I = otherReg[0]
 	cpu.R = otherReg[1]
