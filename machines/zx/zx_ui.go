@@ -10,5 +10,6 @@ func (zx *zx) UIControls() []ui.Control {
 	if zx.cassette != nil {
 		res = append(res, ui.NewCasseteControl(zx.cassette, !*machines.LoadSlow))
 	}
+	res = append(res, ui.NewVolumenControl(zx.sound))
 	return res
 }

@@ -12,7 +12,6 @@ import (
 	"github.com/laullon/b2t80s/emulator/files"
 	"github.com/laullon/b2t80s/emulator/storage/cassette"
 	"github.com/laullon/b2t80s/machines"
-	"github.com/laullon/b2t80s/ui"
 	"github.com/laullon/b2t80s/z80"
 )
 
@@ -123,10 +122,6 @@ func NewCPC(cpc464 bool) machines.Machine {
 	}
 
 	return cpc
-}
-
-func (m *cpc) UIControls() []ui.Control {
-	return nil
 }
 
 func (m *cpc) loadTapeBlockCPC464() uint16 {
