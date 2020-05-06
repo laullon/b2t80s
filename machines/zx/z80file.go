@@ -51,9 +51,9 @@ func LoadZ80File(fileName string) machines.Machine {
 	var machine *zx
 	switch model {
 	case 48:
-		machine = NewZX48K(nil).(*zx48k).zx
+		machine = NewZX48K().(*zx)
 	case 128:
-		machine = NewZX128K(nil).(*zx128k).zx
+		machine = NewZX128K().(*zx)
 	}
 
 	regs := machine.cpu.Registers().(*z80.Z80Registers)

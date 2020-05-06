@@ -2,6 +2,7 @@ package cassette
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/laullon/b2t80s/emulator"
 )
@@ -10,6 +11,8 @@ type Cassette interface {
 	emulator.Ticker
 
 	LoadTapFile(rom string)
+
+	Name() string
 
 	Ear() bool
 	Motor(bool)
@@ -31,6 +34,7 @@ type cassette struct {
 	earChannel       chan *pulse
 	motor            bool
 	nextBlogIdx      int
+	name             string
 }
 
 func New() Cassette {
@@ -54,21 +58,14 @@ func (c *cassette) NextDataBlock() []byte {
 	return c.NextDataBlock()
 }
 
+func (c *cassette) Name() string {
+	return c.name
+}
+
 func (c *cassette) LoadTapFile(path string) {
 	c.tap = &tap{}
 	c.tap.load(path)
-	// go func() {
-	// 	for idx, block := range c.tap.blocks {
-	// 		fmt.Printf("%d - playing: %v \n", idx, block)
-	// 		if dataBlock, ok := block.(*dataBlock); ok {
-	// 			c.playDataBlock(dataBlock)
-	// 		} else if pulseSeqBlock, ok := block.(*pulseSeqBlock); ok {
-	// 			c.playPulseSeqBlock(pulseSeqBlock)
-	// 		} else {
-	// 			panic(block)
-	// 		}
-	// 	}
-	// }()
+	c.name = filepath.Base(path)
 }
 
 func (c *cassette) Motor(on bool) {
@@ -91,21 +88,40 @@ func (c *cassette) Ear() bool {
 	return c.ear
 }
 
+var SpeedAdj = float64(1)
+
 func adj(t uint) uint {
-	v := float64(t) * 1 //.1428571429
+	v := float64(t) * SpeedAdj //1 //.1428571429
 	return uint(v)
 }
 
 func (c *cassette) Tick() {
-	if c.motor && len(c.earChannel) > 0 {
-		if c.earPulse == 0 {
-			c.earPulse = adj((<-c.earChannel).length)
-		}
-		c.earPulseDuration++
-		if c.earPulseDuration == c.earPulse {
-			c.earPulseDuration = 0
-			c.earPulse = 0
-			c.ear = !c.ear //c.earPulse.level
+	if c.motor {
+		if len(c.earChannel) == 0 {
+			if len(c.tap.blocks) == c.nextBlogIdx {
+				c.motor = false
+				return
+			}
+			block := c.tap.blocks[c.nextBlogIdx]
+			// fmt.Printf("%d - playing: %v \n", c.nextBlogIdx, block)
+			if dataBlock, ok := block.(*dataBlock); ok {
+				c.playDataBlock(dataBlock)
+			} else if pulseSeqBlock, ok := block.(*pulseSeqBlock); ok {
+				c.playPulseSeqBlock(pulseSeqBlock)
+			} else {
+				panic(block)
+			}
+			c.nextBlogIdx++
+		} else {
+			if c.earPulse == 0 {
+				c.earPulse = adj((<-c.earChannel).length)
+			}
+			c.earPulseDuration++
+			if c.earPulseDuration == c.earPulse {
+				c.earPulseDuration = 0
+				c.earPulse = 0
+				c.ear = !c.ear //c.earPulse.level
+			}
 		}
 	}
 }
@@ -119,7 +135,7 @@ func (c *cassette) playPulseSeqBlock(block *pulseSeqBlock) {
 
 func (c *cassette) playDataBlock(block *dataBlock) {
 	if block.pilotLen > 0 {
-		for i := uint(0); i < block.pilotLen; i++ {
+		for i := uint(0); i < block.pilotLen/2; i++ {
 			c.earChannel <- &pulse{block.pilot, true}
 			c.earChannel <- &pulse{block.pilot, false}
 		}

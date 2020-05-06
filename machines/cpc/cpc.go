@@ -12,6 +12,7 @@ import (
 	"github.com/laullon/b2t80s/emulator/files"
 	"github.com/laullon/b2t80s/emulator/storage/cassette"
 	"github.com/laullon/b2t80s/machines"
+	"github.com/laullon/b2t80s/ui"
 	"github.com/laullon/b2t80s/z80"
 )
 
@@ -37,31 +38,30 @@ type cpc struct {
 	debugger emulator.Debugger
 }
 
-func NewCPC(cpc464 bool, cassette cassette.Cassette) machines.Machine {
+func NewCPC(cpc464 bool) machines.Machine {
+	cassette.SpeedAdj = float64(40) / float64(35)
+
 	romFile := "data/roms/cpc6128.rom"
 	if cpc464 {
 		romFile = "data/roms/cpc464.rom"
 	}
 
-	rom, err := data.Asset(romFile)
-	if err != nil {
-		panic(romFile)
-	}
-
 	mem := NewCPCMemory()
+	rom := data.MustAsset(romFile)
 	mem.LoadRom(-1, rom[:0x3fff])
 	mem.LoadRom(0, rom[0x4000:])
 
 	if !cpc464 {
-		dosFile := "data/roms/amsdos.rom"
-		dos, err := data.Asset(dosFile)
-		if err != nil {
-			panic(dosFile)
-		}
+		dos := data.MustAsset("data/roms/amsdos.rom")
 		mem.LoadRom(7, dos)
 	}
 
-	cpu := z80.NewZ80(mem, cassette)
+	cas := cassette.New()
+	if len(*machines.TapFile) > 0 {
+		cas.LoadTapFile(*machines.TapFile)
+	}
+
+	cpu := z80.NewZ80(mem)
 
 	ay8912 := ay8912.New()
 	sound := emulator.NewSoundSystem(CLOCK_CPC / 80)
@@ -70,7 +70,7 @@ func NewCPC(cpc464 bool, cassette cassette.Cassette) machines.Machine {
 	crtc := newCRTC(cpu)
 	cpu.RegisterPort(emulator.PortMask{Mask: 0x4000, Value: 0x0000}, crtc)
 
-	ppi := newPPI(crtc, cassette, ay8912)
+	ppi := newPPI(crtc, cas, ay8912)
 	cpu.RegisterPort(emulator.PortMask{Mask: 0x0800, Value: 0x0000}, ppi)
 	sound.AddSource(ppi)
 
@@ -97,7 +97,7 @@ func NewCPC(cpc464 bool, cassette cassette.Cassette) machines.Machine {
 		mem:      mem,
 		ga:       ga,
 		ppi:      ppi,
-		cassette: cassette,
+		cassette: cas,
 		sound:    sound,
 		clock:    emulator.NewCLock(4000000),
 		debugger: z80.NewDebugger(cpu, mem),
@@ -107,10 +107,12 @@ func NewCPC(cpc464 bool, cassette cassette.Cassette) machines.Machine {
 	mem.SetClock(cpc.clock)
 
 	cpc.clock.AddTicker(4, crtc)
-	cpc.clock.AddTicker(0, cassette)
 	cpc.clock.AddTicker(4, ga)
 	cpc.clock.AddTicker(4, ay8912)
 	cpc.clock.AddTicker(80, sound)
+	if *machines.LoadSlow {
+		cpc.clock.AddTicker(0, cas)
+	}
 
 	if !*machines.LoadSlow {
 		if cpc464 {
@@ -121,6 +123,10 @@ func NewCPC(cpc464 bool, cassette cassette.Cassette) machines.Machine {
 	}
 
 	return cpc
+}
+
+func (m *cpc) UIControls() []ui.Control {
+	return nil
 }
 
 func (m *cpc) loadTapeBlockCPC464() uint16 {

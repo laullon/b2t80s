@@ -59,7 +59,7 @@ type ula struct {
 	clock emulator.Clock
 }
 
-func NewULA(mem *memory, cassette cassette.Cassette, clock emulator.Clock, plus bool) *ula {
+func NewULA(mem *memory, clock emulator.Clock, plus bool) *ula {
 	ula := &ula{
 		memory:          mem,
 		keyboardRow:     make([]byte, 8),
@@ -68,7 +68,6 @@ func NewULA(mem *memory, cassette cassette.Cassette, clock emulator.Clock, plus 
 		pixlesData:      make([][]byte, 192),
 		pixlesAttr:      make([][]byte, 192),
 		display:         image.NewRGBA(image.Rect(0, 0, 352, 296)),
-		cassette:        cassette,
 		clock:           clock,
 	}
 

@@ -7,7 +7,9 @@ import (
 
 	"fyne.io/fyne"
 	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/emulator/ay8912"
 	"github.com/laullon/b2t80s/emulator/storage/cassette"
+	"github.com/laullon/b2t80s/machines"
 	"github.com/laullon/b2t80s/z80"
 )
 
@@ -29,25 +31,63 @@ type zx struct {
 	cassette cassette.Cassette
 	sound    emulator.SoundSystem
 	debugger emulator.Debugger
-
-	onEndFrame func()
+	clock    emulator.Clock
+	ay8912   ay8912.AY8912
 }
 
-func NewZX(cpu emulator.CPU, ula *ula, mem emulator.Memory, cassette cassette.Cassette, sound emulator.SoundSystem, onEndFrame func()) *zx {
+func NewZX(mem *memory, plus, cas, ay bool) *zx {
+	speed := clock48k
+	if plus {
+		speed = clock128k
+	}
+
+	cpu := z80.NewZ80(mem)
+	clock := emulator.NewCLock(speed)
+
+	ula := NewULA(mem, clock, plus)
+	sound := emulator.NewSoundSystem(speed / 80)
+
+	ula.cpu = cpu
+	sound.AddSource(ula)
+
+	cpu.SetClock(clock)
+	clock.AddTicker(0, ula)
+	clock.AddTicker(80, sound)
+
+	cpu.RegisterPort(emulator.PortMask{Mask: 0x00FF, Value: 0x00FE}, ula)
+	cpu.RegisterPort(emulator.PortMask{Mask: 0x00FF, Value: 0x00FF}, ula)
+	cpu.RegisterPort(emulator.PortMask{Mask: 0x00e0, Value: 0x0000}, &emulator.Kempston{})
+
 	zx := &zx{
-		ula:        ula,
-		cpu:        cpu,
-		mem:        mem,
-		cassette:   cassette,
-		sound:      sound,
-		debugger:   z80.NewDebugger(cpu, mem),
-		onEndFrame: onEndFrame,
+		ula:      ula,
+		cpu:      cpu,
+		mem:      mem,
+		sound:    sound,
+		clock:    clock,
+		debugger: z80.NewDebugger(cpu, mem),
+	}
+
+	if ay {
+		zx.ay8912 = ay8912.New()
+		sound.AddSource(zx.ay8912)
+		cpu.RegisterPort(emulator.PortMask{Mask: 0xc002, Value: 0xc000}, zx.ay8912)
+		cpu.RegisterPort(emulator.PortMask{Mask: 0xc002, Value: 0x8000}, zx.ay8912)
+		clock.AddTicker(2, zx.ay8912)
+	}
+
+	if cas {
+		zx.cassette = cassette.New()
+		if len(*machines.TapFile) > 0 {
+			zx.cassette.LoadTapFile(*machines.TapFile)
+		}
+		clock.AddTicker(0, zx.cassette)
+		ula.cassette = zx.cassette
 	}
 
 	return zx
 }
 
-func (m *zx) Run() {
+func (zx *zx) Run() {
 	wait := time.Duration(20 * time.Millisecond)
 	runStart := time.Now()
 	frames := float64(0)
@@ -57,8 +97,8 @@ func (m *zx) Run() {
 		for range ticker.C {
 			frameStart := time.Now()
 
-			m.Debugger().NextFrame()
-			err := m.cpu.RunFrame()
+			zx.Debugger().NextFrame()
+			err := zx.cpu.RunFrame()
 			if err != nil {
 				panic(err)
 			}
@@ -67,29 +107,26 @@ func (m *zx) Run() {
 
 			frameTime := time.Now().Sub(frameStart)
 			runTime := time.Now().Sub(runStart)
-			m.Debugger().SetStatus(fmt.Sprintf("frame rate:%6.2f time:%6.2fms (%v)", frames/runTime.Seconds(), float64(frameTime.Microseconds())/1000, wait))
-			m.ula.FrameDone()
-			if m.onEndFrame != nil {
-				m.onEndFrame()
-			}
+			zx.Debugger().SetStatus(fmt.Sprintf("frame rate:%6.2f time:%6.2fms (%v)", frames/runTime.Seconds(), float64(frameTime.Microseconds())/1000, wait))
+			zx.ula.FrameDone()
 		}
 	}()
 }
 
-func (m *zx) Debugger() emulator.Debugger {
-	return m.debugger
+func (zx *zx) Debugger() emulator.Debugger {
+	return zx.debugger
 }
 
-func (m *zx) OnKeyEvent(event *fyne.KeyEvent) {
-	m.ula.OnKeyEvent(event)
+func (zx *zx) OnKeyEvent(event *fyne.KeyEvent) {
+	zx.ula.OnKeyEvent(event)
 }
 
-func (m *zx) Display() image.Image {
-	return m.ula.Display()
+func (zx *zx) Display() image.Image {
+	return zx.ula.Display()
 }
 
-func (m *zx) GetVolumeControl() func(float64) {
-	return m.sound.SetVolume
+func (zx *zx) GetVolumeControl() func(float64) {
+	return zx.sound.SetVolume
 }
 
 func (zx *zx) loadDataBlock() uint16 {

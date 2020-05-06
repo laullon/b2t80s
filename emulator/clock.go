@@ -23,9 +23,9 @@ type clock struct {
 	tickers         []*ticker
 }
 
-func NewCLock(hz uint) Clock {
+func NewCLock(hz int) Clock {
 	clock := &clock{
-		tStatesPerFrame: hz / 50,
+		tStatesPerFrame: uint(hz) / 50,
 	}
 	return clock
 }

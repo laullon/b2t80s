@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/laullon/b2t80s/emulator"
-	"github.com/laullon/b2t80s/emulator/storage/cassette"
 )
 
 var overflowAddTable = []bool{false, false, false, true, true, false, false, false}
@@ -64,7 +63,6 @@ type Z80Registers struct {
 
 type z80 struct {
 	memory   emulator.Memory
-	cassette cassette.Cassette
 	debugger emulator.Debugger
 
 	regs *Z80Registers
@@ -102,13 +100,12 @@ func init() {
 
 }
 
-func NewZ80(mem emulator.Memory, cassette cassette.Cassette) emulator.CPU {
+func NewZ80(mem emulator.Memory) emulator.CPU {
 	LoadOPCodess()
 	cpu := &z80{
-		memory:   mem,
-		cassette: cassette,
-		traps:    make(map[uint16]emulator.CPUTrap),
-		ports:    make(map[emulator.PortMask]emulator.PortManager),
+		memory: mem,
+		traps:  make(map[uint16]emulator.CPUTrap),
+		ports:  make(map[emulator.PortMask]emulator.PortManager),
 		regs: &Z80Registers{
 			PC: 0,
 			A:  0xff,

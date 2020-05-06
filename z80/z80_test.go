@@ -16,7 +16,7 @@ import (
 )
 
 func TestRegPair(t *testing.T) {
-	cpu := NewZ80(nil, nil)
+	cpu := NewZ80(nil)
 	cpu.Registers().(*Z80Registers).B = 0x0A
 	cpu.Registers().(*Z80Registers).C = 0x0B
 	assert.Equal(t, uint16(0x0A0B), cpu.Registers().(*Z80Registers).BC.Get())
@@ -82,7 +82,7 @@ func TestOPCodes(t *testing.T) {
 	memory := &dummyMemory{mem: make([]byte, 0xffff)}
 	memory.SetClock(&dummyClock{})
 
-	cpu := NewZ80(memory, nil)
+	cpu := NewZ80(memory)
 
 	debugger := NewDebugger(cpu.(*z80), memory)
 	cpu.SetDebuger(debugger)
@@ -360,7 +360,7 @@ func TestZEXDoc(t *testing.T) {
 	mem.memory = append(mem.memory, zexdoc...)
 	mem.memory = append(mem.memory, make([]byte, 0x10000-len(mem.memory))...)
 
-	cpu := NewZ80(mem, nil)
+	cpu := NewZ80(mem)
 	cpu.SetClock(&dummyClock{})
 	cpu.Registers().(*Z80Registers).PC = uint16(0x100)
 	cpu.RegisterTrap(0x5, func() uint16 {

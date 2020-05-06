@@ -1,7 +1,6 @@
 package cassette
 
 import (
-	"encoding/hex"
 	"fmt"
 	"os"
 )
@@ -117,10 +116,8 @@ func readDefaultBlock(file []byte) (interface{}, uint16) {
 }
 
 func readTzxBlock(file []byte) (interface{}, uint32) {
-	println(hex.Dump(file[:50]))
 	id := file[0]
 	file = file[1:]
-	fmt.Printf("id: 0x%02X\n", id)
 
 	switch id {
 	case 0x10:
