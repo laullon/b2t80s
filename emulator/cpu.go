@@ -20,22 +20,15 @@ type CPU interface {
 
 	Interrupt(bool)
 
-	PC() uint16
-	SetPC(pc uint16)
+	Registers() interface{}
 
-	SP() StackPointer
-
-	DumpRegisters() ([]byte, uint16, uint16)
-	SetRegisters(regs []byte, i, r, iff1, mode byte)
-
-	SetRegistersStr(line string, otherReg []byte)
 	SetDebuger(debugger Debugger)
 
 	RegisterTrap(pc uint16, trap CPUTrap)
 	RegisterPort(mask PortMask, manager PortManager)
 
-	LoadTapeBlock() uint16
-	LoadTapeBlockCPC(uint16) uint16
+	// LoadTapeBlock() uint16
+	// LoadTapeBlockCPC(uint16) uint16
 
 	SetClock(c Clock)
 

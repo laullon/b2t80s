@@ -1,6 +1,8 @@
 package z80
 
-import "github.com/laullon/b2t80s/emulator"
+import (
+	"github.com/laullon/b2t80s/emulator"
+)
 
 func getWord(mem emulator.Memory, addr uint16) uint16 {
 	res := uint16(mem.GetByte(addr))
@@ -11,4 +13,17 @@ func getWord(mem emulator.Memory, addr uint16) uint16 {
 func putWord(mem emulator.Memory, addr, w uint16) {
 	mem.PutByte(addr, uint8(w&0x00ff))
 	mem.PutByte(addr+1, uint8(w>>8))
+}
+
+type RegPair struct {
+	h, l *byte
+}
+
+func (reg *RegPair) Get() uint16 {
+	return uint16(*reg.h)<<8 | uint16(*reg.l)
+}
+
+func (reg *RegPair) Set(hl uint16) {
+	*reg.h = byte(hl >> 8)
+	*reg.l = byte(hl & 0x00ff)
 }

@@ -161,9 +161,9 @@ func (ga *gatearray) Tick() {
 	ga.prevHSync = ga.crtc.status.hSync
 	ga.prevVSync = ga.crtc.status.vSync
 
-	if ga.crtc.status.disPen {
-		ga.mem.clock.AddTStates(4)
-	}
+	// if ga.crtc.status.disPen {
+	// 	ga.mem.clock.AddTStates(4)
+	// }
 
 }
 

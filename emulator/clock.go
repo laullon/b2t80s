@@ -23,9 +23,9 @@ type clock struct {
 	tickers         []*ticker
 }
 
-func NewCLock(hz uint) Clock {
+func NewCLock(hz int) Clock {
 	clock := &clock{
-		tStatesPerFrame: hz / 50,
+		tStatesPerFrame: uint(hz) / 50,
 	}
 	return clock
 }
@@ -52,5 +52,8 @@ func (c *clock) FrameDone() bool {
 }
 
 func (c *clock) AddTicker(mod uint, t Ticker) {
+	if t == nil {
+		panic("NIL Ticker")
+	}
 	c.tickers = append(c.tickers, &ticker{mod: mod, ticker: t})
 }
