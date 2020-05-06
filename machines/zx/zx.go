@@ -3,19 +3,19 @@ package zx
 import (
 	"fmt"
 	"image"
-	"log"
-	"os"
 	"time"
 
 	"fyne.io/fyne"
 	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/emulator/ay8912"
+	"github.com/laullon/b2t80s/emulator/storage/cassette"
 	"github.com/laullon/b2t80s/machines"
 	"github.com/laullon/b2t80s/z80"
 )
 
 const (
-	CLOCK_48k  = 3500000
-	CLOCK_128k = 3546900
+	clock48k  = 3500000
+	clock128k = 3546900
 )
 
 type ZX interface {
@@ -28,28 +28,66 @@ type zx struct {
 	ula      *ula
 	cpu      emulator.CPU
 	mem      emulator.Memory
-	cassete  emulator.Cassette
+	cassette cassette.Cassette
 	sound    emulator.SoundSystem
 	debugger emulator.Debugger
-
-	onEndFrame func()
+	clock    emulator.Clock
+	ay8912   ay8912.AY8912
 }
 
-func NewZX(cpu emulator.CPU, ula *ula, mem emulator.Memory, cassete emulator.Cassette, sound emulator.SoundSystem, onEndFrame func()) *zx {
+func NewZX(mem *memory, plus, cas, ay bool) *zx {
+	speed := clock48k
+	if plus {
+		speed = clock128k
+	}
+
+	cpu := z80.NewZ80(mem)
+	clock := emulator.NewCLock(speed)
+
+	ula := NewULA(mem, clock, plus)
+	sound := emulator.NewSoundSystem(speed / 80)
+
+	ula.cpu = cpu
+	sound.AddSource(ula)
+
+	cpu.SetClock(clock)
+	clock.AddTicker(0, ula)
+	clock.AddTicker(80, sound)
+
+	cpu.RegisterPort(emulator.PortMask{Mask: 0x00FF, Value: 0x00FE}, ula)
+	cpu.RegisterPort(emulator.PortMask{Mask: 0x00FF, Value: 0x00FF}, ula)
+	cpu.RegisterPort(emulator.PortMask{Mask: 0x00e0, Value: 0x0000}, &emulator.Kempston{})
+
 	zx := &zx{
-		ula:        ula,
-		cpu:        cpu,
-		mem:        mem,
-		cassete:    cassete,
-		sound:      sound,
-		debugger:   z80.NewDebugger(cpu, mem),
-		onEndFrame: onEndFrame,
+		ula:      ula,
+		cpu:      cpu,
+		mem:      mem,
+		sound:    sound,
+		clock:    clock,
+		debugger: z80.NewDebugger(cpu, mem),
+	}
+
+	if ay {
+		zx.ay8912 = ay8912.New()
+		sound.AddSource(zx.ay8912)
+		cpu.RegisterPort(emulator.PortMask{Mask: 0xc002, Value: 0xc000}, zx.ay8912)
+		cpu.RegisterPort(emulator.PortMask{Mask: 0xc002, Value: 0x8000}, zx.ay8912)
+		clock.AddTicker(2, zx.ay8912)
+	}
+
+	if cas {
+		zx.cassette = cassette.New()
+		if len(*machines.TapFile) > 0 {
+			zx.cassette.LoadTapFile(*machines.TapFile)
+		}
+		clock.AddTicker(0, zx.cassette)
+		ula.cassette = zx.cassette
 	}
 
 	return zx
 }
 
-func (m *zx) Run() {
+func (zx *zx) Run() {
 	wait := time.Duration(20 * time.Millisecond)
 	runStart := time.Now()
 	frames := float64(0)
@@ -59,8 +97,8 @@ func (m *zx) Run() {
 		for range ticker.C {
 			frameStart := time.Now()
 
-			m.Debugger().NextFrame()
-			err := m.cpu.RunFrame()
+			zx.Debugger().NextFrame()
+			err := zx.cpu.RunFrame()
 			if err != nil {
 				panic(err)
 			}
@@ -69,177 +107,55 @@ func (m *zx) Run() {
 
 			frameTime := time.Now().Sub(frameStart)
 			runTime := time.Now().Sub(runStart)
-			m.Debugger().SetStatus(fmt.Sprintf("frame rate:%6.2f time:%6.2fms (%v)", frames/runTime.Seconds(), float64(frameTime.Microseconds())/1000, wait))
-			m.ula.FrameDone()
-			if m.onEndFrame != nil {
-				m.onEndFrame()
-			}
+			zx.Debugger().SetStatus(fmt.Sprintf("frame rate:%6.2f time:%6.2fms (%v)", frames/runTime.Seconds(), float64(frameTime.Microseconds())/1000, wait))
+			zx.ula.FrameDone()
 		}
 	}()
 }
 
-func (m *zx) Debugger() emulator.Debugger {
-	return m.debugger
+func (zx *zx) Debugger() emulator.Debugger {
+	return zx.debugger
 }
 
-func (m *zx) OnKeyEvent(event *fyne.KeyEvent) {
-	m.ula.OnKeyEvent(event)
+func (zx *zx) OnKeyEvent(event *fyne.KeyEvent) {
+	zx.ula.OnKeyEvent(event)
 }
 
-func (m *zx) Display() image.Image {
-	return m.ula.Display()
+func (zx *zx) Display() image.Image {
+	return zx.ula.Display()
 }
 
-func (m *zx) GetVolumeControl() func(float64) {
-	return m.sound.SetVolume
+func (zx *zx) GetVolumeControl() func(float64) {
+	return zx.sound.SetVolume
 }
 
-func LoadZ80File(fileName string) machines.Machine {
-	fi, err := os.Stat(fileName)
-	if err != nil {
-		panic(err)
+func (zx *zx) loadDataBlock() uint16 {
+	data := zx.cassette.NextDataBlock()
+	if data == nil {
+		return emulator.CONTINUE
 	}
 
-	f, err := os.Open(fileName)
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-	file := make([]byte, fi.Size()+1)
-	l, err := f.Read(file)
-	if err != nil {
-		panic(err)
-	}
-	file = file[0:l]
+	regs := zx.cpu.Registers().(*z80.Z80Registers)
+	requestedLength := regs.DE.Get()
+	startAddress := regs.IX.Get()
+	// fmt.Printf("Loading block '%s' to 0x%04x (bl:0x%04x, l:0x%04x, bt:%d, a:%d)\n", block.Name(), startAddress, len(block.GetData()), requestedLength, block.Type(), regs._A)
 
-	version := 1
-	h := file[34]
-	model := 48
-	if getUint16(file[6], file[7]) == 0 {
-		if h == 2 {
-			log.Panic("'SamRam' not supported")
-		}
-		if file[30] == 23 {
-			version = 2
-			if h == 3 || h == 4 {
-				model = 128
+	if regs.Aalt == data[0] {
+		if regs.Falt.C {
+			checksum := data[0]
+			for i := uint16(0); i < requestedLength; i++ {
+				loadedByte := data[i+1]
+				zx.mem.PutByte(startAddress+i, loadedByte)
+				checksum ^= loadedByte
 			}
+			regs.F.C = checksum == data[requestedLength+1]
 		} else {
-			version = 3
-			if h == 4 || h == 5 || h == 6 {
-				model = 128
-			}
+			regs.F.C = true
 		}
-	}
-
-	// log.Printf("Loading z80 file '%s' v:%d h:%dk (%d)", fileName, version, model, h)
-
-	var machine machines.Machine
-	var cpu emulator.CPU
-	var mem emulator.Memory
-	switch model {
-	case 48:
-		machine = NewZX48K(nil)
-		cpu = machine.(*zx48k).cpu
-		mem = machine.(*zx48k).mem
-	case 128:
-		machine = NewZX128K(nil)
-		cpu = machine.(*zx128k).cpu
-		mem = machine.(*zx128k).mem
-	}
-
-	// TODO: byte 12
-	regs := append([]byte{}, file[0], file[1]) // AF
-	regs = append(regs, file[3], file[2])      // BC
-	regs = append(regs, file[14], file[13])    // DE
-	regs = append(regs, file[5], file[4])      // HL
-	regs = append(regs, file[26], file[25])    // IX
-	regs = append(regs, file[23], file[24])    // IY
-	regs = append(regs, file[21], file[22])    // _AF
-	regs = append(regs, file[16], file[15])    // _BC
-	regs = append(regs, file[18], file[17])    // _DE
-	regs = append(regs, file[20], file[19])    // _HL
-
-	cpu.SetRegisters(regs, file[10], file[11], file[27], file[29]&3)
-	cpu.SP().Set(getUint16(file[9], file[8]))
-
-	if version == 1 {
-		pc := getUint16(file[7], file[6])
-		cpu.SetPC(pc)
-		data := file[30:]
-		copyMemoryBlock(data, uint16(len(data)), mem, uint16(0x4000))
+		// log.Print("done")
 	} else {
-		pc := getUint16(file[33], file[32])
-		cpu.SetPC(pc)
-
-		block := file[30+file[30]+2:]
-		for len(block) > 0 {
-			len := getUint16(block[1], block[0])
-			if len == 0xffff {
-				len = 0x4000
-			}
-			page := block[2]
-			data := block[3 : 3+len]
-
-			posDst := uint16(0)
-			if model == 48 {
-				switch page {
-				case 4:
-					posDst = 0x8000
-				case 5:
-					posDst = 0xc000
-				case 8:
-					posDst = 0x4000
-				default:
-					log.Panicf("-- page '%d' not supported --", page)
-				}
-			} else if model == 128 {
-				// mem.Paging(page - 3)
-				posDst = 0xc000
-			}
-
-			copyMemoryBlock(data, len, mem, posDst)
-			block = block[3+len:]
-		}
-		if model == 128 {
-			// mem.Paging(file[35])
-			ay := machine.(*zx128k).ay8912
-			for r, b := range file[39:45] {
-				ay.WriteRegister(byte(r), b)
-			}
-			// ay.SetReg(file[38])
-		}
+		regs.F.C = false
+		// log.Print("BAD Block")
 	}
-
-	return machine
-}
-
-func copyMemoryBlock(memOrg []byte, len uint16, memDest emulator.Memory, pos uint16) {
-	posScr := uint16(0)
-	posDst := pos
-	// log.Printf("copying %d bytes to page 0x%04X\n", len, posDst)
-	for posScr < len {
-		if memOrg[posScr] == 0xED && memOrg[posScr+1] == 0xED && posScr+3 < len {
-			b := memOrg[posScr+3]
-			c := uint16(memOrg[posScr+2])
-			for i := uint16(0); i < c; i++ {
-				memDest.PutByte(posDst+i, b)
-			}
-			posDst += c
-			posScr += 4
-			// } else if memOrg[posScr] == 0xED {
-			// 	memDest.PutByte(posDst, memOrg[posScr+1])
-			// 	posDst++
-			// 	posScr += 2
-		} else {
-			memDest.PutByte(posDst, memOrg[posScr])
-			posDst++
-			posScr++
-		}
-	}
-
-}
-
-func getUint16(h, l byte) uint16 {
-	return (uint16(h) << 8) | uint16(l)
+	return 0x05e2
 }

@@ -17,8 +17,8 @@ import (
 	"fyne.io/fyne/canvas"
 	"fyne.io/fyne/driver/desktop"
 	"fyne.io/fyne/layout"
+	"fyne.io/fyne/theme"
 	"fyne.io/fyne/widget"
-	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/machines"
 	"github.com/laullon/b2t80s/machines/cpc"
 	"github.com/laullon/b2t80s/machines/zx"
@@ -32,7 +32,7 @@ func init() {
 }
 
 func main() {
-	tapFile := flag.String("tap", "", "tap file to load")
+	machines.TapFile = flag.String("tap", "", "tap file to load")
 	z80File := flag.String("z80", "", "z80 file to load")
 	mode := flag.String("mode", "48k", "Spectrum model to emulate [48k|128k|plus3|cpc464|cpc6128]")
 	debug := flag.Bool("debug", false, "shows debugger")
@@ -59,12 +59,6 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	cassette := emulator.NewTapCassette()
-	if len(*tapFile) > 0 {
-		cassette.LoadTapFile(*tapFile)
-	}
-	// log.Print(cassette)
-
 	var machine machines.Machine
 	var name string
 
@@ -74,19 +68,19 @@ func main() {
 	} else {
 		switch *mode {
 		case "48k":
-			machine = zx.NewZX48K(cassette)
+			machine = zx.NewZX48K()
 			name = "ZX Spectrum 48k"
 		case "128k":
-			machine = zx.NewZX128K(cassette)
+			machine = zx.NewZX128K()
 			name = "ZX Spectrum 128k"
 		case "plus3":
-			machine = zx.NewZXPlus3(cassette)
+			machine = zx.NewZXPlus3()
 			name = "ZX Spectrum +3"
 		case "cpc464", "cpc":
-			machine = cpc.NewCPC(true, cassette)
+			machine = cpc.NewCPC(true)
 			name = "Amstrad CPC 464"
 		case "cpc6128":
-			machine = cpc.NewCPC(false, cassette)
+			machine = cpc.NewCPC(false)
 			name = "Amstrad CPC 6128"
 		default:
 			panic(fmt.Errorf("mode '%s' not valid", *mode))
@@ -105,6 +99,7 @@ func main() {
 	}
 
 	app := app.New()
+	app.Settings().SetTheme(theme.LightTheme())
 	display := canvas.NewImageFromImage(machine.Display())
 	display.FillMode = canvas.ImageFillOriginal
 	display.ScalingFilter = canvas.NearestFilter
@@ -122,10 +117,15 @@ func main() {
 	volumen.OnChanged = machine.GetVolumeControl()
 	volumen.MinSize()
 
+	controls := widget.NewHBox(volumen)
+	for _, control := range machine.UIControls() {
+		controls.Append(control.Widget())
+	}
+
 	statusBar := fyne.NewContainerWithLayout(
-		layout.NewBorderLayout(nil, nil, status, volumen),
+		layout.NewBorderLayout(nil, nil, status, controls),
 		status,
-		volumen,
+		controls,
 	)
 
 	if *debug {
