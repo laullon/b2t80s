@@ -1,3 +1,4 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/laullon/b2t80s)](https://goreportcard.com/report/github.com/laullon/b2t80s) [![Build Status](https://travis-ci.com/laullon/b2t80s.svg?branch=master)](https://travis-ci.com/laullon/b2t80s)
 
 # b2t80s
 Z80 Based Computers Emulator (back to the 80's)
