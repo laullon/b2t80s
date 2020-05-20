@@ -18,7 +18,8 @@ func NewVolumenControl(sound emulator.SoundSystem) *VolumenControl {
 	vc := &VolumenControl{sound: sound}
 
 	vc.sel = widget.NewButtonWithIcon("", fyne.NewStaticResource("pp", data.MustAsset("data/icons/volume-control-full.png")), vc.do)
-	vc.slider = widget.NewSlider(0, 100)
+	vc.slider = widget.NewSlider(0, 1)
+	vc.slider.Step = 0.05
 	vc.slider.OnChanged = vc.sound.SetVolume
 
 	vc.ui = widget.NewHBox(

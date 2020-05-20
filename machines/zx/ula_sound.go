@@ -27,3 +27,7 @@ func (ula *ula) GetBuffer(max int) (res []*emulator.SoundData, l int) {
 	}
 	return
 }
+
+func (ula *ula) GetChannels() []emulator.SoundChannel {
+	return []emulator.SoundChannel{ula}
+}
