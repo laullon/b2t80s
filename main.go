@@ -113,11 +113,8 @@ func main() {
 	dis := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
 
 	status := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
-	volumen := widget.NewSlider(0, 90)
-	volumen.OnChanged = machine.GetVolumeControl()
-	volumen.MinSize()
 
-	controls := widget.NewHBox(volumen)
+	controls := widget.NewHBox()
 	for _, control := range machine.UIControls() {
 		controls.Append(control.Widget())
 	}

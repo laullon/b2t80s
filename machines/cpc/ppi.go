@@ -408,3 +408,7 @@ func (ppi *ppi) GetBuffer(max int) (res []*emulator.SoundData, l int) {
 	}
 	return
 }
+
+func (ppi *ppi) GetChannels() []emulator.SoundChannel {
+	return []emulator.SoundChannel{ppi}
+}
