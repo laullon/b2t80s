@@ -16,13 +16,17 @@ type AY8912 interface {
 }
 
 type channel struct {
-	pitch    uint16
 	volume   uint16
+	pitch    uint16
 	envelope bool
 	tone     bool
 	noise    bool
 	count    uint16
 	output   bool
+	out      uint16
+	buff     []*emulator.SoundData
+	mux      sync.Mutex
+	ticks    int
 }
 
 type envelope struct {
@@ -43,15 +47,10 @@ type ay8912 struct {
 	regs        []byte
 	selectedReg byte
 
-	channels []*channel
-	envelope *envelope
-	noise    *noise
-
-	volume uint16
-	maxvol float64
-	out    []*emulator.SoundData
-	ticks  int
-	mux    sync.Mutex
+	channels      []*channel
+	soundChannels []emulator.SoundChannel
+	envelope      *envelope
+	noise         *noise
 }
 
 var regMasks = []byte{0xff, 0x0f, 0xff, 0x0f, 0xff, 0x0f, 0x1f, 0xff, 0x1f, 0x1f, 0x1f, 0xff, 0xff, 0x0f, 0xff}
@@ -64,7 +63,9 @@ func New() AY8912 {
 	}
 
 	for i := 0; i < 3; i++ {
-		ay.channels = append(ay.channels, &channel{})
+		ch := &channel{}
+		ay.channels = append(ay.channels, ch)
+		ay.soundChannels = append(ay.soundChannels, ch)
 	}
 
 	for env := 0; env < 16; env++ {
@@ -168,36 +169,45 @@ func (ay *ay8912) Tick() {
 	for _, channel := range ay.channels {
 		if (channel.output && channel.tone) || (ay.noise.output && channel.noise) {
 			if channel.envelope {
-				ay.volume += ay.envelope.volume[ay.envelope.shape][ay.envelope.pos]
+				channel.out += ay.envelope.volume[ay.envelope.shape][ay.envelope.pos]
 			} else {
-				ay.volume += channel.volume
+				channel.out += channel.volume
 			}
 		}
+		channel.ticks++
 	}
-
-	ay.ticks++
 }
 
 func (ay *ay8912) SoundTick() {
-	ay.mux.Lock()
-	defer ay.mux.Unlock()
-	v := float64(ay.volume) / float64(16*3*ay.ticks)
-	ay.out = append(ay.out, &emulator.SoundData{L: v, R: v})
-	ay.ticks = 0
-	ay.volume = 0
+	for _, channel := range ay.channels {
+		channel.soundTick()
+	}
 }
 
-func (ay *ay8912) GetBuffer(max int) (res []*emulator.SoundData, l int) {
-	ay.mux.Lock()
-	defer ay.mux.Unlock()
+func (ay *ay8912) GetChannels() []emulator.SoundChannel {
+	return ay.soundChannels
+}
 
-	if len(ay.out) > max {
-		res = ay.out[:max]
-		ay.out = ay.out[max:]
+func (ch *channel) soundTick() {
+	ch.mux.Lock()
+	defer ch.mux.Unlock()
+	v := float64(ch.out) / float64(16*ch.ticks)
+	ch.buff = append(ch.buff, &emulator.SoundData{L: v, R: v})
+	ch.ticks = 0
+	ch.out = 0
+}
+
+func (ch *channel) GetBuffer(max int) (res []*emulator.SoundData, l int) {
+	ch.mux.Lock()
+	defer ch.mux.Unlock()
+
+	if len(ch.buff) > max {
+		res = ch.buff[:max]
+		ch.buff = ch.buff[max:]
 		l = max
 	} else {
-		res = ay.out
-		ay.out = nil
+		res = ch.buff
+		ch.buff = nil
 		l = len(res)
 	}
 	return

@@ -138,7 +138,7 @@ func LoadZ80File(fileName string) machines.Machine {
 func copyMemoryBlock(memOrg []byte, len uint16, bank *bank) {
 	posScr := uint16(0)
 	posDst := uint16(0)
-	log.Printf("copying %d bytes to page 0x%04X\n", len, posDst)
+	// log.Printf("copying %d bytes to page 0x%04X\n", len, posDst)
 	for posScr < len {
 		if memOrg[posScr] == 0xED && memOrg[posScr+1] == 0xED && posScr+3 < len {
 			b := memOrg[posScr+3]
