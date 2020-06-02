@@ -11,6 +11,7 @@ import (
 var LoadSlow *bool
 var DskAFile *string
 var TapFile *string
+var RomFile *string
 
 type Machine interface {
 	OnKeyEvent(event *fyne.KeyEvent)

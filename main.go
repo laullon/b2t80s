@@ -21,6 +21,7 @@ import (
 	"fyne.io/fyne/widget"
 	"github.com/laullon/b2t80s/machines"
 	"github.com/laullon/b2t80s/machines/cpc"
+	"github.com/laullon/b2t80s/machines/msx"
 	"github.com/laullon/b2t80s/machines/zx"
 
 	_ "net/http/pprof"
@@ -33,6 +34,7 @@ func init() {
 
 func main() {
 	machines.TapFile = flag.String("tap", "", "tap file to load")
+	machines.RomFile = flag.String("rom", "", "rom file to load")
 	z80File := flag.String("z80", "", "z80 file to load")
 	mode := flag.String("mode", "48k", "Spectrum model to emulate [48k|128k|plus3|cpc464|cpc6128]")
 	debug := flag.Bool("debug", false, "shows debugger")
@@ -82,6 +84,9 @@ func main() {
 		case "cpc6128":
 			machine = cpc.NewCPC(false)
 			name = "Amstrad CPC 6128"
+		case "msx":
+			machine = msx.NewMSX()
+			name = "MSX 1"
 		default:
 			panic(fmt.Errorf("mode '%s' not valid", *mode))
 		}
