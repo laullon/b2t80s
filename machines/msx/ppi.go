@@ -42,7 +42,7 @@ func (ppi *ppi) ReadPort(port uint16) (byte, bool) {
 		for slot := 0; slot < 4; slot++ {
 			res |= ppi.mem.cfg[slot] << (slot * 2)
 		}
-		fmt.Printf("[ppi.ReadPort] mem.cfg: %v (0b%08b)\n", ppi.mem.cfg, res)
+		// fmt.Printf("[ppi.ReadPort] mem.cfg: %v (0b%08b)\n", ppi.mem.cfg, res)
 		return res, false
 
 	case 0xa9:
@@ -61,7 +61,7 @@ func (ppi *ppi) WritePort(port uint16, data byte) {
 		for slot := 0; slot < 4; slot++ {
 			ppi.mem.cfg[slot] = (data >> (slot * 2)) & 3
 		}
-		fmt.Printf("mem.cfg: %v (0b%08b)\n", ppi.mem.cfg, data)
+		// fmt.Printf("mem.cfg: %v (0b%08b)\n", ppi.mem.cfg, data)
 
 	case 0xa9:
 		panic(fmt.Sprintf("unsopported port: 0x%02X", port))
@@ -78,7 +78,7 @@ func (ppi *ppi) WritePort(port uint16, data byte) {
 				ppi.c &= ^(1 << bit)
 			}
 		} else {
-			print(fmt.Sprintf("invalid c (%d) value", data))
+			print(fmt.Sprintf("invalid c (%d) value\n", data))
 		}
 	}
 }

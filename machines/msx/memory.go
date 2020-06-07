@@ -1,29 +1,27 @@
 package msx
 
-type bank []byte
+import "github.com/laullon/b2t80s/emulator"
 
 type memory struct {
-	slots     [][]bank
-	cfg       []byte
-	cartridge bool
+	slots []emulator.Memory
+	cfg   []byte
 }
 
-func NewMemory() *memory {
-	res := &memory{cfg: []byte{0, 0, 0, 0}}
+func NewMemory(rom rom) *memory {
+	mem := &memory{cfg: []byte{0, 0, 0, 0}}
 
-	res.slots = make([][]bank, 4)
+	mem.slots = make([]emulator.Memory, 4)
 
-	// roms
-	for p := 0; p < 2; p++ {
-		res.slots[0] = append(res.slots[0], make(bank, 0x4000))
-	}
+	mem.slots[0] = rom
+	mem.slots[1] = make(emptySlot, 0)
+	mem.slots[2] = make(emptySlot, 0)
+	mem.slots[3] = make(ram, 0x010000)
 
-	// memory
-	for p := 0; p < 4; p++ {
-		res.slots[3] = append(res.slots[3], make(bank, 0x4000))
-	}
+	return mem
+}
 
-	return res
+func (mem *memory) setCartridge1(cart emulator.Memory) {
+	mem.slots[1] = cart
 }
 
 func (mem *memory) GetBlock(start, length uint16) []byte {
@@ -35,45 +33,73 @@ func (mem *memory) GetBlock(start, length uint16) []byte {
 }
 
 func (mem *memory) GetByte(addr uint16) byte {
-	slot, page, pos := mem.decodeAddress(addr)
-	if (slot == 0 && page > 1) || (slot == 1 && !mem.cartridge) || slot == 2 {
-		return 0x00
-	}
-	return mem.slots[slot][page][pos]
+	slot := mem.getSlot(addr)
+	return mem.slots[slot].GetByte(addr)
 }
 
 func (mem *memory) PutByte(addr uint16, b byte) {
-	slot, page, pos := mem.decodeAddress(addr)
-	if slot != 3 {
-		return
-	}
-	mem.slots[slot][page][pos] = b
+	slot := mem.getSlot(addr)
+	mem.slots[slot].PutByte(addr, b)
 }
 
-func (mem *memory) LoadRom(idx int, rom []byte) {
-	copy(mem.slots[0][idx], rom)
-}
-
-func (mem *memory) LoadCartridge(rom []byte) {
-	for p := 0; p < 4; p++ {
-		mem.slots[1] = append(mem.slots[1], make(bank, 0x4000))
-	}
-
-	for i := 0; i < len(mem.slots[1]); i++ {
-		if len(rom) > 0x4000*i {
-			copy(mem.slots[1][i+1], rom[0x4000*i:])
-		}
-	}
-	mem.cartridge = true
-}
-
-func (mem *memory) decodeAddress(addr uint16) (slot byte, page int, pos uint16) {
-	page = int(addr >> 14)
-	pos = addr & 0x3fff
-	slot = mem.cfg[page]
-	// println("mem", slot, page, pos)
-	return
+func (mem *memory) getSlot(addr uint16) byte {
+	page := int(addr >> 14)
+	return mem.cfg[page]
 }
 
 func (mem *memory) ReadPort(port uint16) (byte, bool) { return 0, true }
 func (mem *memory) WritePort(port uint16, data byte)  {}
+
+// -------
+// - ROM -
+// -------
+
+type rom []byte
+
+func (rom rom) GetByte(addr uint16) byte {
+	if addr < 0x8000 {
+		return rom[addr]
+	}
+	return 0xff
+}
+
+func (rom rom) PutByte(addr uint16, b byte) {
+}
+
+// TODO: remove
+func (rom rom) ReadPort(port uint16) (byte, bool)    { return 0, true }
+func (rom rom) WritePort(port uint16, data byte)     {}
+func (rom rom) GetBlock(start, length uint16) []byte { panic("not supported") }
+
+// -------
+// - RAM -
+// -------
+
+type ram []byte
+
+func (ram ram) GetByte(addr uint16) byte {
+	return ram[addr]
+}
+
+func (ram ram) PutByte(addr uint16, b byte) {
+	ram[addr] = b
+}
+
+// TODO: remove
+func (ram ram) ReadPort(port uint16) (byte, bool)    { return 0, true }
+func (ram ram) WritePort(port uint16, data byte)     {}
+func (ram ram) GetBlock(start, length uint16) []byte { panic("not supported") }
+
+// -------
+// - Empty Slot -
+// -------
+
+type emptySlot []byte
+
+func (es emptySlot) GetByte(addr uint16) byte    { return 0xff }
+func (es emptySlot) PutByte(addr uint16, b byte) {}
+
+// TODO: remove
+func (es emptySlot) ReadPort(port uint16) (byte, bool)    { return 0, true }
+func (es emptySlot) WritePort(port uint16, data byte)     {}
+func (es emptySlot) GetBlock(start, length uint16) []byte { panic("not supported") }

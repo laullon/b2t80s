@@ -10,6 +10,8 @@ import (
 	"github.com/laullon/b2t80s/emulator"
 )
 
+var vdpMasks = []byte{0x03, 0xFB, 0x0F, 0xFF, 0x07, 0x7F, 0x07, 0xFF}
+
 type tms9918 struct {
 	cpu emulator.CPU
 
@@ -21,12 +23,15 @@ type tms9918 struct {
 
 	waitSecondByte bool
 
-	registers    []byte
-	valueToWrite byte
+	registers []byte
 
 	display *image.RGBA
 
-	m1, m2, m3 bool
+	m1, m2, m3     bool
+	pc, pg, pn     uint16
+	sa, sg         uint16
+	pcMask, pgMask uint16
+	mag, si        bool
 
 	x, y int
 }
@@ -92,10 +97,10 @@ func (vdp *tms9918) WritePort(port uint16, data byte) {
 	case 0x99:
 		// fmt.Printf("[vdp.writePort]-> port:0x%04X data:0x%04X \n", port, data)
 		if vdp.waitSecondByte {
+			vdp.vramAddr = ((uint16(data) << 8) | (vdp.vramAddr & 0x00ff)) & 0x3fff
 			vdp.waitSecondByte = false
 			addrMode := data&0x80 == 0
 			if addrMode {
-				vdp.vramAddr = uint16(vdp.valueToWrite) | uint16(data&0x3f)<<8
 				reading := data&0x40 == 0
 				if reading {
 					vdp.vramByteToRead = vdp.vram[vdp.vramAddr]
@@ -103,13 +108,13 @@ func (vdp *tms9918) WritePort(port uint16, data byte) {
 					vdp.vramAddr &= 0x3fff
 				}
 			} else {
-				vdp.registers[data&0x7] = vdp.valueToWrite
-				println("r:", data&0x7, "=", vdp.valueToWrite)
+				vdp.registers[data&0x7] = byte(vdp.vramAddr & 0x00ff)
+				// println("r:", data&0x7, "=", vdp.registers[data&0x7])
 				vdp.update()
 			}
 		} else {
+			vdp.vramAddr = ((vdp.vramAddr & 0xff00) | uint16(data)) & 0x3fff
 			vdp.waitSecondByte = true
-			vdp.valueToWrite = data
 		}
 
 	default:
@@ -122,30 +127,105 @@ func (vdp *tms9918) update() {
 	vdp.m2 = vdp.registers[1]&0b00001000 != 0
 	vdp.m3 = vdp.registers[0]&0b00000010 != 0
 
+	vdp.mag = vdp.registers[1]&0b00000001 != 0
+	vdp.si = vdp.registers[1]&0b00000010 != 0
+
+	vdp.sa = uint16(vdp.registers[5]) << 7
+	vdp.sg = uint16(vdp.registers[6]) << 11
+
+	vdp.pn = uint16(vdp.registers[2]) << 10
+
+	if vdp.m3 {
+		vdp.pc = uint16(vdp.registers[3]&0x80) * 0x40
+		vdp.pg = uint16(vdp.registers[4]&0x04) * 0x800
+		vdp.pcMask = (uint16(vdp.registers[3]&0x7f) << 3) | 7
+		vdp.pgMask = (uint16(vdp.registers[4]&0x03) << 8) | (vdp.pcMask & 0xff)
+	} else {
+		vdp.pc = uint16(vdp.registers[3]) * 0x40
+		vdp.pg = uint16(vdp.registers[4]) * 0x800
+	}
+
 	println("[VPD] m1:", vdp.m1, "m2:", vdp.m2, "m3:", vdp.m3)
+	fmt.Printf("[VDP] pn:0x%04X(%d) pc:0x%04X(%d) pg:0x%04X(%d)\n", vdp.pn, vdp.registers[2], vdp.pc&0x2000, vdp.registers[3], vdp.pg&0x2000, vdp.registers[4])
 }
 
 var c = uint16(0)
 
 func (vdp *tms9918) Tick() {
 	for i := 0; i < 3; i++ {
-		c := vdp.getScreenData()
+		c := vdp.getRasteColor()
 		vdp.display.SetRGBA(vdp.x, vdp.y, palette[c])
 
 		vdp.x++
 		if vdp.x == 342-37 {
 			vdp.x = -37
+			vdp.drawSprites()
 			vdp.y++
+
 			if vdp.y == 313-64 {
 				vdp.y = -64
 				vdp.status = 0x80
-				vdp.cpu.Interrupt(true)
+				if vdp.registers[1]&0x20 != 0 {
+					vdp.cpu.Interrupt(true)
+				}
 			}
 		}
 	}
 }
 
-func (vdp *tms9918) getScreenData() byte {
+func (vdp *tms9918) drawSprites() {
+	sprites := make([][]byte, 0)
+	height := 8
+	if vdp.si {
+		height = 16
+	}
+
+	for idx := uint16(0); idx < 32; idx++ {
+		sprite := vdp.vram[vdp.sa+(idx*4) : vdp.sa+(idx*4)+4]
+		if sprite[0] == 209 {
+			break
+		}
+
+		y := int(sprite[0])
+		if (vdp.y >= y) && (vdp.y < y+height) {
+			sprites = append([][]byte{sprite}, sprites...)
+		}
+		// todo: check sprite5
+	}
+
+	for _, sprite := range sprites {
+		if !vdp.si {
+			vdp.drawSprite(sprite)
+		} else {
+			vdp.drawSpriteSI(sprite)
+		}
+	}
+}
+
+func (vdp *tms9918) drawSprite(sprite []byte) {
+	// for y := uint16(0); y < 8; y++ {
+	// 	b := vdp.vram[vdp.sg+uint16(sprite[2])<<3+y]
+	// 	for x := 0; x < 8; x++ {
+	// 		if b&(1<<(7-x)) != 0 {
+	// 			vdp.display.SetRGBA(int(sprite[1])+x, int(sprite[0])+int(y), palette[sprite[3]&0x0f])
+	// 		}
+	// 	}
+	// }
+}
+
+func (vdp *tms9918) drawSpriteSI(sprite []byte) {
+	for i := uint16(0); i < 2; i++ {
+		y := uint16(vdp.y - int(sprite[0]))
+		b := vdp.vram[vdp.sg+(uint16(sprite[2])&252)<<3+y+(i*16)]
+		for x := 0; x < 8; x++ {
+			if b&(1<<(7-x)) != 0 {
+				vdp.display.SetRGBA(int(sprite[1])+x+int(i*8), int(sprite[0])+int(y), palette[sprite[3]&0x0f])
+			}
+		}
+	}
+}
+
+func (vdp *tms9918) getRasteColor() byte {
 	col := 0
 	row := 0
 	bidx := 0
@@ -187,21 +267,21 @@ func (vdp *tms9918) getScreenData() byte {
 		panic(1)
 
 	case vdp.m3: // Bitmap mode (Graphics II)
-		part := uint16(row / 8)
-		pn := (uint16(vdp.registers[2]) * 0x400) + uint16(row*32+col)
-		pc := ((uint16(vdp.registers[3]) & 0x80) * 0x40) + (part * 0x800)
-		pg := ((uint16(vdp.registers[4]) & 0x40) * 0x800) + (part * 0x800)
-		char := uint16(vdp.vram[pn])
-		b = vdp.vram[pg+(char*8)+uint16(vdp.y%8)]
-		c = vdp.vram[pc+(char*8)]
+		charPos := uint16(row*32 + col)
+
+		char := uint16(vdp.vram[vdp.pn+charPos]) + uint16(vdp.y>>6)<<8
+
+		pgChar := ((char & vdp.pgMask) << 3) + uint16(vdp.y&0x07)
+		pcChar := ((char & vdp.pcMask) << 3) + uint16(vdp.y&0x07)
+
+		b = vdp.vram[vdp.pg|pgChar]
+		c = vdp.vram[vdp.pc|pcChar]
 
 	default: // Standard mode (Graphic I)
-		pn := uint16(vdp.registers[2])*0x400 + uint16(row*32+col)
-		pc := uint16(vdp.registers[3]) * 0x40
-		pg := uint16(vdp.registers[4]) * 0x800
-		char := uint16(vdp.vram[pn])
-		b = vdp.vram[pg+(char*8)+uint16(vdp.y%8)]
-		c = vdp.vram[pc+(char/8)]
+		charPos := uint16(row*32 + col)
+		char := uint16(vdp.vram[vdp.pn+charPos])
+		b = vdp.vram[vdp.pg+(char*8)+uint16(vdp.y%8)]
+		c = vdp.vram[vdp.pc+(char/8)]
 	}
 
 	if b&(1<<bidx) != 0 {

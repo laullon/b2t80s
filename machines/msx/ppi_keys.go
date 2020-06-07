@@ -3,6 +3,8 @@ package msx
 import "fyne.io/fyne"
 
 func (ppi *ppi) OnKeyEvent(key *fyne.KeyEvent) {
+	println("key:", key.Name)
+
 	switch key.Name {
 
 	case fyne.Key0:

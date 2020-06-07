@@ -107,7 +107,7 @@ func main() {
 	app.Settings().SetTheme(theme.LightTheme())
 	display := canvas.NewImageFromImage(machine.Display())
 	display.FillMode = canvas.ImageFillOriginal
-	display.ScalingFilter = canvas.NearestFilter
+	display.ScaleMode = canvas.ImageScalePixels
 	display.SetMinSize(fyne.NewSize(352*2, 296*2))
 
 	w := app.NewWindow(name + " - b2t80s Emulator")
@@ -199,7 +199,7 @@ func main() {
 		machine.Run()
 	}()
 
-	w.CenterOnScreen()
+	// w.CenterOnScreen()
 	w.ShowAndRun()
 
 	if *memprofile != "" {

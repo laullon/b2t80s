@@ -1,10 +1,6 @@
 package z80
 
 import (
-	"bufio"
-	"fmt"
-	"os"
-
 	"github.com/laullon/b2t80s/emulator"
 )
 
@@ -245,13 +241,4 @@ func (cpu *z80) Step() {
 
 	cpu.clock.AddTStates(ts)
 	return
-}
-
-func (cpu *z80) pause() {
-	fmt.Print("Press 'Enter' to continue...")
-	bufio.NewReader(os.Stdin).ReadBytes('\n')
-}
-
-func (cpu *z80) dumpRegState() {
-	// fmt.Printf("\t\t\t\t\t\t\t\taf:0x%02X%02X bc:0x%02X%02X de:0x%02X%02X hl:0x%02X%02X ix:0x%02X%02X iy:0x%02X%02X sp:0x%04X flags: [z:%v c:%v]\n", cpu.a, cpu.f.getByte(), cpu.b, cpu.c, cpu.d, cpu.e, cpu.h, cpu.l, cpu.ixh, cpu.ixl, cpu.iyh, cpu.iyl, cpu.sp.Get(), cpu.f.Z, cpu.f.C)
 }

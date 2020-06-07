@@ -11,6 +11,7 @@ import (
 	"github.com/laullon/b2t80s/emulator/ay8912"
 	"github.com/laullon/b2t80s/emulator/storage/cassette"
 	"github.com/laullon/b2t80s/machines"
+	"github.com/laullon/b2t80s/machines/msx/cartridge"
 	"github.com/laullon/b2t80s/ui"
 	"github.com/laullon/b2t80s/utils"
 	"github.com/laullon/b2t80s/z80"
@@ -36,19 +37,21 @@ type msx struct {
 }
 
 func NewMSX() machines.Machine {
-	mem := NewMemory()
+	// rom := data.MustAsset("data/roms/msx/cbios_main_msx1_eu.rom")
+	// rom = append(rom, data.MustAsset("data/roms/msx/cbios_logo_msx1.rom")...)
+	rom := data.MustAsset("data/roms/msx/MSX System v1.0 + MSX BASIC (1983)(Microsoft)[MSX.ROM].rom")
+	mem := NewMemory(rom)
 
 	// mem.LoadRom(0, data.MustAsset("data/roms/msx/MSX.ROM"))
 
-	mem.LoadRom(0, data.MustAsset("data/roms/msx/cbios_main_msx1_eu.rom"))
-	mem.LoadRom(1, data.MustAsset("data/roms/msx/cbios_logo_msx1.rom"))
+	// mem.LoadRom(0, data.MustAsset("data/roms/msx/cbios_main_msx1_eu.rom"))
+	// mem.LoadRom(1, data.MustAsset("data/roms/msx/cbios_logo_msx1.rom"))
 
-	// rom := data.MustAsset("data/roms/msx/MSX System v1.0 + MSX BASIC (1983)(Microsoft)[MSX.ROM].rom")
 	// mem.LoadRom(0, rom)
 	// mem.LoadRom(1, rom[0x4000:])
 
 	if len(*machines.RomFile) > 0 {
-		mem.LoadCartridge(utils.ReadFile(*machines.RomFile))
+		mem.setCartridge1(cartridge.NewKonami(utils.ReadFile(*machines.RomFile)))
 	}
 
 	cpu := z80.NewZ80(mem)
@@ -102,6 +105,9 @@ func (msx *msx) ReadPort(port uint16) (byte, bool) {
 	case 0xa2:
 		return msx.ay8912.ReadRegister(msx.ayReg), false
 
+	case 0xc0, 0xc1, 0xc2, 0xc3:
+		return 0, false
+
 	default:
 		panic(fmt.Sprintf("[ReadPort] Unsopported port: 0x%02X", port))
 	}
@@ -121,6 +127,8 @@ func (msx *msx) WritePort(port uint16, data byte) {
 	case 0xa1:
 		msx.ay8912.WriteRegister(msx.ayReg, data)
 
+	case 0x2e, 0x2f:
+	case 0xc0, 0xc1, 0xc2, 0xc3:
 	case 0xfc, 0xfd, 0xfe, 0xff:
 	case 0x90, 0x91:
 
