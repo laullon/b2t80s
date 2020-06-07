@@ -57,7 +57,7 @@ func (mem *memory) WritePort(port uint16, data byte)  {}
 type rom []byte
 
 func (rom rom) GetByte(addr uint16) byte {
-	if addr < 0x8000 {
+	if addr < uint16(len(rom)) {
 		return rom[addr]
 	}
 	return 0xff

@@ -37,18 +37,14 @@ type msx struct {
 }
 
 func NewMSX() machines.Machine {
-	// rom := data.MustAsset("data/roms/msx/cbios_main_msx1_eu.rom")
-	// rom = append(rom, data.MustAsset("data/roms/msx/cbios_logo_msx1.rom")...)
-	rom := data.MustAsset("data/roms/msx/MSX System v1.0 + MSX BASIC (1983)(Microsoft)[MSX.ROM].rom")
+	rom := data.MustAsset("data/roms/msx/cbios_main_msx1_eu.rom")
+	fmt.Printf("0x%04x \n", len(rom))
+	rom = append(rom, data.MustAsset("data/roms/msx/cbios_logo_msx1.rom")...)
+	fmt.Printf("0x%04x \n", len(rom))
+
+	// rom := data.MustAsset("data/roms/msx/MSX System v1.0 + MSX BASIC (1983)(Microsoft)[MSX.ROM].rom")
+
 	mem := NewMemory(rom)
-
-	// mem.LoadRom(0, data.MustAsset("data/roms/msx/MSX.ROM"))
-
-	// mem.LoadRom(0, data.MustAsset("data/roms/msx/cbios_main_msx1_eu.rom"))
-	// mem.LoadRom(1, data.MustAsset("data/roms/msx/cbios_logo_msx1.rom"))
-
-	// mem.LoadRom(0, rom)
-	// mem.LoadRom(1, rom[0x4000:])
 
 	if len(*machines.RomFile) > 0 {
 		mem.setCartridge1(cartridge.NewKonami(utils.ReadFile(*machines.RomFile)))
