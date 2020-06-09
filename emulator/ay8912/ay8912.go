@@ -62,6 +62,9 @@ func New() AY8912 {
 		noise:    &noise{},
 	}
 
+	ay.regs[14] = 0xff
+	ay.regs[15] = 0xff
+
 	for i := 0; i < 3; i++ {
 		ch := &channel{}
 		ay.channels = append(ay.channels, ch)

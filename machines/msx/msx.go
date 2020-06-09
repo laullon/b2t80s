@@ -38,16 +38,14 @@ type msx struct {
 
 func NewMSX() machines.Machine {
 	rom := data.MustAsset("data/roms/msx/cbios_main_msx1_eu.rom")
-	fmt.Printf("0x%04x \n", len(rom))
 	rom = append(rom, data.MustAsset("data/roms/msx/cbios_logo_msx1.rom")...)
-	fmt.Printf("0x%04x \n", len(rom))
-
 	// rom := data.MustAsset("data/roms/msx/MSX System v1.0 + MSX BASIC (1983)(Microsoft)[MSX.ROM].rom")
 
 	mem := NewMemory(rom)
 
 	if len(*machines.RomFile) > 0 {
-		mem.setCartridge1(cartridge.NewKonami(utils.ReadFile(*machines.RomFile)))
+		// mem.setCartridge1(cartridge.NewKonami(utils.ReadFile(*machines.RomFile)))
+		mem.setCartridge1(cartridge.NewPlain(utils.ReadFile(*machines.RomFile)))
 	}
 
 	cpu := z80.NewZ80(mem)
