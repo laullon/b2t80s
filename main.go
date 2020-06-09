@@ -34,9 +34,9 @@ func init() {
 
 func main() {
 	machines.TapFile = flag.String("tap", "", "tap file to load")
-	machines.RomFile = flag.String("rom", "", "rom file to load")
+	machines.RomFile = flag.String("rom", "", "msx1 rom file to load - format: [mapper::]filename - Mappers:konami")
 	z80File := flag.String("z80", "", "z80 file to load")
-	mode := flag.String("mode", "48k", "Spectrum model to emulate [48k|128k|plus3|cpc464|cpc6128]")
+	mode := flag.String("mode", "48k", "Spectrum model to emulate [48k|128k|plus3|cpc464|cpc6128|msx1]")
 	debug := flag.Bool("debug", false, "shows debugger")
 	// turbo := flag.Bool("turbo", false, "run faster")
 

@@ -21,7 +21,9 @@ Z80 Based Computers Emulator (back to the 80's)
   -memprofile file
         write memory profile to file
   -mode string
-        Spectrum model to emulate [48k|128k|plus3|cpc464|cpc6128] (default "48k")
+        Spectrum model to emulate [48k|128k|plus3|cpc464|cpc6128|msx1] (default "48k")
+  -rom string
+        msx1 rom file to load - format: [mapper::]filename - Mappers:konami
   -slow
         Real Spectrum loading process
   -tap string

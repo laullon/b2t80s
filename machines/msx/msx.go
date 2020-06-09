@@ -3,6 +3,7 @@ package msx
 import (
 	"fmt"
 	"image"
+	"strings"
 	"time"
 
 	"fyne.io/fyne"
@@ -44,8 +45,22 @@ func NewMSX() machines.Machine {
 	mem := NewMemory(rom)
 
 	if len(*machines.RomFile) > 0 {
-		// mem.setCartridge1(cartridge.NewKonami(utils.ReadFile(*machines.RomFile)))
-		mem.setCartridge1(cartridge.NewPlain(utils.ReadFile(*machines.RomFile)))
+		romType := "plain"
+		romFile := *machines.RomFile
+		if strings.Contains(romFile, "::") {
+			romInfo := strings.Split(romFile, "::")
+			romType = romInfo[0]
+			romFile = romInfo[1]
+		}
+
+		switch strings.ToLower(romType) {
+		case "konami":
+			mem.setCartridge1(cartridge.NewKonami(utils.ReadFile(romFile)))
+		case "plain":
+			mem.setCartridge1(cartridge.NewPlain(utils.ReadFile(romFile)))
+		default:
+			panic(fmt.Sprintf("ron type '%s' not supported", romType))
+		}
 	}
 
 	cpu := z80.NewZ80(mem)
