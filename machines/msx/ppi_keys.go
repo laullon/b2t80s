@@ -130,8 +130,8 @@ func (ppi *ppi) OnKeyEvent(key *fyne.KeyEvent) {
 		ppi.keyboardRows[7] ^= 0b00000001
 	case fyne.KeyF5:
 		ppi.keyboardRows[7] ^= 0b00000010
-		// case fyne.KeyE:
-		// 	ppi.keyboardRows[7] ^= 0b00000100
+	case fyne.KeyEscape:
+		ppi.keyboardRows[7] ^= 0b00000100
 		// case fyne.KeyF6:
 		// ppi.keyboardRows[7] ^= 0b00001000
 		// case fyne.Key:

@@ -141,7 +141,7 @@ func (ay *ay8912) ReadRegister(reg byte) byte {
 
 func (ay *ay8912) WriteRegister(reg byte, data byte) {
 	// fmt.Printf("[ay8912] reg:%d data:%d\n", reg, data)
-	ay.selectedReg = reg
+	ay.selectedReg = reg & 0x0f
 	ay.regs[ay.selectedReg] = data & regMasks[ay.selectedReg]
 	ay.update(ay.selectedReg)
 }

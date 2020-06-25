@@ -58,6 +58,8 @@ func NewMSX() machines.Machine {
 			mem.setCartridge1(cartridge.NewKonami(utils.ReadFile(romFile)))
 		case "plain":
 			mem.setCartridge1(cartridge.NewPlain(utils.ReadFile(romFile)))
+		case "ascii16":
+			mem.setCartridge1(cartridge.NewAscii16(utils.ReadFile(romFile)))
 		default:
 			panic(fmt.Sprintf("ron type '%s' not supported", romType))
 		}
@@ -105,8 +107,14 @@ func (msx *msx) ReadPort(port uint16) (byte, bool) {
 	}
 
 	switch port & 0xff {
+	// case 0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e, 0x6f:
+	// 	return 0, false
+
 	case 0xa8, 0xa9, 0xaa, 0xab:
 		return msx.ppi.ReadPort(port)
+
+	// case 0xac, 0xad, 0xae, 0xaf:
+	// 	return 0, false
 
 	case 0x98, 0x99:
 		return msx.vdp.ReadPort(port)
@@ -127,7 +135,7 @@ func (msx *msx) WritePort(port uint16, data byte) {
 	case 0xa8, 0xa9, 0xaa, 0xab:
 		msx.ppi.WritePort(port, data)
 
-	case 0x98, 0x99:
+	case 0x98, 0x99, 0x9A, 0x9B:
 		msx.vdp.WritePort(port, data)
 
 	case 0xa0: // TODO: move to a wrapper
@@ -186,6 +194,7 @@ func (msx *msx) Display() image.Image {
 func (msx *msx) UIControls() []ui.Control {
 	var res []ui.Control
 	res = append(res, ui.NewVolumenControl(msx.sound))
+	res = append(res, newSpriteControl(msx.vdp, msx.debugger))
 	return res
 }
 

@@ -1,54 +1,64 @@
 package cartridge
 
 import (
+	"fmt"
+
 	"github.com/laullon/b2t80s/emulator"
 )
 
 type konami struct {
-	rom   []byte
-	banks [][]byte
+	rom       []byte
+	banks     []uint32
+	banksMask byte
 }
 
 func NewKonami(rom []byte) emulator.Memory {
 	cart := &konami{
-		rom:   rom,
-		banks: make([][]byte, 7),
+		rom: rom,
 	}
 
-	for i := byte(2); i < 6; i++ {
-		cart.setRom(i, i-2)
+	for i := 0; i < 4; i++ {
+		cart.banks = append(cart.banks, uint32(i)*0x2000)
 	}
+
+	// println("len(cart.rom)", len(cart.rom), (len(cart.rom) / 0x2000))
+	cart.banksMask = byte((len(cart.rom) / 0x2000) - 1)
 
 	return cart
 }
 
 func (cart *konami) GetByte(addr uint16) byte {
-	if 0x4000 <= addr && addr < 0xC000 {
-		bank := byte(addr >> 13)
-		addr &= 0x1fff
-		mem := cart.banks[bank]
-		return mem[addr]
+	bank, off, ok := decodeAddr(addr)
+	if ok {
+		return cart.rom[cart.banks[bank]+off]
 	}
 	return 0xff
-
 }
 
 func (cart *konami) PutByte(addr uint16, data byte) {
-	bank := byte(addr >> 13)
-	if 0x6000 <= addr && addr < 0xC000 {
-		cart.setRom(bank, data)
+	bank, _, ok := decodeAddr(addr)
+	fmt.Printf("[konami] PutByte(0x%04X, %d(%d)(%d)) (bank:%d) (base:0x%08X)\n", addr, data, data&cart.banksMask, cart.banksMask, bank, uint32(data&cart.banksMask)*0x2000)
+	if ok {
+		cart.banks[bank] = uint32(data&cart.banksMask) * 0x2000
 	}
 }
 
-func (cart *konami) setRom(bank, data byte) {
-	data %= byte(len(cart.rom) / 0x2000)
-	s := uint(data) * 0x2000
-	if len(cart.rom) > int(s+0x2000) {
-		if len(cart.banks[bank]) == 0 {
-			cart.banks[bank] = make([]byte, 0x2000)
-		}
-		copy(cart.banks[bank], cart.rom[s:s+0x2000])
+func decodeAddr(addr uint16) (bank byte, offset uint32, ok bool) {
+	offset = uint32(addr) & 0x1fff
+	ok = true
+	switch addr & 0xe000 {
+	case 0x4000:
+		bank = 0
+	case 0x6000:
+		bank = 1
+	case 0x8000:
+		bank = 2
+	case 0xa000:
+		bank = 3
+	default:
+		ok = false
 	}
+	return
 }
 
 // TODO: remove

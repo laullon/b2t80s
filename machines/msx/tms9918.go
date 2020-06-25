@@ -15,7 +15,7 @@ var vdpMasks = []byte{0x03, 0xFB, 0x0F, 0xFF, 0x07, 0x7F, 0x07, 0xFF}
 type tms9918 struct {
 	cpu emulator.CPU
 
-	status byte
+	gint bool
 
 	vramAddr       uint16
 	vramByteToRead byte
@@ -32,6 +32,9 @@ type tms9918 struct {
 	sa, sg         uint16
 	pcMask, pgMask uint16
 	mag, si        bool
+
+	s5 bool
+	fs byte
 
 	x, y int
 }
@@ -74,9 +77,19 @@ func (vdp *tms9918) ReadPort(port uint16) (res byte, skip bool) {
 		vdp.vramByteToRead = vdp.vram[vdp.vramAddr]
 
 	case 0x99:
-		// println("vdp.status:", vdp.status)
-		res = vdp.status
-		vdp.status &= 0x3f
+		status := vdp.fs
+
+		if vdp.s5 {
+			status |= 0x40
+		}
+
+		if vdp.gint {
+			status |= 0x80
+		}
+
+		// println("[vdp] status:", status, fmt.Sprintf("0b%08b", status))
+		res = status
+		vdp.gint = false
 
 	default:
 		panic(fmt.Sprintf("[ReadPort] Unsopported port: 0x%02X", port))
@@ -108,14 +121,16 @@ func (vdp *tms9918) WritePort(port uint16, data byte) {
 					vdp.vramAddr &= 0x3fff
 				}
 			} else {
-				vdp.registers[data&0x7] = byte(vdp.vramAddr & 0x00ff)
-				// println("r:", data&0x7, "=", vdp.registers[data&0x7])
+				vdp.registers[data&0x7] = byte(vdp.vramAddr) & vdpMasks[data&0x7]
+				println("r:", data&0x7, "=", vdp.registers[data&0x7], fmt.Sprintf("0b%08b", vdp.registers[data&0x7]))
 				vdp.update()
 			}
 		} else {
 			vdp.vramAddr = ((vdp.vramAddr & 0xff00) | uint16(data)) & 0x3fff
 			vdp.waitSecondByte = true
 		}
+
+	case 0x9A, 0x9B:
 
 	default:
 		panic(fmt.Sprintf("[WritePort] Unsopported port: 0x%02X", port))
@@ -149,8 +164,6 @@ func (vdp *tms9918) update() {
 	fmt.Printf("[VDP] pn:0x%04X(%d) pc:0x%04X(%d) pg:0x%04X(%d)\n", vdp.pn, vdp.registers[2], vdp.pc&0x2000, vdp.registers[3], vdp.pg&0x2000, vdp.registers[4])
 }
 
-var c = uint16(0)
-
 func (vdp *tms9918) Tick() {
 	for i := 0; i < 3; i++ {
 		c := vdp.getRasteColor()
@@ -158,68 +171,22 @@ func (vdp *tms9918) Tick() {
 
 		vdp.x++
 		if vdp.x == 342-37 {
+			if vdp.y >= 0 && vdp.y < 192 {
+				vdp.drawSprites()
+			}
+
 			vdp.x = -37
-			vdp.drawSprites()
 			vdp.y++
 
-			if vdp.y == 313-64 {
-				vdp.y = -64
-				vdp.status = 0x80
+			if vdp.y == 193 {
+				vdp.gint = true
 				if vdp.registers[1]&0x20 != 0 {
 					vdp.cpu.Interrupt(true)
 				}
 			}
-		}
-	}
-}
 
-func (vdp *tms9918) drawSprites() {
-	sprites := make([][]byte, 0)
-	height := 8
-	if vdp.si {
-		height = 16
-	}
-
-	for idx := uint16(0); idx < 32; idx++ {
-		sprite := vdp.vram[vdp.sa+(idx*4) : vdp.sa+(idx*4)+4]
-		if sprite[0] == 209 {
-			break
-		}
-
-		y := int(sprite[0])
-		if (vdp.y >= y) && (vdp.y < y+height) {
-			sprites = append([][]byte{sprite}, sprites...)
-		}
-		// todo: check sprite5
-	}
-
-	for _, sprite := range sprites {
-		if !vdp.si {
-			vdp.drawSprite(sprite)
-		} else {
-			vdp.drawSpriteSI(sprite)
-		}
-	}
-}
-
-func (vdp *tms9918) drawSprite(sprite []byte) {
-	// for y := uint16(0); y < 8; y++ {
-	// 	b := vdp.vram[vdp.sg+uint16(sprite[2])<<3+y]
-	// 	for x := 0; x < 8; x++ {
-	// 		if b&(1<<(7-x)) != 0 {
-	// 			vdp.display.SetRGBA(int(sprite[1])+x, int(sprite[0])+int(y), palette[sprite[3]&0x0f])
-	// 		}
-	// 	}
-	// }
-}
-
-func (vdp *tms9918) drawSpriteSI(sprite []byte) {
-	for i := uint16(0); i < 2; i++ {
-		y := uint16(vdp.y - int(sprite[0]))
-		b := vdp.vram[vdp.sg+(uint16(sprite[2])&252)<<3+y+(i*16)]
-		for x := 0; x < 8; x++ {
-			if b&(1<<(7-x)) != 0 {
-				vdp.display.SetRGBA(int(sprite[1])+x+int(i*8), int(sprite[0])+int(y), palette[sprite[3]&0x0f])
+			if vdp.y == 313-64 {
+				vdp.y = -64
 			}
 		}
 	}
