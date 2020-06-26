@@ -53,14 +53,17 @@ type ay8912 struct {
 	noise         *noise
 }
 
-var regMasks = []byte{0xff, 0x0f, 0xff, 0x0f, 0xff, 0x0f, 0x1f, 0xff, 0x1f, 0x1f, 0x1f, 0xff, 0xff, 0x0f, 0xff}
+var regMasks = []byte{0xff, 0x0f, 0xff, 0x0f, 0xff, 0x0f, 0x1f, 0xff, 0x1f, 0x1f, 0x1f, 0xff, 0xff, 0x0f, 0xff, 0xff}
 
 func New() AY8912 {
 	ay := &ay8912{
-		regs:     make([]byte, 15),
+		regs:     make([]byte, 16),
 		envelope: &envelope{},
 		noise:    &noise{},
 	}
+
+	ay.regs[14] = 0xff
+	ay.regs[15] = 0xff
 
 	for i := 0; i < 3; i++ {
 		ch := &channel{}
@@ -118,6 +121,7 @@ func New() AY8912 {
 	return ay
 }
 
+// TODO: remove... create a wrapper for each machine
 func (ay *ay8912) ReadPort(port uint16) (byte, bool) {
 	return ay.regs[ay.selectedReg], false
 }
@@ -137,7 +141,7 @@ func (ay *ay8912) ReadRegister(reg byte) byte {
 
 func (ay *ay8912) WriteRegister(reg byte, data byte) {
 	// fmt.Printf("[ay8912] reg:%d data:%d\n", reg, data)
-	ay.selectedReg = reg
+	ay.selectedReg = reg & 0x0f
 	ay.regs[ay.selectedReg] = data & regMasks[ay.selectedReg]
 	ay.update(ay.selectedReg)
 }

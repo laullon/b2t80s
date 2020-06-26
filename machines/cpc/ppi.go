@@ -155,7 +155,6 @@ func (ppi *ppi) readA() (res byte) {
 		if ppi.psgControl == psgREAD {
 			if ppi.psgReg < 16 {
 				if ppi.psgReg == 14 {
-					res = ppi.keyboardRows[ppi.keyboardLine&0x0f]
 				} else {
 					res = ppi.psg.ReadRegister(ppi.psgReg)
 				}
