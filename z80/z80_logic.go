@@ -5,10 +5,10 @@ import (
 )
 
 func (cpu *z80) writePort(port uint16, data byte) {
-	// log.Println(fmt.Sprintf("[writePort]-> port:0x%04X data:%v pc:0x%04X", port, data, cpu.pc))
+	// fmt.Printf("[writePort]-> port:0x%04X data:%v pc:0x%04X \n", port, data, cpu.regs.PC)
 	ok := false
 	for portMask, portManager := range cpu.ports {
-		// log.Printf("[writePort] (0x%04X) port:0x%04X (0x%04X)(0x%04X) data:%v", cpu.pc, port, port&portMask.Mask, portMask.Value, data)
+		// fmt.Printf("[writePort] (0x%04X) port:0x%04X (0x%04X)(0x%04X) data:%v\n", cpu.regs.PC, port, port&portMask.Mask, portMask.Value, data)
 		if port&portMask.Mask == portMask.Value {
 			// println(reflect.TypeOf(portManager).String())
 			portManager.WritePort(port, data)
@@ -16,16 +16,16 @@ func (cpu *z80) writePort(port uint16, data byte) {
 		}
 	}
 	if !ok {
-		// log.Println(fmt.Sprintf("[writePort]-(no PM)-> port:0x%04X data:%v pc:0x%04X", port, data, cpu.pc))
-		// panic("--")
+		fmt.Printf("[writePort]-(no PM)-> port:0x%04X data:%v pc:0x%04X\n", port, data, cpu.regs.PC)
+		panic("--")
 	}
 }
 
 func (cpu *z80) readPort(port uint16) byte {
-	// log.Println(fmt.Sprintf("[readPort]-> port:0x%04X pc:0x%04X", port, cpu.pc))
+	// fmt.Printf(fmt.Sprintf("[readPort]-> port:0x%04X pc:0x%04X \n", port, cpu.regs.PC))
 	for portMask, portManager := range cpu.ports {
 		if port&portMask.Mask == portMask.Value {
-			// log.Printf("[readPort] (0x%04X) port:0x%04X (0x%04X)(0x%04X)", cpu.pc, port, port&portMask.Mask, portMask.Value)
+			// fmt.Printf("[readPort] (0x%04X) port:0x%04X (0x%04X)(0x%04X) \n", cpu.regs.PC, port, port&portMask.Mask, portMask.Value)
 			// println(reflect.TypeOf(portManager).Elem().Name())
 			data, skip := portManager.ReadPort(port)
 			if !skip {
@@ -38,8 +38,8 @@ func (cpu *z80) readPort(port uint16) byte {
 			}
 		}
 	}
-	// panic(fmt.Sprintf("[readPort]-(no PM)-> port:0x%04X pc:0x%04X", port, cpu.pc))
-	fmt.Printf("[readPort]-(no PM)-> port:0x%04X pc:0x%04X \n", port, cpu.regs.PC)
+	// panic(fmt.Sprintf("[readPort]-(no PM)-> port:0x%04X pc:0x%04X", port, cpu.regs.PC))
+	// fmt.Printf("[readPort]-(no PM)-> port:0x%04X pc:0x%04X \n", port, cpu.regs.PC)
 	return 0xff
 }
 

@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -63,4 +64,24 @@ func evalExpBinaryExpr(exp *ast.BinaryExpr) int {
 	}
 
 	return 0
+}
+
+func ReadFile(path string) []byte {
+	fi, err := os.Stat(path)
+	if err != nil {
+		panic(err)
+	}
+
+	f, err := os.Open(path)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	file := make([]byte, fi.Size()+1)
+	l, err := f.Read(file)
+	if err != nil {
+		panic(err)
+	}
+	return file[:l]
 }
