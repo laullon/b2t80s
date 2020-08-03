@@ -25,6 +25,7 @@ type tms9918 struct {
 
 	registers []byte
 
+	monitor emulator.Monitor
 	display *image.RGBA
 
 	m1, m2, m3     bool
@@ -59,12 +60,14 @@ var palette = []color.RGBA{
 }
 
 func newTMS9918(cpu emulator.CPU) *tms9918 {
-	return &tms9918{
+	res := &tms9918{
 		vram:      make([]byte, 0x4000),
 		registers: make([]byte, 8),
 		display:   image.NewRGBA(image.Rect(-37, -64, 345-37, 313-64)),
 		cpu:       cpu,
 	}
+	res.monitor = emulator.NewMonitor(res.display)
+	return res
 }
 
 func (vdp *tms9918) ReadPort(port uint16) (res byte, skip bool) {
@@ -187,6 +190,7 @@ func (vdp *tms9918) Tick() {
 
 			if vdp.y == 313-64 {
 				vdp.y = -64
+				vdp.monitor.FrameDone()
 			}
 		}
 	}

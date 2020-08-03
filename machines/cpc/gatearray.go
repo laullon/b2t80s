@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-
-	"golang.org/x/image/draw"
 )
 
 type gatearray struct {
@@ -22,8 +20,7 @@ type gatearray struct {
 	pen     byte
 	palette []color.RGBA
 
-	display       *image.RGBA
-	displayScaled *image.RGBA
+	monitor *monitor
 
 	prevHSync, prevVSync           bool
 	hSyncCount, hSyncsInVSyncCount byte
@@ -68,11 +65,11 @@ var colours = []color.RGBA{
 
 func newGateArray(mem *memory, crtc *crtc) *gatearray {
 	ga := &gatearray{
-		mem:           mem,
-		crtc:          crtc,
-		palette:       make([]color.RGBA, 16),
-		displayScaled: image.NewRGBA(image.Rect(0, 0, 969, 642)),
-		display:       image.NewRGBA(image.Rect(0, 0, 960, 312)),
+		mem:     mem,
+		crtc:    crtc,
+		palette: make([]color.RGBA, 16),
+
+		monitor: NewMonitor(),
 
 		decode: to1bpp,
 		ppc:    16,
@@ -89,10 +86,10 @@ func (ga *gatearray) Tick() {
 
 	if !ga.prevVSync && ga.crtc.status.vSync {
 		ga.y = 0
-		ga.display.Rect.Min = image.Point{X: (int(ga.crtc.regs[3]&0x0f) * 8) * 2, Y: 34}
-		ga.display.Rect.Max = image.Point{X: (int(ga.crtc.regs[3]&0x0f)*8 + 384) * 2, Y: (34 + 272)}
-		ga.displayScaled.Rect.Min = image.Point{X: (int(ga.crtc.regs[3]&0x0f) * 8) * 2, Y: 34 * 2}
-		ga.displayScaled.Rect.Max = image.Point{X: (int(ga.crtc.regs[3]&0x0f)*8 + 384) * 2, Y: (34 + 272) * 2}
+		ga.monitor.display.Rect.Min = image.Point{X: (int(ga.crtc.regs[3]&0x0f) * 8) * 2, Y: 34}
+		ga.monitor.display.Rect.Max = image.Point{X: (int(ga.crtc.regs[3]&0x0f)*8 + 384) * 2, Y: (34 + 272)}
+		ga.monitor.displayScaled.Rect.Min = image.Point{X: (int(ga.crtc.regs[3]&0x0f) * 8) * 2, Y: 34 * 2}
+		ga.monitor.displayScaled.Rect.Max = image.Point{X: (int(ga.crtc.regs[3]&0x0f)*8 + 384) * 2, Y: (34 + 272) * 2}
 	}
 
 	pixles := 16
@@ -102,27 +99,27 @@ func (ga *gatearray) Tick() {
 		cs := ga.decode(ga.mem.getScreenByte(addr))
 		cs = append(cs, ga.decode(ga.mem.getScreenByte(addr+1))...)
 		for off, c := range cs {
-			ga.display.SetRGBA(x+off, ga.y, ga.palette[c])
+			ga.monitor.display.SetRGBA(x+off, ga.y, ga.palette[c])
 		}
 	} else {
 		for i := 0; i < pixles; i++ {
-			ga.display.SetRGBA(x+i, ga.y, ga.borderColor)
+			ga.monitor.display.SetRGBA(x+i, ga.y, ga.borderColor)
 		}
 
 		// if ga.crtc.status.hSync || ga.crtc.status.vSync {
 		// 	for i := 0; i < pixles; i += 2 {
-		// 		ga.display.SetRGBA(x+i, ga.y, color.RGBA{0x00, 0x00, 0x00, 0xff})
+		// 		ga.monitor.display.SetRGBA(x+i, ga.y, color.RGBA{0x00, 0x00, 0x00, 0xff})
 		// 	}
 		// }
 
 		// if ga.x == 0 {
 		// 	if ga.screenMode == 0 {
 		// 		for i := 0; i < pixles; i++ {
-		// 			ga.display.SetRGBA(x+i, ga.y, color.RGBA{0x00, 0xff, 0x00, 0xff})
+		// 			ga.monitor.display.SetRGBA(x+i, ga.y, color.RGBA{0x00, 0xff, 0x00, 0xff})
 		// 		}
 		// 	} else if ga.screenMode == 1 {
 		// 		for i := 0; i < pixles; i++ {
-		// 			ga.display.SetRGBA(x+i, ga.y, color.RGBA{0x00, 0x00, 0xff, 0xff})
+		// 			ga.monitor.display.SetRGBA(x+i, ga.y, color.RGBA{0x00, 0x00, 0xff, 0xff})
 		// 		}
 		// 	}
 		// }
@@ -130,7 +127,7 @@ func (ga *gatearray) Tick() {
 		// if ga.x == 1 {
 		// 	if ga.hSyncCount == 0 {
 		// 		for i := 0; i < pixles; i++ {
-		// 			ga.display.SetRGBA(x+i, ga.y, color.RGBA{0xff, 0x00, 0x00, 0xff})
+		// 			ga.monitor.display.SetRGBA(x+i, ga.y, color.RGBA{0xff, 0x00, 0x00, 0xff})
 		// 		}
 		// 	}
 		// }
@@ -168,8 +165,7 @@ func (ga *gatearray) Tick() {
 }
 
 func (ga *gatearray) FrameEnded() {
-	// TODO write a custom function to double horizontal lines, no need for this
-	draw.NearestNeighbor.Scale(ga.displayScaled, ga.displayScaled.Bounds(), ga.display, ga.display.Bounds(), draw.Over, nil)
+	ga.monitor.FrameDone()
 }
 
 func bit2value(b, bit, v byte) byte {
@@ -221,7 +217,7 @@ func (ga *gatearray) WritePort(port uint16, data byte) {
 			if ga.borderColor != colours[data&0x1f] {
 				ga.borderColor = colours[data&0x1f]
 				// println("ga.borderColor:", data&0x1f, ga.y)
-				// draw.Draw(ga.display, ga.display.Bounds(), &image.Uniform{ga.borderColor}, image.ZP, draw.Src)
+				// draw.Draw(ga.monitor.display, ga.monitor.display.Bounds(), &image.Uniform{ga.borderColor}, image.ZP, draw.Src)
 			}
 		}
 	} else if f == 2 {

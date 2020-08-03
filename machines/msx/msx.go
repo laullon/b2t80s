@@ -2,7 +2,6 @@ package msx
 
 import (
 	"fmt"
-	"image"
 	"strings"
 	"time"
 
@@ -187,8 +186,8 @@ func (msx *msx) OnKeyEvent(event *fyne.KeyEvent) {
 	msx.ppi.OnKeyEvent(event)
 }
 
-func (msx *msx) Display() image.Image {
-	return msx.vdp.display
+func (msx *msx) Monitor() emulator.Monitor {
+	return msx.vdp.monitor
 }
 
 func (msx *msx) UIControls() []ui.Control {

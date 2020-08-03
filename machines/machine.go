@@ -1,8 +1,6 @@
 package machines
 
 import (
-	"image"
-
 	"fyne.io/fyne"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/ui"
@@ -17,7 +15,7 @@ type Machine interface {
 	OnKeyEvent(event *fyne.KeyEvent)
 	Run()
 	Debugger() emulator.Debugger
-	Display() image.Image
+	Monitor() emulator.Monitor
 
 	UIControls() []ui.Control
 
