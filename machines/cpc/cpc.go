@@ -2,7 +2,6 @@ package cpc
 
 import (
 	"fmt"
-	"image"
 	"time"
 
 	"fyne.io/fyne"
@@ -165,8 +164,8 @@ func (m *cpc) OnKeyEvent(event *fyne.KeyEvent) {
 	m.ppi.OnKeyEvent(event)
 }
 
-func (m *cpc) Display() image.Image {
-	return m.ga.displayScaled
+func (m *cpc) Monitor() emulator.Monitor {
+	return m.ga.monitor
 }
 
 func (m *cpc) GetVolumeControl() func(float64) {

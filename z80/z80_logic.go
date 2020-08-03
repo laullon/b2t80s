@@ -17,7 +17,7 @@ func (cpu *z80) writePort(port uint16, data byte) {
 	}
 	if !ok {
 		fmt.Printf("[writePort]-(no PM)-> port:0x%04X data:%v pc:0x%04X\n", port, data, cpu.regs.PC)
-		panic("--")
+		// panic("--")
 	}
 }
 

@@ -37,6 +37,7 @@ type ula struct {
 
 	frame   byte
 	display *image.RGBA
+	monitor emulator.Monitor
 
 	col          int
 	tsPerRow     int
@@ -70,6 +71,8 @@ func NewULA(mem *memory, clock emulator.Clock, plus bool) *ula {
 		display:         image.NewRGBA(image.Rect(0, 0, 352, 296)),
 		clock:           clock,
 	}
+
+	ula.monitor = emulator.NewMonitor(ula.display)
 
 	if !plus {
 		// 48k
@@ -157,6 +160,7 @@ func (ula *ula) FrameDone() {
 			ula.display.SetRGBA(x, y, ula.getPixel(x, y))
 		}
 	}
+	ula.monitor.FrameDone()
 }
 
 func (ula *ula) ReadPort(port uint16) (byte, bool) {
@@ -199,10 +203,6 @@ func (ula *ula) WritePort(port uint16, data byte) {
 	}
 	// log.Printf("[write] port:0x%02x data:0b%08b", port, data)
 	// ula.keyboardRow[port] = data
-}
-
-func (ula *ula) Display() image.Image {
-	return ula.display
 }
 
 func (ula *ula) getPixel(rx, ry int) color.RGBA {

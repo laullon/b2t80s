@@ -14,7 +14,6 @@ import (
 
 	"fyne.io/fyne"
 	"fyne.io/fyne/app"
-	"fyne.io/fyne/canvas"
 	"fyne.io/fyne/driver/desktop"
 	"fyne.io/fyne/layout"
 	"fyne.io/fyne/theme"
@@ -105,10 +104,6 @@ func main() {
 
 	app := app.New()
 	app.Settings().SetTheme(theme.LightTheme())
-	display := canvas.NewImageFromImage(machine.Display())
-	display.FillMode = canvas.ImageFillOriginal
-	display.ScaleMode = canvas.ImageScalePixels
-	display.SetMinSize(fyne.NewSize(352*2, 296*2))
 
 	w := app.NewWindow(name + " - b2t80s Emulator")
 
@@ -129,6 +124,8 @@ func main() {
 		status,
 		controls,
 	)
+
+	display := machine.Monitor().Canvas()
 
 	if *debug {
 		debugger := widget.NewVBox(
@@ -185,7 +182,6 @@ func main() {
 	ticker := time.NewTicker(wait)
 	go func() {
 		for range ticker.C {
-			display.Refresh()
 			pas.SetText(machine.Debugger().GetLog())
 			reg.SetText(machine.Debugger().GetRegisters())
 			ins.SetText(machine.Debugger().GetNextInstruction())

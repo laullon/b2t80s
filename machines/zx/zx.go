@@ -2,7 +2,6 @@ package zx
 
 import (
 	"fmt"
-	"image"
 	"time"
 
 	"fyne.io/fyne"
@@ -121,8 +120,8 @@ func (zx *zx) OnKeyEvent(event *fyne.KeyEvent) {
 	zx.ula.OnKeyEvent(event)
 }
 
-func (zx *zx) Display() image.Image {
-	return zx.ula.Display()
+func (zx *zx) Monitor() emulator.Monitor {
+	return zx.ula.monitor
 }
 
 func (zx *zx) GetVolumeControl() func(float64) {
