@@ -55,7 +55,7 @@ func NewZX(mem *memory, plus, cas, ay bool) *zx {
 
 	cpu.RegisterPort(emulator.PortMask{Mask: 0x00FF, Value: 0x00FE}, ula)
 	cpu.RegisterPort(emulator.PortMask{Mask: 0x00FF, Value: 0x00FF}, ula)
-	cpu.RegisterPort(emulator.PortMask{Mask: 0x00e0, Value: 0x0000}, &emulator.Kempston{})
+	cpu.RegisterPort(emulator.PortMask{Mask: 0x00e0, Value: 0x0000}, &kempston{})
 
 	zx := &zx{
 		ula:      ula,
@@ -157,4 +157,35 @@ func (zx *zx) loadDataBlock() uint16 {
 		// log.Print("BAD Block")
 	}
 	return 0x05e2
+}
+
+type kempston struct {
+}
+
+func (k *kempston) ReadPort(port uint16) (byte, bool) {
+	j, _ := emulator.ReadJoystick()
+	res := byte(0)
+	// 000FUDLR
+	if j.ON {
+		if j.F {
+			res |= 0b00010000
+		}
+		if j.U {
+			res |= 0b00001000
+		}
+		if j.D {
+			res |= 0b00000100
+		}
+		if j.L {
+			res |= 0b00000010
+		}
+		if j.R {
+			res |= 0b00000001
+		}
+	}
+
+	return res, false
+}
+
+func (k *kempston) WritePort(port uint16, data byte) {
 }

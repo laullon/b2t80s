@@ -155,7 +155,30 @@ func (ppi *ppi) readA() (res byte) {
 		if ppi.psgControl == psgREAD {
 			if ppi.psgReg < 16 {
 				if ppi.psgReg == 14 {
-					res = ppi.keyboardRows[ppi.keyboardLine&0x0f]
+					if (ppi.keyboardLine & 0x0f) == 9 {
+						j, _ := emulator.ReadJoystick()
+						res = byte(0xff)
+						// 000FRLDU
+						if j.ON {
+							if j.F {
+								res ^= 0b00010000
+							}
+							if j.R {
+								res ^= 0b00001000
+							}
+							if j.L {
+								res ^= 0b00000100
+							}
+							if j.D {
+								res ^= 0b00000010
+							}
+							if j.U {
+								res ^= 0b00000001
+							}
+						}
+					} else {
+						res = ppi.keyboardRows[ppi.keyboardLine&0x0f]
+					}
 				} else {
 					res = ppi.psg.ReadRegister(ppi.psgReg)
 				}
