@@ -31,6 +31,7 @@ type msx struct {
 
 	ay8912 ay8912.AY8912
 	ayReg  byte
+	joy2   bool
 
 	ppi *ppi
 	vdp *tms9918
@@ -119,6 +120,9 @@ func (msx *msx) ReadPort(port uint16) (byte, bool) {
 		return msx.vdp.ReadPort(port)
 
 	case 0xa2:
+		if msx.ayReg == 14 {
+			return readJoystick(msx.joy2), false
+		}
 		return msx.ay8912.ReadRegister(msx.ayReg), false
 
 	case 0xc0, 0xc1, 0xc2, 0xc3:
@@ -141,7 +145,11 @@ func (msx *msx) WritePort(port uint16, data byte) {
 		msx.ayReg = data
 
 	case 0xa1:
-		msx.ay8912.WriteRegister(msx.ayReg, data)
+		if msx.ayReg == 15 {
+			msx.joy2 = data&0b01000000 != 0
+		} else {
+			msx.ay8912.WriteRegister(msx.ayReg, data)
+		}
 
 	case 0x2e, 0x2f:
 	case 0xc0, 0xc1, 0xc2, 0xc3:
@@ -199,4 +207,33 @@ func (msx *msx) UIControls() []ui.Control {
 
 func (msx *msx) GetVolumeControl() func(float64) {
 	return msx.sound.SetVolume
+}
+
+func readJoystick(joy2 bool) byte {
+	j, j2 := emulator.ReadJoystick()
+	if joy2 {
+		j = j2
+	}
+	res := byte(0xff)
+	if j.ON {
+		if j.F2 {
+			res ^= 0b000100000
+		}
+		if j.F {
+			res ^= 0b000010000
+		}
+		if j.R {
+			res ^= 0b000001000
+		}
+		if j.L {
+			res ^= 0b000000100
+		}
+		if j.D {
+			res ^= 0b000000010
+		}
+		if j.U {
+			res ^= 0b000000001
+		}
+	}
+	return res
 }

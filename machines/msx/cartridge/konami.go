@@ -1,8 +1,6 @@
 package cartridge
 
 import (
-	"fmt"
-
 	"github.com/laullon/b2t80s/emulator"
 )
 
@@ -37,7 +35,7 @@ func (cart *konami) GetByte(addr uint16) byte {
 
 func (cart *konami) PutByte(addr uint16, data byte) {
 	bank, _, ok := decodeAddr(addr)
-	fmt.Printf("[konami] PutByte(0x%04X, %d(%d)(%d)) (bank:%d) (base:0x%08X)\n", addr, data, data&cart.banksMask, cart.banksMask, bank, uint32(data&cart.banksMask)*0x2000)
+	// fmt.Printf("[konami] PutByte(0x%04X, %d(%d)(%d)) (bank:%d) (base:0x%08X)\n", addr, data, data&cart.banksMask, cart.banksMask, bank, uint32(data&cart.banksMask)*0x2000)
 	if ok {
 		cart.banks[bank] = uint32(data&cart.banksMask) * 0x2000
 	}
