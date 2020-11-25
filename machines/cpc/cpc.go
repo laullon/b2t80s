@@ -1,9 +1,6 @@
 package cpc
 
 import (
-	"fmt"
-	"time"
-
 	"fyne.io/fyne"
 	"github.com/laullon/b2t80s/data"
 	"github.com/laullon/b2t80s/emulator"
@@ -101,9 +98,7 @@ func NewCPC(cpc464 bool) machines.Machine {
 		debugger: z80.NewDebugger(cpu, mem),
 	}
 
-	cpu.SetClock(cpc.clock)
-	mem.SetClock(cpc.clock)
-
+	cpc.clock.AddTicker(0, cpu)
 	cpc.clock.AddTicker(4, crtc)
 	cpc.clock.AddTicker(4, ga)
 	cpc.clock.AddTicker(4, ay8912)
@@ -168,34 +163,12 @@ func (m *cpc) Monitor() emulator.Monitor {
 	return m.ga.monitor
 }
 
-func (m *cpc) GetVolumeControl() func(float64) {
-	return m.sound.SetVolume
+func (m *cpc) Clock() emulator.Clock {
+	return m.clock
 }
 
-func (m *cpc) Run() {
-	wait := time.Duration(20 * time.Millisecond)
-	runStart := time.Now()
-	frames := float64(0)
-
-	ticker := time.NewTicker(wait)
-	go func() {
-		for range ticker.C {
-			frameStart := time.Now()
-
-			m.Debugger().NextFrame()
-
-			err := m.cpu.RunFrame()
-			if err != nil {
-				panic(err)
-			}
-			m.ga.FrameEnded()
-
-			frames++
-			frameTime := time.Now().Sub(frameStart)
-			runTime := time.Now().Sub(runStart)
-			m.Debugger().SetStatus(fmt.Sprintf("frame rate:%6.2f time:%6.2fms (%v) (ear:%v)", frames/runTime.Seconds(), float64(frameTime.Microseconds())/1000, wait, m.cassette.Ear()))
-		}
-	}()
+func (m *cpc) GetVolumeControl() func(float64) {
+	return m.sound.SetVolume
 }
 
 type dummyPortsManager struct{}

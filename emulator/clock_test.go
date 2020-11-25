@@ -11,8 +11,8 @@ func TestClock(t *testing.T) {
 		tStatesPerFrame: 100,
 	}
 	for {
-		c.AddTStates(1)
-		if c.FrameDone() {
+		c.tick()
+		if c.frameDone() {
 			break
 		}
 	}
@@ -22,7 +22,9 @@ func TestClock(t *testing.T) {
 func TestClockMods(t *testing.T) {
 	var mod0, mod1, mod2, mod3, mod4, mod5, mod64 int
 
-	c := NewCLock(3546900)
+	c := &clock{
+		tStatesPerFrame: 100,
+	}
 
 	c.AddTicker(0, &dummyTicker{counter: &mod0})
 	c.AddTicker(1, &dummyTicker{counter: &mod1})
@@ -33,7 +35,7 @@ func TestClockMods(t *testing.T) {
 	c.AddTicker(64, &dummyTicker{counter: &mod64})
 
 	for i := 0; i < 100; i++ {
-		c.AddTStates(1)
+		c.tick()
 	}
 
 	assert.Equal(t, 100, mod0)

@@ -13,9 +13,9 @@ var RomFile *string
 
 type Machine interface {
 	OnKeyEvent(event *fyne.KeyEvent)
-	Run()
 	Debugger() emulator.Debugger
 	Monitor() emulator.Monitor
+	Clock() emulator.Clock
 
 	UIControls() []ui.Control
 

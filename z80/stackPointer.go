@@ -11,13 +11,6 @@ type stackPointer struct {
 	pointer uint16
 }
 
-func NewStackPointer(mem emulator.Memory) emulator.StackPointer {
-	return &stackPointer{
-		mem:     mem,
-		pointer: 0xffff,
-	}
-}
-
 func (sp *stackPointer) Set(newSP uint16) {
 	sp.pointer = newSP
 }

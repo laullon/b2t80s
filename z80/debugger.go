@@ -88,7 +88,7 @@ func (debug *debugger) AddLastInstruction(ins emulator.Instruction) {
 			uint16(regs.B)<<8|uint16(regs.C),
 			uint16(regs.D)<<8|uint16(regs.E),
 			uint16(regs.H)<<8|uint16(regs.L),
-			regs.SP.Get())
+			regs.SP)
 		fmt.Println(ins.Dump(regs.PC))
 	}
 }
@@ -127,7 +127,7 @@ func (debug *debugger) Stop() {
 
 func (debug *debugger) Step() {
 	if debug.stop {
-		debug.cpu.Step()
+		// debug.cpu.Step()
 	}
 }
 

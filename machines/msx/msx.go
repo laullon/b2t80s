@@ -3,7 +3,6 @@ package msx
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"fyne.io/fyne"
 	"github.com/laullon/b2t80s/data"
@@ -65,8 +64,10 @@ func NewMSX() machines.Machine {
 		}
 	}
 
-	cpu := z80.NewZ80(mem)
 	clock := emulator.NewCLock(speed)
+
+	cpu := z80.NewZ80(mem)
+	clock.AddTicker(0, cpu)
 
 	sound := emulator.NewSoundSystem(speed / 80)
 
@@ -82,7 +83,6 @@ func NewMSX() machines.Machine {
 	sound.AddSource(ay8912)
 	clock.AddTicker(2, ay8912)
 
-	cpu.SetClock(clock)
 	clock.AddTicker(80, sound)
 
 	msx := &msx{
@@ -161,31 +161,6 @@ func (msx *msx) WritePort(port uint16, data byte) {
 	}
 }
 
-func (msx *msx) Run() {
-	wait := time.Duration(20 * time.Millisecond)
-	runStart := time.Now()
-	frames := float64(0)
-
-	ticker := time.NewTicker(wait)
-	go func() {
-		for range ticker.C {
-			frameStart := time.Now()
-
-			msx.Debugger().NextFrame()
-			err := msx.cpu.RunFrame()
-			if err != nil {
-				panic(err)
-			}
-
-			frames++
-
-			frameTime := time.Now().Sub(frameStart)
-			runTime := time.Now().Sub(runStart)
-			msx.Debugger().SetStatus(fmt.Sprintf("frame rate:%6.2f time:%6.2fms (%v)", frames/runTime.Seconds(), float64(frameTime.Microseconds())/1000, wait))
-		}
-	}()
-}
-
 func (msx *msx) Debugger() emulator.Debugger {
 	return msx.debugger
 }
@@ -196,6 +171,10 @@ func (msx *msx) OnKeyEvent(event *fyne.KeyEvent) {
 
 func (msx *msx) Monitor() emulator.Monitor {
 	return msx.vdp.monitor
+}
+
+func (msx *msx) Clock() emulator.Clock {
+	return msx.clock
 }
 
 func (msx *msx) UIControls() []ui.Control {

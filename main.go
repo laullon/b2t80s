@@ -192,7 +192,7 @@ func main() {
 
 	go func() {
 		runtime.LockOSThread()
-		machine.Run()
+		machine.Clock().Run()
 	}()
 
 	// w.CenterOnScreen()
