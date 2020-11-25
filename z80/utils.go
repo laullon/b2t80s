@@ -15,6 +15,7 @@ func putWord(mem emulator.Memory, addr, w uint16) {
 	mem.PutByte(addr+1, uint8(w>>8))
 }
 
+// TODO cam it be private ?
 type RegPair struct {
 	h, l *byte
 }

@@ -56,11 +56,10 @@ type ula struct {
 	out            []*emulator.SoundData
 	mux            sync.Mutex
 
-	io    bool
-	clock emulator.Clock
+	io bool
 }
 
-func NewULA(mem *memory, clock emulator.Clock, plus bool) *ula {
+func NewULA(mem *memory, plus bool) *ula {
 	ula := &ula{
 		memory:          mem,
 		keyboardRow:     make([]byte, 8),
@@ -69,7 +68,6 @@ func NewULA(mem *memory, clock emulator.Clock, plus bool) *ula {
 		pixlesData:      make([][]byte, 192),
 		pixlesAttr:      make([][]byte, 192),
 		display:         image.NewRGBA(image.Rect(0, 0, 352, 296)),
-		clock:           clock,
 	}
 
 	ula.monitor = emulator.NewMonitor(ula.display)
@@ -119,9 +117,12 @@ func (ula *ula) Tick() {
 	if ula.col < 128 && ula.row >= ula.displayStart && ula.row < ula.displayStart+192 {
 		ula.io = (ula.col % 8) < 6
 		draw = ula.col%4 == 0
+		print(0)
 	} else {
 		ula.io = false
 		ula.floatingBus = 0xff
+		ula.cpu.Tick()
+		print(1)
 	}
 
 	ula.scanlinesBorder[ula.row][ula.col] = ula.borderColour
@@ -129,7 +130,6 @@ func (ula *ula) Tick() {
 	if draw {
 		y := uint16(ula.row - ula.displayStart)
 		x := uint16(ula.col) / 4
-		// print(y, ", ")
 		addr := uint16(0)
 		addr |= ((y & 0b00000111) | 0b01000000) << 8
 		addr |= ((y >> 3) & 0b00011000) << 8
@@ -143,11 +143,14 @@ func (ula *ula) Tick() {
 
 	ula.col++
 	if ula.col == ula.tsPerRow {
+		println()
 		ula.row++
 		if ula.row == ula.scanlines {
 			// println("-", ula.col, ula.col*ula.row, ula.row)
 			ula.row = 0
 			ula.cpu.Interrupt(true)
+			ula.FrameDone()
+			panic(-1)
 		}
 		ula.col = 0
 	}
@@ -166,9 +169,6 @@ func (ula *ula) FrameDone() {
 func (ula *ula) ReadPort(port uint16) (byte, bool) {
 	if port&0xff == 0xfe {
 		data := byte(0b00011111)
-		for ula.io {
-			ula.clock.AddTStates(1)
-		}
 		readRow := port >> 8
 		for row := 0; row < 8; row++ {
 			if (readRow & (1 << row)) == 0 {
@@ -187,9 +187,6 @@ func (ula *ula) ReadPort(port uint16) (byte, bool) {
 }
 
 func (ula *ula) WritePort(port uint16, data byte) {
-	for ula.io {
-		ula.clock.AddTStates(1)
-	}
 	if port&0xff == 0xfe {
 		if ula.borderColour != palette[data&0x07] {
 			ula.borderColour = palette[data&0x07]

@@ -1,9 +1,6 @@
 package zx
 
 import (
-	"fmt"
-	"time"
-
 	"fyne.io/fyne"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/ay8912"
@@ -43,13 +40,13 @@ func NewZX(mem *memory, plus, cas, ay bool) *zx {
 	cpu := z80.NewZ80(mem)
 	clock := emulator.NewCLock(speed)
 
-	ula := NewULA(mem, clock, plus)
+	ula := NewULA(mem, plus)
 	sound := emulator.NewSoundSystem(speed / 80)
 
 	ula.cpu = cpu
 	sound.AddSource(ula)
 
-	cpu.SetClock(clock)
+	// clock.AddTicker(0, cpu)
 	clock.AddTicker(0, ula)
 	clock.AddTicker(80, sound)
 
@@ -86,32 +83,6 @@ func NewZX(mem *memory, plus, cas, ay bool) *zx {
 	return zx
 }
 
-func (zx *zx) Run() {
-	wait := time.Duration(20 * time.Millisecond)
-	runStart := time.Now()
-	frames := float64(0)
-
-	ticker := time.NewTicker(wait)
-	go func() {
-		for range ticker.C {
-			frameStart := time.Now()
-
-			zx.Debugger().NextFrame()
-			err := zx.cpu.RunFrame()
-			if err != nil {
-				panic(err)
-			}
-
-			frames++
-
-			frameTime := time.Now().Sub(frameStart)
-			runTime := time.Now().Sub(runStart)
-			zx.Debugger().SetStatus(fmt.Sprintf("frame rate:%6.2f time:%6.2fms (%v)", frames/runTime.Seconds(), float64(frameTime.Microseconds())/1000, wait))
-			zx.ula.FrameDone()
-		}
-	}()
-}
-
 func (zx *zx) Debugger() emulator.Debugger {
 	return zx.debugger
 }
@@ -126,6 +97,10 @@ func (zx *zx) Monitor() emulator.Monitor {
 
 func (zx *zx) GetVolumeControl() func(float64) {
 	return zx.sound.SetVolume
+}
+
+func (zx *zx) Clock() emulator.Clock {
+	return zx.clock
 }
 
 func (zx *zx) loadDataBlock() uint16 {

@@ -2,8 +2,6 @@ package cpc
 
 import (
 	"fmt"
-
-	"github.com/laullon/b2t80s/emulator"
 )
 
 type bank []byte
@@ -20,8 +18,6 @@ type memory struct {
 	activeBanks []byte
 
 	safe bool
-
-	clock emulator.Clock
 }
 
 func NewCPCMemory() *memory {
@@ -70,10 +66,6 @@ func (mem *memory) decodeAddress(addr uint16) (page byte, bank byte, pos uint16)
 	bank = mem.activeBanks[page]
 	pos = addr & 0x3fff
 	return
-}
-
-func (mem *memory) SetClock(clock emulator.Clock) {
-	mem.clock = clock
 }
 
 func (mem *memory) GetBlock(start, length uint16) []byte {

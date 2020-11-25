@@ -7,7 +7,9 @@ import (
 )
 
 func TestSound(t *testing.T) {
-	c := NewCLock(3546900)
+	c := &clock{
+		tStatesPerFrame: 100,
+	}
 
 	ss := &dummySoundSorce{}
 	s := &dummySound{ss: ss, t: t}
@@ -15,8 +17,8 @@ func TestSound(t *testing.T) {
 	c.AddTicker(32, s)
 
 	for {
-		c.AddTStates(1)
-		if c.FrameDone() {
+		c.tick()
+		if c.frameDone() {
 			break
 		}
 	}

@@ -11,12 +11,6 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 	switch ins.Instruction {
 	case 0x00: // NOP
 
-	case 0x07: // RLCA
-		cpu.regs.A = cpu.regs.A<<1 | cpu.regs.A>>7
-		cpu.regs.F.C = cpu.regs.A&0x01 != 0
-		cpu.regs.F.H = false
-		cpu.regs.F.N = false
-
 	case 0xcb17: // RL A
 		cpu.rl(&cpu.regs.A)
 
@@ -261,7 +255,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 	case 0xcd: // CALL NN
 		nn := toWord(ins.Mem[1], ins.Mem[2])
 		cpu.regs.PC += uint16(ins.Length)
-		cpu.regs.SP.Push(cpu.regs.PC)
+		// cpu.regs.SP.Push(cpu.regs.PC)
 		cpu.regs.PC = nn
 		needPcUpdate = false
 
@@ -269,7 +263,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		if cpu.regs.F.P {
 			nn := toWord(ins.Mem[1], ins.Mem[2])
 			cpu.regs.PC += uint16(ins.Length)
-			cpu.regs.SP.Push(cpu.regs.PC)
+			// cpu.regs.SP.Push(cpu.regs.PC)
 			cpu.regs.PC = nn
 			needPcUpdate = false
 		}
@@ -278,7 +272,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		if !cpu.regs.F.P {
 			nn := toWord(ins.Mem[1], ins.Mem[2])
 			cpu.regs.PC += uint16(ins.Length)
-			cpu.regs.SP.Push(cpu.regs.PC)
+			// cpu.regs.SP.Push(cpu.regs.PC)
 			cpu.regs.PC = nn
 			needPcUpdate = false
 		}
@@ -287,7 +281,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		if cpu.regs.F.C == false {
 			nn := toWord(ins.Mem[1], ins.Mem[2])
 			cpu.regs.PC += uint16(ins.Length)
-			cpu.regs.SP.Push(cpu.regs.PC)
+			// cpu.regs.SP.Push(cpu.regs.PC)
 			cpu.regs.PC = nn
 			needPcUpdate = false
 		}
@@ -296,7 +290,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		if cpu.regs.F.C {
 			nn := toWord(ins.Mem[1], ins.Mem[2])
 			cpu.regs.PC += uint16(ins.Length)
-			cpu.regs.SP.Push(cpu.regs.PC)
+			// cpu.regs.SP.Push(cpu.regs.PC)
 			cpu.regs.PC = nn
 			needPcUpdate = false
 		}
@@ -305,7 +299,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		if cpu.regs.F.Z == true {
 			nn := toWord(ins.Mem[1], ins.Mem[2])
 			cpu.regs.PC += uint16(ins.Length)
-			cpu.regs.SP.Push(cpu.regs.PC)
+			// cpu.regs.SP.Push(cpu.regs.PC)
 			cpu.regs.PC = nn
 			needPcUpdate = false
 		}
@@ -314,7 +308,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		if cpu.regs.F.Z == false {
 			nn := toWord(ins.Mem[1], ins.Mem[2])
 			cpu.regs.PC += uint16(ins.Length)
-			cpu.regs.SP.Push(cpu.regs.PC)
+			// cpu.regs.SP.Push(cpu.regs.PC)
 			cpu.regs.PC = nn
 			needPcUpdate = false
 		}
@@ -323,7 +317,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		if !cpu.regs.F.S {
 			nn := toWord(ins.Mem[1], ins.Mem[2])
 			cpu.regs.PC += uint16(ins.Length)
-			cpu.regs.SP.Push(cpu.regs.PC)
+			// cpu.regs.SP.Push(cpu.regs.PC)
 			cpu.regs.PC = nn
 			needPcUpdate = false
 		}
@@ -332,160 +326,160 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		if cpu.regs.F.S {
 			nn := toWord(ins.Mem[1], ins.Mem[2])
 			cpu.regs.PC += uint16(ins.Length)
-			cpu.regs.SP.Push(cpu.regs.PC)
+			// cpu.regs.SP.Push(cpu.regs.PC)
 			cpu.regs.PC = nn
 			needPcUpdate = false
 		}
 
 	case 0xf0: // RET P
 		if !cpu.regs.F.S {
-			cpu.regs.PC = cpu.regs.SP.Pop()
+			// cpu.regs.PC = cpu.regs.SP.Pop()
 			needPcUpdate = false
 		}
 
 	case 0xf8: // RET M
 		if cpu.regs.F.S {
-			cpu.regs.PC = cpu.regs.SP.Pop()
+			// cpu.regs.PC = cpu.regs.SP.Pop()
 			needPcUpdate = false
 		}
 
 	case 0xc8: // RET Z
 		if cpu.regs.F.Z {
-			cpu.regs.PC = cpu.regs.SP.Pop()
+			// cpu.regs.PC = cpu.regs.SP.Pop()
 			needPcUpdate = false
 		}
 
 	case 0xc0: // RET NZ
 		if !cpu.regs.F.Z {
-			cpu.regs.PC = cpu.regs.SP.Pop()
+			// cpu.regs.PC = cpu.regs.SP.Pop()
 			needPcUpdate = false
 		}
 
 	case 0xd8: // RET C
 		if cpu.regs.F.C {
-			cpu.regs.PC = cpu.regs.SP.Pop()
+			// cpu.regs.PC = cpu.regs.SP.Pop()
 			needPcUpdate = false
 		}
 
 	case 0xe8: // RET PE
 		if cpu.regs.F.P {
-			cpu.regs.PC = cpu.regs.SP.Pop()
+			// cpu.regs.PC = cpu.regs.SP.Pop()
 			needPcUpdate = false
 		}
 
 	case 0xe0: // RET PO
 		if !cpu.regs.F.P {
-			cpu.regs.PC = cpu.regs.SP.Pop()
+			// cpu.regs.PC = cpu.regs.SP.Pop()
 			needPcUpdate = false
 		}
 
 	case 0xd0: // RET NC
 		if !cpu.regs.F.C {
-			cpu.regs.PC = cpu.regs.SP.Pop()
+			// cpu.regs.PC = cpu.regs.SP.Pop()
 			needPcUpdate = false
 		}
 
 	case 0xc9: // RET
-		cpu.regs.PC = cpu.regs.SP.Pop()
+		// cpu.regs.PC = cpu.regs.SP.Pop()
 		needPcUpdate = false
 
 	case 0xed4d: // RETI
-		cpu.regs.PC = cpu.regs.SP.Pop()
+		// cpu.regs.PC = cpu.regs.SP.Pop()
 		needPcUpdate = false
 
 	case 0xed45: // RETN
 		// TODO IFF1=IFF2 ??
-		cpu.regs.PC = cpu.regs.SP.Pop()
+		// cpu.regs.PC = cpu.regs.SP.Pop()
 		needPcUpdate = false
 
 	case 0xc7: // RST 0
-		cpu.regs.SP.Push(cpu.regs.PC + ins.Length)
+		// cpu.regs.SP.Push(cpu.regs.PC + ins.Length)
 		cpu.regs.PC = 0
 		needPcUpdate = false
 
 	case 0xcf: // RST 08H
-		cpu.regs.SP.Push(cpu.regs.PC + ins.Length)
+		// cpu.regs.SP.Push(cpu.regs.PC + ins.Length)
 		cpu.regs.PC = 0x08
 		needPcUpdate = false
 
 	case 0xd7: // RST 10H
-		cpu.regs.SP.Push(cpu.regs.PC + ins.Length)
+		// cpu.regs.SP.Push(cpu.regs.PC + ins.Length)
 		cpu.regs.PC = 0x10
 		needPcUpdate = false
 
 	case 0xdf: // RST 18H
-		cpu.regs.SP.Push(cpu.regs.PC + ins.Length)
+		// cpu.regs.SP.Push(cpu.regs.PC + ins.Length)
 		cpu.regs.PC = 0x18
 		needPcUpdate = false
 
 	case 0xe7: // RST 20H
-		cpu.regs.SP.Push(cpu.regs.PC + ins.Length)
+		// cpu.regs.SP.Push(cpu.regs.PC + ins.Length)
 		cpu.regs.PC = 0x20
 		needPcUpdate = false
 
 	case 0xef: // RST 28H
-		cpu.regs.SP.Push(cpu.regs.PC + ins.Length)
+		// cpu.regs.SP.Push(cpu.regs.PC + ins.Length)
 		cpu.regs.PC = 0x28
 		needPcUpdate = false
 
 	case 0xf7: // RST 30H
-		cpu.regs.SP.Push(cpu.regs.PC + ins.Length)
+		// cpu.regs.SP.Push(cpu.regs.PC + ins.Length)
 		cpu.regs.PC = 0x30
 		needPcUpdate = false
 
 	case 0xff: // RST 38H
-		cpu.regs.SP.Push(cpu.regs.PC + ins.Length)
+		// cpu.regs.SP.Push(cpu.regs.PC + ins.Length)
 		cpu.regs.PC = 0x38
 		needPcUpdate = false
 
-	case 0xf5: // PUSH AF
-		af := uint16(cpu.regs.A)<<8 | uint16(cpu.regs.F.GetByte())
-		cpu.regs.SP.Push(af)
+	// case 0xf5: // PUSH AF
+	// 	af := uint16(cpu.regs.A)<<8 | uint16(cpu.regs.F.GetByte())
+	// 	// cpu.regs.SP.Push(af)
 
-	case 0xc5: // PUSH BC
-		bc := cpu.regs.BC.Get()
-		cpu.regs.SP.Push(bc)
+	// case 0xc5: // PUSH BC
+	// 	bc := cpu.regs.BC.Get()
+	// 	// cpu.regs.SP.Push(bc)
 
-	case 0xd5: // PUSH DE
-		de := cpu.regs.DE.Get()
-		cpu.regs.SP.Push(de)
+	// case 0xd5: // PUSH DE
+	// 	de := cpu.regs.DE.Get()
+	// 	// cpu.regs.SP.Push(de)
 
-	case 0xe5: // PUSH HL
-		hl := cpu.regs.HL.Get()
-		cpu.regs.SP.Push(hl)
+	// case 0xe5: // PUSH HL
+	// 	hl := cpu.regs.HL.Get()
+	// 	// cpu.regs.SP.Push(hl)
 
-	case 0xdde5: // PUSH IX
-		ix := cpu.regs.IX.Get()
-		cpu.regs.SP.Push(ix)
+	// case 0xdde5: // PUSH IX
+	// 	ix := cpu.regs.IX.Get()
+	// 	// cpu.regs.SP.Push(ix)
 
-	case 0xfde5: // PUSH IY
-		iy := cpu.regs.IY.Get()
-		cpu.regs.SP.Push(iy)
+	// case 0xfde5: // PUSH IY
+	// 	iy := cpu.regs.IY.Get()
+	// 	// cpu.regs.SP.Push(iy)
 
-	case 0xf1: // POP AF
-		af := cpu.regs.SP.Pop()
-		cpu.regs.A = byte(af >> 8)
-		cpu.regs.F.SetByte(byte(af & 0xff))
+	// case 0xf1: // POP AF
+	// 	// af := cpu.regs.SP.Pop()
+	// 	cpu.regs.A = byte(af >> 8)
+	// 	cpu.regs.F.SetByte(byte(af & 0xff))
 
-	case 0xc1: // POP BC
-		bc := cpu.regs.SP.Pop()
-		cpu.regs.BC.Set(bc)
+	// case 0xc1: // POP BC
+	// 	// bc := cpu.regs.SP.Pop()
+	// 	cpu.regs.BC.Set(bc)
 
-	case 0xd1: // POP DE
-		de := cpu.regs.SP.Pop()
-		cpu.regs.DE.Set(de)
+	// case 0xd1: // POP DE
+	// 	// de := cpu.regs.SP.Pop()
+	// 	cpu.regs.DE.Set(de)
 
-	case 0xe1: // POP HL
-		hl := cpu.regs.SP.Pop()
-		cpu.regs.HL.Set(hl)
+	// case 0xe1: // POP HL
+	// 	// hl := cpu.regs.SP.Pop()
+	// 	cpu.regs.HL.Set(hl)
 
-	case 0xdde1: // POP IX
-		ix := cpu.regs.SP.Pop()
-		cpu.regs.IX.Set(ix)
+	// case 0xdde1: // POP IX
+	// 	// ix := cpu.regs.SP.Pop()
+	// 	cpu.regs.IX.Set(ix)
 
-	case 0xfde1: // POP IY
-		iy := cpu.regs.SP.Pop()
-		cpu.regs.IY.Set(iy)
+	// case 0xfde1: // POP IY
+	// 	// iy := cpu.regs.SP.Pop()
+	// 	cpu.regs.IY.Set(iy)
 
 	case 0xF3: // DI
 		cpu.regs.IFF1 = false
@@ -1148,27 +1142,6 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.regs.A = 0
 		cpu.subA(n)
 
-	case 0x3d: // DEC A
-		cpu.decR(&cpu.regs.A)
-
-	case 0x05: // DEC B
-		cpu.decR(&cpu.regs.B)
-
-	case 0x0d: // DEC C
-		cpu.decR(&cpu.regs.C)
-
-	case 0x15: // DEC D
-		cpu.decR(&cpu.regs.D)
-
-	case 0x1d: // DEC E
-		cpu.decR(&cpu.regs.E)
-
-	case 0x25: // DEC H
-		cpu.decR(&cpu.regs.H)
-
-	case 0x2d: // DEC L
-		cpu.decR(&cpu.regs.L)
-
 	case 0x2b: // DEC HL
 		// TODO join all DEC rr
 		hl := cpu.regs.HL.Get()
@@ -1194,27 +1167,6 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		iy := cpu.regs.IY.Get()
 		iy--
 		cpu.regs.IY.Set(iy)
-
-	case 0x3c: // INC A
-		cpu.incR(&cpu.regs.A)
-
-	case 0x04: // INC B
-		cpu.incR(&cpu.regs.B)
-
-	case 0x0c: // INC C
-		cpu.incR(&cpu.regs.C)
-
-	case 0x14: // INC D
-		cpu.incR(&cpu.regs.D)
-
-	case 0x1c: // INC E
-		cpu.incR(&cpu.regs.E)
-
-	case 0x24: // INC H
-		cpu.incR(&cpu.regs.H)
-
-	case 0x2c: // INC L
-		cpu.incR(&cpu.regs.L)
 
 	case 0x03: // INC BC
 		bc := cpu.regs.BC.Get()
@@ -1248,25 +1200,25 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 	case 0xdd34: // INC (IX+N)
 		ix := cpu.getIXn(ins.Mem[2])
 		ixv := cpu.memory.GetByte(ix)
-		cpu.incR(&ixv)
+		// cpu.incR(&ixv)
 		cpu.memory.PutByte(ix, ixv)
 
 	case 0xfd34: // INC (IY+N)
 		iy := cpu.getIYn(ins.Mem[2])
 		iyv := cpu.memory.GetByte(iy)
-		cpu.incR(&iyv)
+		// cpu.incR(&iyv)
 		cpu.memory.PutByte(iy, iyv)
 
 	case 0xdd35: // DEC (IX+N)
 		ix := cpu.getIXn(ins.Mem[2])
 		ixv := cpu.memory.GetByte(ix)
-		cpu.decR(&ixv)
+		// cpu.decR(&ixv)
 		cpu.memory.PutByte(ix, ixv)
 
 	case 0xfd35: // DEC (IY+d)
 		iy := cpu.getIYn(ins.Mem[2])
 		iyv := cpu.memory.GetByte(iy)
-		cpu.decR(&iyv)
+		// cpu.decR(&iyv)
 		cpu.memory.PutByte(iy, iyv)
 
 	case 0x3b: // DEC SP
@@ -1276,13 +1228,13 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 	case 0x34: // INC (HL)
 		hl := cpu.regs.HL.Get()
 		b := cpu.memory.GetByte(hl)
-		cpu.incR(&b)
+		// cpu.incR(&b)
 		cpu.memory.PutByte(hl, b)
 
 	case 0x35: // DEC (HL)
 		hl := cpu.regs.HL.Get()
 		b := cpu.memory.GetByte(hl)
-		cpu.decR(&b)
+		// cpu.decR(&b)
 		cpu.memory.PutByte(hl, b)
 
 	case 0xbf: // CP A
@@ -1366,12 +1318,6 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		needPcUpdate = false
 
 	case 0x10: // DJNZ $+2
-		cpu.regs.B--
-		if cpu.regs.B != 0 {
-			cpu.jr(ins.Mem[1])
-			cpu.clock.AddTStates(5)
-			needPcUpdate = false
-		}
 
 	case 0xa7: // AND A
 		cpu.and(cpu.regs.A)
@@ -1428,7 +1374,7 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.or(ins.Mem[1])
 
 	case 0xde: // SBC A,N
-		cpu.sbc(ins.Mem[1])
+		cpu.sbcA(ins.Mem[1])
 
 	case 0xed52: // SBC HL,DE
 		cpu.sbcHL(cpu.regs.DE.Get())
@@ -1441,18 +1387,6 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 
 	case 0xed72: // SBC HL,SP
 		cpu.sbcHL(cpu.regs.SP.Get())
-
-	case 0x09: // ADD HL,BC
-		cpu.addHL(cpu.regs.BC.Get())
-
-	case 0x19: // ADD HL,DE
-		cpu.addHL(cpu.regs.DE.Get())
-
-	case 0x29: // ADD HL,HL
-		cpu.addHL(cpu.regs.HL.Get())
-
-	case 0x39: // ADD HL,SP
-		cpu.addHL(cpu.regs.SP.Get())
 
 	case 0xdd09: // ADD IX,BC
 		cpu.addIX(cpu.regs.BC.Get())
@@ -1510,31 +1444,31 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.addA(cpu.memory.GetByte(iy))
 
 	case 0x8f: // ADC A,A
-		cpu.adc(cpu.regs.A)
+		cpu.adcA(cpu.regs.A)
 
 	case 0x88: // ADC A,B
-		cpu.adc(cpu.regs.B)
+		cpu.adcA(cpu.regs.B)
 
 	case 0x89: // ADC A,C
-		cpu.adc(cpu.regs.C)
+		cpu.adcA(cpu.regs.C)
 
 	case 0x8a: // ADC A,D
-		cpu.adc(cpu.regs.D)
+		cpu.adcA(cpu.regs.D)
 
 	case 0x8b: // ADC A,E
-		cpu.adc(cpu.regs.E)
+		cpu.adcA(cpu.regs.E)
 
 	case 0x8c: // ADC A,H
-		cpu.adc(cpu.regs.H)
+		cpu.adcA(cpu.regs.H)
 
 	case 0x8d: // ADC A,L
-		cpu.adc(cpu.regs.L)
+		cpu.adcA(cpu.regs.L)
 
 	case 0x8e: // ADC A,(HL)
-		cpu.adc(cpu.memory.GetByte(cpu.regs.HL.Get()))
+		cpu.adcA(cpu.memory.GetByte(cpu.regs.HL.Get()))
 
 	case 0xce: // ADC A,N
-		cpu.adc(ins.Mem[1])
+		cpu.adcA(ins.Mem[1])
 
 	case 0xed4a: // ADC HL,BC
 		cpu.adcHL(cpu.regs.BC.Get())
@@ -1576,28 +1510,28 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.subA(ins.Mem[1])
 
 	case 0x9f: // SBC A
-		cpu.sbc(cpu.regs.A)
+		cpu.sbcA(cpu.regs.A)
 
 	case 0x98: // SBC B
-		cpu.sbc(cpu.regs.B)
+		cpu.sbcA(cpu.regs.B)
 
 	case 0x99: // SBC C
-		cpu.sbc(cpu.regs.C)
+		cpu.sbcA(cpu.regs.C)
 
 	case 0x9a: // SBC D
-		cpu.sbc(cpu.regs.D)
+		cpu.sbcA(cpu.regs.D)
 
 	case 0x9b: // SBC E
-		cpu.sbc(cpu.regs.E)
+		cpu.sbcA(cpu.regs.E)
 
 	case 0x9c: // SBC H
-		cpu.sbc(cpu.regs.H)
+		cpu.sbcA(cpu.regs.H)
 
 	case 0x9d: // SBC L
-		cpu.sbc(cpu.regs.L)
+		cpu.sbcA(cpu.regs.L)
 
 	case 0x9e: // SBC (HL)
-		cpu.sbc(cpu.memory.GetByte(cpu.regs.HL.Get()))
+		cpu.sbcA(cpu.memory.GetByte(cpu.regs.HL.Get()))
 
 	case 0x08: // EX AF,AF'
 		ta := cpu.regs.A
@@ -2458,11 +2392,11 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 
 	case 0xdd8e: // ADC A,(IX+N)
 		ix := cpu.getIXn(ins.Mem[2])
-		cpu.adc(cpu.memory.GetByte(ix))
+		cpu.adcA(cpu.memory.GetByte(ix))
 
 	case 0xfd8e: // ADC A,(IY+N)
 		iy := cpu.getIYn(ins.Mem[2])
-		cpu.adc(cpu.memory.GetByte(iy))
+		cpu.adcA(cpu.memory.GetByte(iy))
 
 	case 0xdd96: // SUB (IX+N)
 		ix := cpu.getIXn(ins.Mem[2])
@@ -2478,11 +2412,11 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 
 	case 0xdd9e: // SBC A,(IX+N)
 		ix := cpu.getIXn(ins.Mem[2])
-		cpu.sbc(cpu.memory.GetByte(ix))
+		cpu.sbcA(cpu.memory.GetByte(ix))
 
 	case 0xfd9e: // SBC A,(IY+N)
 		iy := cpu.getIYn(ins.Mem[2])
-		cpu.sbc(cpu.memory.GetByte(iy))
+		cpu.sbcA(cpu.memory.GetByte(iy))
 
 	case 0xdda6: // AND (IX+N)
 		ix := cpu.getIXn(ins.Mem[2])
@@ -2875,16 +2809,16 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.addA(cpu.regs.IYL)
 
 	case 0xDD8C: // ADC A,IXH
-		cpu.adc(cpu.regs.IXH)
+		cpu.adcA(cpu.regs.IXH)
 
 	case 0xFD8C: // ADC A,IYH
-		cpu.adc(cpu.regs.IYH)
+		cpu.adcA(cpu.regs.IYH)
 
 	case 0xDD8D: // ADC A,IXL
-		cpu.adc(cpu.regs.IXL)
+		cpu.adcA(cpu.regs.IXL)
 
 	case 0xFD8D: // ADC A,IYL
-		cpu.adc(cpu.regs.IYL)
+		cpu.adcA(cpu.regs.IYL)
 
 	case 0xDD94: // SUB IXH
 		cpu.subA(cpu.regs.IXH)
@@ -2899,16 +2833,16 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.subA(cpu.regs.IYL)
 
 	case 0xDD9C: // SBC A,IXH
-		cpu.sbc(cpu.regs.IXH)
+		cpu.sbcA(cpu.regs.IXH)
 
 	case 0xFD9C: // SBC A,IYH
-		cpu.sbc(cpu.regs.IYH)
+		cpu.sbcA(cpu.regs.IYH)
 
 	case 0xDD9D: // SBC A,IXL
-		cpu.sbc(cpu.regs.IXL)
+		cpu.sbcA(cpu.regs.IXL)
 
 	case 0xFD9D: // SBC A,IYL
-		cpu.sbc(cpu.regs.IYL)
+		cpu.sbcA(cpu.regs.IYL)
 
 	case 0xDDA4: // AND IXH
 		cpu.and(cpu.regs.IXH)
@@ -2957,30 +2891,6 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 
 	case 0xFDBD: // CP IYL
 		cpu.cp(cpu.regs.IYL)
-
-	case 0xDD24: // INC IXH
-		cpu.incR(&cpu.regs.IXH)
-
-	case 0xFD24: // INC IYH
-		cpu.incR(&cpu.regs.IYH)
-
-	case 0xDD25: // DEC IXH
-		cpu.decR(&cpu.regs.IXH)
-
-	case 0xFD25: // DEC IYH
-		cpu.decR(&cpu.regs.IYH)
-
-	case 0xDD2C: // INC IXL
-		cpu.incR(&cpu.regs.IXL)
-
-	case 0xFD2C: // INC IYL
-		cpu.incR(&cpu.regs.IYL)
-
-	case 0xDD2D: // DEC IXL
-		cpu.decR(&cpu.regs.IXL)
-
-	case 0xFD2D: // DEC IYL
-		cpu.decR(&cpu.regs.IYL)
 
 	default:
 		panic(fmt.Sprintf("\n----\nopt code '0x%02x: // %s'(%db) not supported\npc: 0x%04x\n----\n", ins.Instruction, ins.Opcode, ins.Length, cpu.regs.PC))

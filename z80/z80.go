@@ -13,7 +13,7 @@ var parityTable = make([]bool, 0x100)
 
 type Z80Registers struct {
 	PC uint16
-	SP emulator.StackPointer
+	M1 bool
 
 	A byte
 	F *flags
@@ -29,6 +29,10 @@ type Z80Registers struct {
 	H  byte
 	L  byte
 	HL *RegPair
+
+	S  byte
+	P  byte
+	SP *RegPair
 
 	I  byte
 	R  byte
@@ -61,18 +65,19 @@ type z80 struct {
 	memory   emulator.Memory
 	debugger emulator.Debugger
 
+	Bus emulator.Bus
+
 	regs *Z80Registers
 
 	halt, haltDone bool
 
 	doInterrupt bool
 
-	actualOPCode int32
+	fetched   []uint8
+	scheduler []z80op
 
 	traps map[uint16]emulator.CPUTrap
 	ports map[emulator.PortMask]emulator.PortManager
-
-	clock emulator.Clock
 }
 
 func init() {
@@ -96,15 +101,18 @@ func init() {
 
 }
 
-func NewZ80(mem emulator.Memory) emulator.CPU {
+func NewZ80(bus emulator.Bus) emulator.CPU {
 	LoadOPCodess()
 	cpu := &z80{
-		memory: mem,
-		traps:  make(map[uint16]emulator.CPUTrap),
-		ports:  make(map[emulator.PortMask]emulator.PortManager),
+		Bus:   bus,
+		traps: make(map[uint16]emulator.CPUTrap),
+		ports: make(map[emulator.PortMask]emulator.PortManager),
 		regs: &Z80Registers{
 			PC: 0,
+			M1: false,
 			A:  0xff,
+			S:  0xFF,
+			P:  0xFF,
 			F: &flags{
 				Z: true,
 				C: true,
@@ -128,15 +136,12 @@ func NewZ80(mem emulator.Memory) emulator.CPU {
 	cpu.regs.BC = &RegPair{&cpu.regs.B, &cpu.regs.C}
 	cpu.regs.DE = &RegPair{&cpu.regs.D, &cpu.regs.E}
 	cpu.regs.HL = &RegPair{&cpu.regs.H, &cpu.regs.L}
+	cpu.regs.SP = &RegPair{&cpu.regs.S, &cpu.regs.P}
 	cpu.regs.IX = &RegPair{&cpu.regs.IXH, &cpu.regs.IXL}
 	cpu.regs.IY = &RegPair{&cpu.regs.IYH, &cpu.regs.IYL}
-	cpu.regs.SP = NewStackPointer(cpu.memory)
 
+	cpu.scheduler = append(cpu.scheduler, &fetch{})
 	return cpu
-}
-
-func (cpu *z80) SetClock(clock emulator.Clock) {
-	cpu.clock = clock
 }
 
 func (cpu *z80) SetDebuger(debugger emulator.Debugger) {
@@ -174,7 +179,7 @@ func (cpu *z80) execInterrupt() uint {
 		cpu.regs.IFF1 = false
 		cpu.regs.IFF2 = false
 
-		cpu.regs.SP.Push(cpu.regs.PC)
+		// cpu.regs.SP.Push(cpu.regs.PC)
 
 		switch cpu.regs.InterruptsMode {
 		case 0, 1:
@@ -189,56 +194,98 @@ func (cpu *z80) execInterrupt() uint {
 	return ts
 }
 
-func (cpu *z80) RunFrame() error {
-	var done bool
-	for !done {
-		if cpu.debugger.IsStoped() {
-			return nil
-		}
-		cpu.Step()
-		done = cpu.clock.FrameDone()
+func (cpu *z80) Tick() {
+	if cpu.scheduler[0].isDone() {
+		cpu.scheduler = cpu.scheduler[1:]
 	}
-	return nil
+	cpu.scheduler[0].tick(cpu)
 }
 
-func (cpu *z80) Step() {
-	if trap, ok := cpu.traps[cpu.regs.PC]; ok {
-		res := trap()
-		switch res {
-		case emulator.CONTINUE:
-		case emulator.STOP:
-			return
-		default:
-			cpu.regs.PC = uint16(res)
-			return
-		}
-	}
+// func (cpu *z80) Tick() {
+// 	var err error
+// 	if cpu.regs.M1 {
 
-	if cpu.doInterrupt {
-		ts := cpu.execInterrupt()
-		cpu.clock.AddTStates(ts)
-	}
+// 		// TODO: review
+// 		if trap, ok := cpu.traps[cpu.regs.PC]; ok {
+// 			res := trap()
+// 			switch res {
+// 			case emulator.CONTINUE:
+// 			case emulator.STOP:
+// 				return
+// 			default:
+// 				cpu.regs.PC = uint16(res)
+// 				return
+// 			}
+// 		}
 
-	ins, err := GetOpCode(cpu.memory.GetBlock(cpu.regs.PC, 4))
-	if err != nil {
-		panic(err)
-	}
+// 		cpu.regs.M1 = false
 
-	if cpu.debugger != nil {
-		cpu.debugger.AddLastInstruction(ins)
-	}
+// 		if cpu.doInterrupt {
+// 			cpu.pendingTicks = cpu.execInterrupt()
+// 			cpu.instruction = emulator.Instruction{Instruction: 0xffffff}
+// 		}
 
-	var ts uint
-	if !cpu.halt {
-		needPcUpdate := cpu.runSwitch(ins)
-		if needPcUpdate {
-			cpu.regs.PC += uint16(ins.Length)
-		}
-		ts = ins.Tstates
-	} else {
-		ts = 4 // halt
-	}
+// 		if cpu.halt { //TODO review
+// 			cpu.pendingTicks = 4
+// 			cpu.instruction = emulator.Instruction{Instruction: 0xffffff}
+// 		}
 
-	cpu.clock.AddTStates(ts)
-	return
-}
+// 		cpu.instruction, err = GetOpCode(cpu.memory.GetBlock(cpu.regs.PC, 4))
+// 		cpu.pendingTicks = cpu.instruction.Tstates
+// 		if err != nil {
+// 			panic(err)
+// 		}
+
+// 		if cpu.debugger != nil {
+// 			cpu.debugger.AddLastInstruction(cpu.instruction)
+// 		}
+
+// 	}
+
+// 	cpu.pendingTicks--
+
+// 	if cpu.pendingTicks == 0 {
+// 		cpu.regs.M1 = true
+// 		needPcUpdate := cpu.runSwitch(cpu.instruction)
+// 		if needPcUpdate {
+// 			cpu.regs.PC += uint16(cpu.instruction.Length)
+// 		}
+// 	}
+// }
+
+// func (cpu *z80) Step() {
+// 	if trap, ok := cpu.traps[cpu.regs.PC]; ok {
+// 		res := trap()
+// 		switch res {
+// 		case emulator.CONTINUE:
+// 		case emulator.STOP:
+// 			return
+// 		default:
+// 			cpu.regs.PC = uint16(res)
+// 			return
+// 		}
+// 	}
+
+// 	if cpu.doInterrupt {
+// 		ts := cpu.execInterrupt()
+// 		cpu.clock.AddTStates(ts)
+// 	}
+
+// 	if cpu.debugger != nil {
+// 		cpu.debugger.AddLastInstruction(ins)
+// 	}
+
+// 	var ts uint
+// 	if !cpu.halt {
+// 		needPcUpdate := cpu.runSwitch(ins)
+// 		if needPcUpdate {
+// 			cpu.regs.PC += uint16(ins.Length)
+// 		}
+// 		ts = ins.Tstates
+// 	} else {
+// 		ts = 4 // halt
+// 	}
+
+// 	cpu.clock.AddTStates(ts)
+// 	return
+// }

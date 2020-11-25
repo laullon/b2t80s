@@ -15,9 +15,6 @@ const (
 )
 
 type CPU interface {
-	Step()
-	RunFrame() error
-
 	Interrupt(bool)
 
 	Registers() interface{}
@@ -30,9 +27,9 @@ type CPU interface {
 	// LoadTapeBlock() uint16
 	// LoadTapeBlockCPC(uint16) uint16
 
-	SetClock(c Clock)
-
 	Halt()
+
+	Tick()
 }
 
 type Debugger interface {
@@ -79,14 +76,6 @@ type Instruction struct {
 	Length      uint16
 	Mem         []byte
 	Valid       bool
-}
-
-type StackPointer interface {
-	Set(newSP uint16)
-	Get() uint16
-	Push(w uint16)
-	Pop() uint16
-	Dump(n int)
 }
 
 func (ins *Instruction) Dump(pc uint16) string {
