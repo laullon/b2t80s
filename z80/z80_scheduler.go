@@ -30,6 +30,7 @@ type z80f func(*z80, []uint8)
 
 type fetch struct {
 	basicOp
+	table []*opCode
 }
 
 func (ops *fetch) tick(cpu *z80) {
@@ -46,7 +47,7 @@ func (ops *fetch) tick(cpu *z80) {
 		d := cpu.Bus.GetData()
 		cpu.fetched = append(cpu.fetched, d)
 	case 4:
-		op := lookup[cpu.fetched[0]]
+		op := ops.table[cpu.fetched[0]]
 		if op == nil {
 			panic(errors.Errorf("opCode '0x%02X' not found", cpu.fetched[0]))
 		}
@@ -55,7 +56,6 @@ func (ops *fetch) tick(cpu *z80) {
 			op.reset()
 		}
 		cpu.scheduler = append(cpu.scheduler, op.ops...)
-		cpu.scheduler = append(cpu.scheduler, &fetch{})
 		if op.onFetch != nil {
 			op.onFetch(cpu, cpu.fetched)
 		}

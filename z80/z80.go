@@ -140,7 +140,7 @@ func NewZ80(bus emulator.Bus) emulator.CPU {
 	cpu.regs.IX = &RegPair{&cpu.regs.IXH, &cpu.regs.IXL}
 	cpu.regs.IY = &RegPair{&cpu.regs.IYH, &cpu.regs.IYL}
 
-	cpu.scheduler = append(cpu.scheduler, &fetch{})
+	cpu.scheduler = append(cpu.scheduler, &fetch{table: lookup})
 	return cpu
 }
 
@@ -197,6 +197,9 @@ func (cpu *z80) execInterrupt() uint {
 func (cpu *z80) Tick() {
 	if cpu.scheduler[0].isDone() {
 		cpu.scheduler = cpu.scheduler[1:]
+		if len(cpu.scheduler) == 0 {
+			cpu.scheduler = append(cpu.scheduler, &fetch{table: lookup})
+		}
 	}
 	cpu.scheduler[0].tick(cpu)
 }
