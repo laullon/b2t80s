@@ -83,10 +83,43 @@ var z80OpsCodeTable = []*opCode{
 	{"RLA", 0xFF, 0x17, []z80op{}, rla},
 	{"RRCA", 0xFF, 0x0F, []z80op{}, rrca},
 	{"RRA", 0xFF, 0x1F, []z80op{}, rra},
+
+	{"CB", 0xFF, 0xCB, []z80op{}, decodeCB},
 }
 
 var z80OpsCodeTableCB = []*opCode{
-	{"RLC r", 0b11111000, 0b00000000, []z80op{}, rlcR},
+	{"RLC r", 0b11111000, 0b00000000, []z80op{}, cbR},
+	{"RLC (HL)", 0xFF, 0x06, []z80op{}, cbHL},
+	{"RRC r", 0b11111000, 0b00001000, []z80op{}, cbR},
+	{"RRC (HL)", 0xFF, 0x0e, []z80op{}, cbHL},
+
+	{"RLC r", 0b11111000, 0b00010000, []z80op{}, cbR},
+	{"RLC (HL)", 0xFF, 0x16, []z80op{}, cbHL},
+	{"RR r", 0b11111000, 0b00011000, []z80op{}, cbR},
+	{"RR (HL)", 0xFF, 0x1e, []z80op{}, cbHL},
+
+	{"SLA r", 0b11111000, 0b00100000, []z80op{}, cbR},
+	{"SLA (HL)", 0xFF, 0x26, []z80op{}, cbHL},
+	{"SRA r", 0b11111000, 0b00101000, []z80op{}, cbR},
+	{"SRA (HL)", 0xFF, 0x2e, []z80op{}, cbHL},
+
+	{"SLL r", 0b11111000, 0b00110000, []z80op{}, cbR},
+	{"SLL (HL)", 0xFF, 0x36, []z80op{}, cbHL},
+	{"SRL r", 0b11111000, 0b00111000, []z80op{}, cbR},
+	{"SRL (HL)", 0xFF, 0x3e, []z80op{}, cbHL},
+
+	{"BIT b, r", 0b11000000, 0b01000000, []z80op{}, bit},
+	{"BIT b, (HL)", 0b11000111, 0b01000110, []z80op{}, bitHL},
+
+	{"RES b, r", 0b11000000, 0b10000000, []z80op{}, res},
+	{"RES b, (HL)", 0b11000111, 0b10000110, []z80op{}, resHL},
+
+	{"SET b, r", 0b11000000, 0b11000000, []z80op{}, set},
+	{"SET b, (HL)", 0b11000111, 0b11000110, []z80op{}, setHL},
+}
+
+func decodeCB(cpu *z80, mem []uint8) {
+	cpu.scheduler = append([]z80op{&fetch{table: lookupCB}}, cpu.scheduler...)
 }
 
 func (o *opCode) String() string {
@@ -94,6 +127,7 @@ func (o *opCode) String() string {
 }
 
 var lookup = make([]*opCode, 256)
+var lookupCB = make([]*opCode, 256)
 
 func init() {
 	for i := 0; i < 256; i++ {
@@ -108,6 +142,23 @@ func init() {
 	println("lookup")
 	println("------")
 	for code, op := range lookup {
+		fmt.Printf("0x%02X - %v\n", code, op)
+	}
+
+	// -----
+
+	for i := 0; i < 256; i++ {
+		code := uint8(i)
+		for _, op := range z80OpsCodeTableCB {
+			if (code & op.mask) == op.code {
+				lookupCB[code] = op
+			}
+		}
+	}
+	println("---------")
+	println("lookup CB")
+	println("---------")
+	for code, op := range lookupCB {
 		fmt.Printf("0x%02X - %v\n", code, op)
 	}
 }
