@@ -90,8 +90,6 @@ func TestOPCodes(t *testing.T) {
 		// debugger := NewDebugger(cpu.(*z80), memory)
 		// cpu.SetDebuger(debugger)
 
-		cpu.RegisterPort(emulator.PortMask{Mask: 0, Value: 0}, &dummyPM{})
-
 		result, ok := results[test.name]
 		if !ok {
 			panic(fmt.Sprintf("result for test '%s' not found", test.name))
@@ -107,7 +105,7 @@ func TestOPCodes(t *testing.T) {
 			strings.HasPrefix(test.name, "edba") ||
 			strings.HasPrefix(test.name, "edbb") ||
 			strings.HasPrefix(test.name, "edaa") ||
-			strings.HasPrefix(test.name, "c7") { // TODO: end PC=0 ??
+			strings.HasPrefix(test.name, "dd00") { //???
 			continue
 		}
 
@@ -117,12 +115,6 @@ func TestOPCodes(t *testing.T) {
 			for i, b := range mem.bytes {
 				bus.mem[mem.start+uint16(i)] = b
 			}
-		}
-
-		_, err := GetOpCode(bus.mem[0:4])
-		if err != nil {
-			t.Logf("error on test '%v': %v", test.name, err)
-			continue
 		}
 
 		log.Printf("\n")
@@ -136,8 +128,9 @@ func TestOPCodes(t *testing.T) {
 		cpu.(*z80).halt = false
 
 		for {
+			// fmt.Printf("> [test] m1:%v pc:0x%04X end:0x%04X \n", cpu.(*z80).regs.M1, cpu.(*z80).regs.PC, result.endPC)
 			if cpu.(*z80).regs.M1 {
-				if cpu.(*z80).regs.PC > result.endPC {
+				if cpu.(*z80).regs.PC == (result.endPC + 1) {
 					break
 				}
 			}
@@ -469,16 +462,8 @@ func (bus *dummyBus) GetData() byte     { return bus.data }
 func (bus *dummyBus) ReadMemory()  { bus.data = bus.mem[bus.addr] }
 func (bus *dummyBus) WriteMemory() { bus.mem[bus.addr] = bus.data }
 
-func (bus *dummyBus) ReadPort()  {}
+func (bus *dummyBus) ReadPort()  { bus.data = uint8(bus.addr >> 8) }
 func (bus *dummyBus) WritePort() {}
-
-// ***
-// ***
-
-type dummyPM struct{}
-
-func (dummyPM) ReadPort(port uint16) (byte, bool) { return byte(port >> 8), false }
-func (dummyPM) WritePort(port uint16, data byte)  {}
 
 // ***
 // ***

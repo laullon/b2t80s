@@ -1202,30 +1202,6 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 	case 0xed72: // SBC HL,SP
 		cpu.sbcHL(cpu.regs.SP.Get())
 
-	case 0xdd09: // ADD IX,BC
-		cpu.addIX(cpu.regs.BC.Get())
-
-	case 0xdd19: // ADD IX,DE
-		cpu.addIX(cpu.regs.DE.Get())
-
-	case 0xdd29: // ADD IX,IX
-		cpu.addIX(cpu.regs.IX.Get())
-
-	case 0xdd39: // ADD IX,SP
-		cpu.addIX(cpu.regs.SP.Get())
-
-	case 0xfd09: // ADD IY,BC
-		cpu.addIY(cpu.regs.BC.Get())
-
-	case 0xfd19: // ADD IY,DE
-		cpu.addIY(cpu.regs.DE.Get())
-
-	case 0xfd29: // ADD IY,IY
-		cpu.addIY(cpu.regs.IY.Get())
-
-	case 0xfd39: // ADD IY,SP
-		cpu.addIY(cpu.regs.SP.Get())
-
 	case 0x87: // ADD A,A
 		cpu.addA(cpu.regs.A)
 

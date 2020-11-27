@@ -35,6 +35,7 @@ type fetch struct {
 
 func (ops *fetch) tick(cpu *z80) {
 	ops.t++
+	// println("> [fetch]", ops.t, "pc:", fmt.Sprintf("0x%04X", cpu.regs.PC))
 	switch ops.t {
 	case 1:
 		cpu.fetched = nil
@@ -111,6 +112,30 @@ func (ops *mr) tick(cpu *z80) {
 	}
 }
 
+//
+// -------------------------------------------------------------
+
+type in struct {
+	basicOp
+	f    z80f
+	from uint16
+}
+
+func (ops *in) tick(cpu *z80) {
+	ops.t++
+	switch ops.t {
+	case 1:
+		cpu.Bus.SetAddr(ops.from)
+	case 4:
+		cpu.Bus.ReadPort()
+		d := cpu.Bus.GetData()
+		if ops.f != nil {
+			ops.f(cpu, []byte{d})
+		}
+		ops.done = true
+	}
+}
+
 // -------------------------------------------------------------
 
 type mw struct {
@@ -129,6 +154,30 @@ func (ops *mw) tick(cpu *z80) {
 		cpu.Bus.SetData(ops.data)
 	case 3:
 		cpu.Bus.WriteMemory()
+		if ops.f != nil {
+			ops.f(cpu)
+		}
+		ops.done = true
+	}
+}
+
+// -------------------------------------------------------------
+
+type out struct {
+	basicOp
+	addr uint16
+	data uint8
+	f    func(*z80)
+}
+
+func (ops *out) tick(cpu *z80) {
+	ops.t++
+	switch ops.t {
+	case 1:
+		cpu.Bus.SetAddr(ops.addr)
+		cpu.Bus.SetData(ops.data)
+		cpu.Bus.WriteMemory()
+	case 3:
 		if ops.f != nil {
 			ops.f(cpu)
 		}
