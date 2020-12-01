@@ -51,7 +51,6 @@ func (ops *fetch) tick(cpu *z80) {
 		if op == nil {
 			panic(errors.Errorf("opCode '0x%02X' not found", cpu.fetched[0]))
 		}
-		println("op", op.String(), cpu.fetched[0], cpu.regs.PC)
 		for _, op := range op.ops {
 			op.reset()
 		}
