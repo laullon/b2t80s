@@ -97,15 +97,8 @@ func TestOPCodes(t *testing.T) {
 
 		logger.Clear()
 		// TODO make this test work
-		if strings.HasPrefix(test.name, "eda2") ||
-			strings.HasPrefix(test.name, "eda3") ||
-			strings.HasPrefix(test.name, "edab") ||
-			strings.HasPrefix(test.name, "edb2") ||
-			strings.HasPrefix(test.name, "edb3") ||
-			strings.HasPrefix(test.name, "edba") ||
-			strings.HasPrefix(test.name, "edbb") ||
-			strings.HasPrefix(test.name, "edaa") ||
-			strings.HasPrefix(test.name, "dd00") { //???
+		if strings.HasPrefix(test.name, "dd00") ||
+			strings.HasPrefix(test.name, "ddfd00") { //???
 			continue
 		}
 

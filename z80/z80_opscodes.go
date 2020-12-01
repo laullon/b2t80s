@@ -36,6 +36,7 @@ var z80OpsCodeTable = []*opCode{
 	{"JP cc, nn", 0b11000111, 0b11000010, []z80op{&mrPC{}, &mrPC{f: jpCC}}, nil},
 	{"CALL cc, nn", 0b11000111, 0b11000100, []z80op{&mrPC{}, &mrPC{f: callCC}}, nil},
 	{"RST p", 0b11000111, 0b11000111, []z80op{&exec{l: 1, f: rstP}}, nil},
+	{"CALL cc, nn", 0xFF, 0xCD, []z80op{&mrPC{}, &mrPC{f: call}}, nil},
 
 	// {"", 0xFF, 0x,[]z80op{},nil},
 	{"NOP", 0xFF, 0x00, []z80op{}, nil},
@@ -45,7 +46,6 @@ var z80OpsCodeTable = []*opCode{
 	{"CCF", 0xFF, 0x3F, []z80op{}, ccf},
 	{"HALT", 0xFF, 0x76, []z80op{}, halt},
 	{"RET", 0xFF, 0xC9, []z80op{&mrPC{}, &mrPC{f: ret}}, nil},
-	{"CALL cc, nn", 0xFF, 0xCD, []z80op{&mrPC{}, &mrPC{f: call}}, nil},
 
 	{"INC (HL)", 0xFF, 0x34, []z80op{&exec{l: 1, f: incHL}}, nil},
 	{"DEC (HL)", 0xFF, 0x35, []z80op{&exec{l: 1, f: decHL}}, nil},
@@ -61,7 +61,7 @@ var z80OpsCodeTable = []*opCode{
 	{"ADC A, (HL)", 0xFF, 0xCE, []z80op{&mrPC{f: func(cpu *z80, data []uint8) { cpu.adcA(data[1]) }}}, nil},
 	{"SBC A, (HL)", 0xFF, 0xDE, []z80op{&mrPC{f: func(cpu *z80, data []uint8) { cpu.sbcA(data[1]) }}}, nil},
 	{"SUB n", 0xFF, 0xD6, []z80op{&mrPC{f: func(cpu *z80, data []uint8) { cpu.subA(data[1]) }}}, nil},
-	{"ADD n", 0xFF, 0xE6, []z80op{&mrPC{f: func(cpu *z80, data []uint8) { cpu.addA(data[1]) }}}, nil},
+	{"AND n", 0xFF, 0xE6, []z80op{&mrPC{f: func(cpu *z80, data []uint8) { cpu.and(data[1]) }}}, nil},
 	{"OR n", 0xFF, 0xF6, []z80op{&mrPC{f: func(cpu *z80, data []uint8) { cpu.or(data[1]) }}}, nil},
 
 	{"LD A,(BC)", 0xFF, 0x0A, []z80op{}, ldAbc},
@@ -96,6 +96,17 @@ var z80OpsCodeTable = []*opCode{
 
 	{"CB", 0xFF, 0xCB, []z80op{}, decodeCB},
 	{"DD", 0xFF, 0xDD, []z80op{}, decodeDD},
+
+	{"EX (SP), IX", 0xFF, 0xE3, []z80op{}, exSP},
+	{"JP HL", 0xFF, 0xE9, []z80op{}, func(cpu *z80, u []uint8) { cpu.regs.PC = cpu.regs.HL.Get() }},
+	{"EX DE, HL", 0xFF, 0xEB, []z80op{}, exDEhl},
+
+	{"ED", 0xFF, 0xED, []z80op{}, decodeED},
+
+	{"XOR *", 0xFF, 0xEE, []z80op{&mrPC{f: func(cpu *z80, mem []uint8) { println(mem[1]); cpu.xor(mem[1]) }}}, nil},
+	{"DI", 0xFF, 0xF3, []z80op{}, func(cpu *z80, u []uint8) { cpu.regs.IFF1 = false; cpu.regs.IFF2 = false }},
+	{"EI", 0xFF, 0xFb, []z80op{}, func(cpu *z80, u []uint8) { cpu.regs.IFF1 = true; cpu.regs.IFF2 = true }},
+	{"LD SP, HL", 0xFF, 0xF9, []z80op{&exec{l: 2, f: func(cpu *z80, u []uint8) { cpu.regs.SP.Set(cpu.regs.HL.Get()) }}}, nil},
 }
 
 var z80OpsCodeTableCB = []*opCode{
@@ -189,16 +200,121 @@ var z80OpsCodeTableDD = []*opCode{
 	{"CP A, (IX+d)", 0xFF, 0xBE, []z80op{&mrPC{}, &exec{l: 5, f: cpAixD}}, nil},
 
 	{"CB", 0xFF, 0xCB, []z80op{&mrPC{f: decodeDDCB}}, nil},
+
+	{"POP IX", 0xFF, 0xE1, []z80op{}, func(cpu *z80, u []uint8) { cpu.popFromStack(func(cpu *z80, data uint16) { cpu.regs.IX.Set(data) }) }},
+	{"EX (SP), IX", 0xFF, 0xE3, []z80op{}, exSP},
+	{"PUSH IX", 0xFF, 0xE5, []z80op{}, func(cpu *z80, u []uint8) { cpu.pushToStack(cpu.regs.IX.Get(), nil) }},
+	{"JP IX", 0xFF, 0xE9, []z80op{}, func(cpu *z80, u []uint8) { cpu.regs.PC = cpu.regs.IX.Get() }},
+	{"LD SP, IX", 0xFF, 0xF9, []z80op{}, func(cpu *z80, u []uint8) { cpu.regs.SP.Set(cpu.regs.IX.Get()) }},
 }
 
-var z80OpsCodeTableDDCB = []*opCode{}
+var z80OpsCodeTableDDCB = []*opCode{
+	{"RLC (IX+d), r", 0b11111000, 0b00000000, []z80op{}, cbIXdr},
+	{"RLC (IX+d)", 0xFF, 0x06, []z80op{}, cbIXd},
+	{"RRC (IX+d), r", 0b11111000, 0b00001000, []z80op{}, cbIXdr},
+	{"RRC (IX+d)", 0xFF, 0x0e, []z80op{}, cbIXd},
+
+	{"RLC (IX+d), r", 0b11111000, 0b00010000, []z80op{}, cbIXdr},
+	{"RLC (IX+d)", 0xFF, 0x16, []z80op{}, cbIXd},
+	{"RR (IX+d), r", 0b11111000, 0b00011000, []z80op{}, cbIXdr},
+	{"RR (IX+d)", 0xFF, 0x1e, []z80op{}, cbIXd},
+
+	{"SLA (IX+d), r", 0b11111000, 0b00100000, []z80op{}, cbIXdr},
+	{"SLA (IX+d)", 0xFF, 0x26, []z80op{}, cbIXd},
+	{"SRA (IX+d), r", 0b11111000, 0b00101000, []z80op{}, cbIXdr},
+	{"SRA (IX+d)", 0xFF, 0x2e, []z80op{}, cbIXd},
+
+	{"SLL (IX+d), r", 0b11111000, 0b00110000, []z80op{}, cbIXdr},
+	{"SLL (IX+d)", 0xFF, 0x36, []z80op{}, cbIXd},
+	{"SRL (IX+d), r", 0b11111000, 0b00111000, []z80op{}, cbIXdr},
+	{"SRL (IX+d)", 0xFF, 0x3e, []z80op{}, cbIXd},
+
+	{"BIT b, (IX+d), r", 0b11000000, 0b01000000, []z80op{}, bitIXd},
+	{"BIT b, (IX+d)", 0b11000111, 0b01000110, []z80op{}, bitIXd},
+
+	{"RES b, (IX+d), r", 0b11000000, 0b10000000, []z80op{}, resIXdR},
+	{"RES b, (IX+d)", 0b11000111, 0b10000110, []z80op{}, resIXd},
+
+	{"SET b, (IX+d), r", 0b11000000, 0b11000000, []z80op{}, setIXdR},
+	{"SET b, (IX+d)", 0b11000111, 0b11000110, []z80op{}, setIXd},
+}
+
+var z80OpsCodeTableED = []*opCode{
+	{"IN r, (n)", 0b11000111, 0b01000000, []z80op{}, inRc},
+	{"IN (c)", 0xFF, 0x70, []z80op{}, inC},
+	{"OUT (c), r", 0b11000111, 0b01000001, []z80op{}, outCr},
+	{"OUT (c), 0", 0xFF, 0x71, []z80op{}, outC0},
+
+	{"SBC HL, BC", 0xFF, 0x42, []z80op{&exec{l: 4, f: func(cpu *z80, u []uint8) { cpu.sbcHL(cpu.regs.BC.Get()) }}}, nil},
+	{"SBC HL, DE", 0xFF, 0x52, []z80op{&exec{l: 4, f: func(cpu *z80, u []uint8) { cpu.sbcHL(cpu.regs.DE.Get()) }}}, nil},
+	{"SBC HL, HL", 0xFF, 0x62, []z80op{&exec{l: 4, f: func(cpu *z80, u []uint8) { cpu.sbcHL(cpu.regs.HL.Get()) }}}, nil},
+	{"SBC HL, SP", 0xFF, 0x72, []z80op{&exec{l: 4, f: func(cpu *z80, u []uint8) { cpu.sbcHL(cpu.regs.SP.Get()) }}}, nil},
+
+	{"LD (nn), dd", 0b11001111, 0b01000011, []z80op{&mrPC{}, &mrPC{f: ldNNdd}}, nil},
+	{"NEG", 0b11000111, 0b01000100, []z80op{}, func(cpu *z80, u []uint8) { n := cpu.regs.A; cpu.regs.A = 0; cpu.subA(n) }},
+	{"RETN", 0b11000111, 0b01000101, []z80op{}, func(cpu *z80, u []uint8) { cpu.popFromStack(func(cpu *z80, data uint16) { cpu.regs.PC = data }) }},
+
+	{"IM 0", 0xFF, 0x46, []z80op{}, func(cpu *z80, u []uint8) { cpu.regs.InterruptsMode = 0 }},
+	{"IM 0", 0xFF, 0x66, []z80op{}, func(cpu *z80, u []uint8) { cpu.regs.InterruptsMode = 0 }},
+	{"IM 1", 0xFF, 0x56, []z80op{}, func(cpu *z80, u []uint8) { cpu.regs.InterruptsMode = 1 }},
+	{"IM 2", 0xFF, 0xE5, []z80op{}, func(cpu *z80, u []uint8) { cpu.regs.InterruptsMode = 2 }},
+	{"IM 0/1", 0xFF, 0x4E, []z80op{}, func(cpu *z80, u []uint8) { cpu.regs.InterruptsMode = 1 - cpu.regs.InterruptsMode }},
+	{"IM 2", 0xFF, 0x5E, []z80op{}, func(cpu *z80, u []uint8) { cpu.regs.InterruptsMode = 2 }},
+	{"IM 0/1", 0xFF, 0x6E, []z80op{}, func(cpu *z80, u []uint8) { cpu.regs.InterruptsMode = 1 - cpu.regs.InterruptsMode }},
+	{"IM 1", 0xFF, 0x76, []z80op{}, func(cpu *z80, u []uint8) { cpu.regs.InterruptsMode = 1 }},
+	{"IM 2", 0xFF, 0x7E, []z80op{}, func(cpu *z80, u []uint8) { cpu.regs.InterruptsMode = 2 }},
+
+	{"LD I, A", 0xFF, 0x47, []z80op{&exec{l: 4, f: func(cpu *z80, u []uint8) { cpu.regs.I = cpu.regs.A }}}, nil},
+	{"LD R, A", 0xFF, 0x4F, []z80op{&exec{l: 4, f: func(cpu *z80, u []uint8) { cpu.regs.R = cpu.regs.A }}}, nil},
+
+	{"LD A, I", 0xFF, 0x57, []z80op{&exec{l: 1, f: ldAi}}, nil},
+	{"LD A, R", 0xFF, 0x5F, []z80op{&exec{l: 1, f: ldAr}}, nil},
+
+	{"ADC HL, BC", 0xFF, 0x4a, []z80op{&exec{l: 4, f: func(cpu *z80, u []uint8) { cpu.adcHL(cpu.regs.BC.Get()) }}}, nil},
+	{"ADC HL, DE", 0xFF, 0x5a, []z80op{&exec{l: 4, f: func(cpu *z80, u []uint8) { cpu.adcHL(cpu.regs.DE.Get()) }}}, nil},
+	{"ADC HL, HL", 0xFF, 0x6a, []z80op{&exec{l: 4, f: func(cpu *z80, u []uint8) { cpu.adcHL(cpu.regs.HL.Get()) }}}, nil},
+	{"ADC HL, SP", 0xFF, 0x7a, []z80op{&exec{l: 4, f: func(cpu *z80, u []uint8) { cpu.adcHL(cpu.regs.SP.Get()) }}}, nil},
+
+	{"LD (nn), dd", 0b11001111, 0b01001011, []z80op{&mrPC{}, &mrPC{f: ldDDnn}}, nil},
+
+	{"RDD", 0xFF, 0x67, []z80op{}, rrd},
+	{"RDD", 0xFF, 0x6f, []z80op{}, rld},
+
+	{"LDI", 0xFF, 0xA0, []z80op{}, ldi},
+	{"CPI", 0xFF, 0xA1, []z80op{}, cpi},
+	{"INI", 0xFF, 0xA2, []z80op{}, ini},
+	{"OUTI", 0xFF, 0xA3, []z80op{}, outi},
+
+	{"LDD", 0xFF, 0xA8, []z80op{}, ldd},
+	{"CPD", 0xFF, 0xA9, []z80op{}, cpd},
+	{"IND", 0xFF, 0xAA, []z80op{}, ind},
+	{"OUTD", 0xFF, 0xAB, []z80op{}, outd},
+
+	{"LDIR", 0xFF, 0xB0, []z80op{}, ldi},
+	{"CPIR", 0xFF, 0xB1, []z80op{}, cpi},
+	{"INIR", 0xFF, 0xB2, []z80op{}, ini},
+	{"OTIR", 0xFF, 0xB3, []z80op{}, outi},
+
+	{"LDDR", 0xFF, 0xB8, []z80op{}, ldd},
+	{"CPDR", 0xFF, 0xB9, []z80op{}, cpd},
+	{"INDR", 0xFF, 0xBA, []z80op{}, ind},
+	{"OTDR", 0xFF, 0xBB, []z80op{}, outd},
+}
 
 func decodeCB(cpu *z80, mem []uint8) {
+	cpu.fetched = nil
 	cpu.scheduler = append([]z80op{&fetch{table: lookupCB}}, cpu.scheduler...)
 }
 
 func decodeDD(cpu *z80, mem []uint8) {
+	cpu.fetched = nil
+	cpu.indexIdx = 1
 	cpu.scheduler = append([]z80op{&fetch{table: lookupDD}}, cpu.scheduler...)
+}
+
+func decodeED(cpu *z80, mem []uint8) {
+	cpu.fetched = nil
+	cpu.scheduler = append([]z80op{&fetch{table: lookupED}}, cpu.scheduler...)
 }
 
 func decodeDDCB(cpu *z80, mem []uint8) {
@@ -215,6 +331,7 @@ func (o *opCode) String() string {
 var lookup = make([]*opCode, 256)
 var lookupCB = make([]*opCode, 256)
 var lookupDD = make([]*opCode, 256)
+var lookupED = make([]*opCode, 256)
 var lookupDDCB = make([]*opCode, 256)
 
 func init() {
@@ -249,6 +366,15 @@ func init() {
 		}
 	}
 	// -----
+	for i := 0; i < 256; i++ {
+		code := uint8(i)
+		for _, op := range z80OpsCodeTableED {
+			if (code & op.mask) == op.code {
+				lookupED[code] = op
+			}
+		}
+	}
+	// -----
 
 	for i := 0; i < 256; i++ {
 		code := uint8(i)
@@ -262,9 +388,9 @@ func init() {
 	// -----
 
 	println("---------")
-	println("                      CB             DD             DDCB")
+	println("                         CB                DD                DDCB              ED")
 	for code := 0; code < 256; code++ {
-		fmt.Printf("0x%02X - %-15v%-15v%-15v%-15v\n", code, lookup[code], lookupCB[code], lookupDD[code], lookupDDCB[code])
+		fmt.Printf("0x%02X - %-18v%-18v%-18v%-18v%-18v\n", code, lookup[code], lookupCB[code], lookupDD[code], lookupDDCB[code], lookupED[code])
 	}
 	println("---------")
 }

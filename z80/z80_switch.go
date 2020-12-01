@@ -924,14 +924,14 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.regs.SP.Set(toWord(ins.Mem[1], ins.Mem[2]))
 
 	case 0xeda0: // LDI
-		cpu.ldi()
+		// cpu.ldi()
 
 	case 0xedb0: // LDIR
-		cpu.ldi()
-		bc := cpu.regs.BC.Get()
-		if bc != 0 {
-			needPcUpdate = false
-		}
+		// cpu.ldi()
+		// bc := cpu.regs.BC.Get()
+		// if bc != 0 {
+		// 	needPcUpdate = false
+		// }
 
 	case 0xeda8: // LDD
 		cpu.ldd()
@@ -1080,14 +1080,14 @@ func (cpu *z80) runSwitch(ins emulator.Instruction) bool {
 		cpu.cp(cpu.memory.GetByte(cpu.regs.HL.Get()))
 
 	case 0xeda1: // CPI
-		cpu.cpi()
+		// cpu.cpi()
 
 	case 0xedb1: // CPIR
-		diff := cpu.cpi()
-		bc := cpu.regs.BC.Get()
-		if (bc != 0) && (diff != 0) {
-			needPcUpdate = false
-		}
+		// diff := cpu.cpi()
+		// bc := cpu.regs.BC.Get()
+		// if (bc != 0) && (diff != 0) {
+		// 	needPcUpdate = false
+		// }
 
 	case 0xedb9: // CPDR
 		diff := cpu.cpd()
