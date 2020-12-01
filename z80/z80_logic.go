@@ -1,9 +1,5 @@
 package z80
 
-import (
-	"fmt"
-)
-
 func ini(cpu *z80, mem []uint8) { // TODO review tests changes
 	in := &in{from: cpu.regs.BC.Get(), f: func(z *z80, u []uint8) {
 		hl := cpu.regs.HL.Get()
@@ -1248,9 +1244,7 @@ func halt(cpu *z80, mem []uint8) {
 	} else {
 		cpu.halt = true
 	}
-
 }
-
 func addHLss(cpu *z80, mem []uint8) {
 	rIdx := mem[0] >> 4 & 0b11
 	reg := cpu.getRRptr(rIdx)
@@ -1393,48 +1387,6 @@ func (cpu *z80) getRRptr(rIdx byte) *RegPair {
 	return reg
 }
 
-// -------
-// TODO review bellow
-
-func (cpu *z80) writePort(port uint16, data byte) {
-	// fmt.Printf("[writePort]-> port:0x%04X data:%v pc:0x%04X \n", port, data, cpu.regs.PC)
-	ok := false
-	for portMask, portManager := range cpu.ports {
-		// fmt.Printf("[writePort] (0x%04X) port:0x%04X (0x%04X)(0x%04X) data:%v\n", cpu.regs.PC, port, port&portMask.Mask, portMask.Value, data)
-		if port&portMask.Mask == portMask.Value {
-			// println(reflect.TypeOf(portManager).String())
-			portManager.WritePort(port, data)
-			ok = true
-		}
-	}
-	if !ok {
-		fmt.Printf("[writePort]-(no PM)-> port:0x%04X data:%v pc:0x%04X\n", port, data, cpu.regs.PC)
-		// panic("--")
-	}
-}
-
-func (cpu *z80) readPort(port uint16) byte {
-	// fmt.Printf(fmt.Sprintf("[readPort]-> port:0x%04X pc:0x%04X \n", port, cpu.regs.PC))
-	for portMask, portManager := range cpu.ports {
-		if port&portMask.Mask == portMask.Value {
-			// fmt.Printf("[readPort] (0x%04X) port:0x%04X (0x%04X)(0x%04X) \n", cpu.regs.PC, port, port&portMask.Mask, portMask.Value)
-			// println(reflect.TypeOf(portManager).Elem().Name())
-			data, skip := portManager.ReadPort(port)
-			if !skip {
-				cpu.regs.F.S = data&0x0080 != 0
-				cpu.regs.F.Z = data == 0
-				cpu.regs.F.H = false
-				cpu.regs.F.P = parityTable[data]
-				cpu.regs.F.N = false
-				return data
-			}
-		}
-	}
-	// panic(fmt.Sprintf("[readPort]-(no PM)-> port:0x%04X pc:0x%04X", port, cpu.regs.PC))
-	// fmt.Printf("[readPort]-(no PM)-> port:0x%04X pc:0x%04X \n", port, cpu.regs.PC)
-	return 0xff
-}
-
 func (cpu *z80) getIXYn(n byte) uint16 {
 	reg := cpu.indexRegs[cpu.indexIdx]
 	i := int16(int8(n))
@@ -1507,31 +1459,6 @@ func (cpu *z80) cp(r byte) {
 	cpu.regs.F.N = true
 	cpu.regs.F.C = ((result) & 0x100) == 0x100
 }
-
-func (cpu *z80) cpd() byte {
-	bc := cpu.regs.BC.Get()
-	hl := cpu.regs.HL.Get()
-
-	val := cpu.memory.GetByte(hl)
-	result := cpu.regs.A - val
-	lookup := (cpu.regs.A&0x08)>>3 | (val&0x08)>>2 | (result&0x08)>>1
-
-	bc--
-	hl--
-
-	cpu.regs.BC.Set(bc)
-	cpu.regs.HL.Set(hl)
-
-	cpu.regs.F.S = result&0x80 != 0
-	cpu.regs.F.Z = result == 0
-	cpu.regs.F.H = halfcarrySubTable[lookup]
-	cpu.regs.F.P = bc != 0
-	cpu.regs.F.N = true
-
-	return result
-}
-
-// ------
 
 func rlc(cpu *z80, r *byte) {
 	*r = (*r << 1) | (*r >> 7)
@@ -1652,11 +1579,6 @@ func (cpu *z80) subA(r byte) {
 	cpu.regs.F.C = ((result) & 0x100) == 0x100
 }
 
-func (cpu *z80) jr(j byte) {
-	jump := int8(j)
-	cpu.regs.PC += uint16(jump)
-}
-
 func (cpu *z80) xor(s uint8) {
 	cpu.regs.A = cpu.regs.A ^ s
 	cpu.regs.F.S = int8(cpu.regs.A) < 0
@@ -1718,25 +1640,4 @@ func (cpu *z80) sbcHL(ss uint16) {
 	cpu.regs.F.C = (res & 0x10000) != 0
 	cpu.regs.F.P = overflowSubTable[lookup>>4]
 	cpu.regs.F.H = halfcarrySubTable[lookup&0x07]
-}
-
-func (cpu *z80) ldd() {
-	bc := cpu.regs.BC.Get()
-	de := cpu.regs.DE.Get()
-	hl := cpu.regs.HL.Get()
-
-	v := cpu.memory.GetByte(hl)
-	cpu.memory.PutByte(de, v)
-
-	bc--
-	de--
-	hl--
-
-	cpu.regs.BC.Set(bc)
-	cpu.regs.DE.Set(de)
-	cpu.regs.HL.Set(hl)
-
-	cpu.regs.F.P = bc != 0
-	cpu.regs.F.H = false
-	cpu.regs.F.N = false
 }

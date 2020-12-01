@@ -28,3 +28,7 @@ func (reg *RegPair) Set(hl uint16) {
 	*reg.h = byte(hl >> 8)
 	*reg.l = byte(hl & 0x00ff)
 }
+
+func toWord(a, b byte) uint16 {
+	return uint16(a) | uint16(b)<<8
+}
