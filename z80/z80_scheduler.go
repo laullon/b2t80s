@@ -38,7 +38,6 @@ func (ops *fetch) tick(cpu *z80) {
 	// println("> [fetch]", ops.t, "pc:", fmt.Sprintf("0x%04X", cpu.regs.PC))
 	switch ops.t {
 	case 1:
-		cpu.fetched = nil
 		cpu.regs.M1 = true
 		cpu.Bus.SetAddr(cpu.regs.PC)
 		cpu.regs.PC++
@@ -48,7 +47,7 @@ func (ops *fetch) tick(cpu *z80) {
 		d := cpu.Bus.GetData()
 		cpu.fetched = append(cpu.fetched, d)
 	case 4:
-		op := ops.table[cpu.fetched[0]]
+		op := ops.table[cpu.fetched[len(cpu.fetched)-1]]
 		if op == nil {
 			panic(errors.Errorf("opCode '0x%02X' not found", cpu.fetched[0]))
 		}
@@ -73,6 +72,7 @@ type mrPC struct {
 
 func (ops *mrPC) tick(cpu *z80) {
 	ops.t++
+	// println("> [mrPC]", ops.t, "pc:", fmt.Sprintf("0x%04X", cpu.regs.PC))
 	switch ops.t {
 	case 1:
 		cpu.Bus.SetAddr(cpu.regs.PC)
@@ -128,9 +128,14 @@ func (ops *in) tick(cpu *z80) {
 		cpu.Bus.SetAddr(ops.from)
 	case 4:
 		cpu.Bus.ReadPort()
-		d := cpu.Bus.GetData()
+		data := cpu.Bus.GetData()
+		cpu.regs.F.S = data&0x0080 != 0
+		cpu.regs.F.Z = data == 0
+		cpu.regs.F.H = false
+		cpu.regs.F.P = parityTable[data]
+		cpu.regs.F.N = false
 		if ops.f != nil {
-			ops.f(cpu, []byte{d})
+			ops.f(cpu, []byte{data})
 		}
 		ops.done = true
 	}
