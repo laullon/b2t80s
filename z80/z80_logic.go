@@ -230,8 +230,9 @@ func exSP(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mr1, mr2, mw1, mw2)
 }
 
-func addIX(cpu *z80, mem []uint8) {
+func addIXY(cpu *z80, mem []uint8) {
 	var reg *RegPair
+	regI := cpu.indexRegs[cpu.indexIdx]
 	rIdx := mem[0] >> 4 & 0b11
 	switch rIdx {
 	case 0b00:
@@ -239,15 +240,15 @@ func addIX(cpu *z80, mem []uint8) {
 	case 0b01:
 		reg = cpu.regs.DE
 	case 0b10:
-		reg = cpu.regs.IX
+		reg = regI
 	case 0b11:
 		reg = cpu.regs.SP
 	}
 
-	ix := cpu.regs.IX.Get()
+	ix := regI.Get()
 	var result = uint32(ix) + uint32(reg.Get())
 	var lookup = byte(((ix & 0x0800) >> 11) | ((reg.Get() & 0x0800) >> 10) | ((uint16(result) & 0x0800) >> 9))
-	cpu.regs.IX.Set(uint16(result))
+	regI.Set(uint16(result))
 
 	cpu.regs.F.N = false
 	cpu.regs.F.H = halfcarryAddTable[lookup]
@@ -255,7 +256,6 @@ func addIX(cpu *z80, mem []uint8) {
 }
 
 func addIY(cpu *z80, mem []uint8) {
-	fmt.Printf("[addIY] > IY:0x%04X IX:0x%04X\n", cpu.regs.IY.Get(), cpu.regs.IX.Get())
 	var reg *RegPair
 	rIdx := mem[0] >> 4 & 0b11
 	switch rIdx {
@@ -277,7 +277,6 @@ func addIY(cpu *z80, mem []uint8) {
 	cpu.regs.F.N = false
 	cpu.regs.F.H = halfcarryAddTable[lookup]
 	cpu.regs.F.C = (result & 0x10000) != 0
-	fmt.Printf("[addIY] < IY:0x%04X IX:0x%04X\n", cpu.regs.IY.Get(), cpu.regs.IX.Get())
 }
 
 func outNa(cpu *z80, mem []uint8) {
@@ -335,8 +334,7 @@ func ret(cpu *z80, mem []uint8) {
 func rstP(cpu *z80, mem []uint8) {
 	newPCs := []uint16{0x00, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38}
 	pIdx := mem[0] >> 3 & 0b111
-	println("pc", cpu.regs.PC)
-	cpu.pushToStack(cpu.regs.PC, func(cpu *z80) { cpu.regs.PC = newPCs[pIdx]; println("pc", cpu.regs.PC) })
+	cpu.pushToStack(cpu.regs.PC, func(cpu *z80) { cpu.regs.PC = newPCs[pIdx] })
 }
 
 func jpCC(cpu *z80, mem []uint8) {
@@ -478,10 +476,11 @@ func ldNNhl(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mw1, mw2)
 }
 
-func ldNNIX(cpu *z80, mem []uint8) {
+func ldNNIXY(cpu *z80, mem []uint8) {
+	reg := cpu.indexRegs[cpu.indexIdx]
 	mm := toWord(mem[1], mem[2])
-	mw1 := &mw{addr: mm, data: cpu.regs.IXL}
-	mw2 := &mw{addr: mm + 1, data: cpu.regs.IXH}
+	mw1 := &mw{addr: mm, data: *reg.l}
+	mw2 := &mw{addr: mm + 1, data: *reg.h}
 	cpu.scheduler = append(cpu.scheduler, mw1, mw2)
 }
 
@@ -565,10 +564,11 @@ func ldHLnn(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mr1, mr2)
 }
 
-func ldIXnn(cpu *z80, mem []uint8) {
+func ldIXYnn(cpu *z80, mem []uint8) {
+	reg := cpu.indexRegs[cpu.indexIdx]
 	mm := toWord(mem[1], mem[2])
-	mr1 := &mr{from: mm, f: func(z *z80, d []uint8) { cpu.regs.IXL = d[0] }}
-	mr2 := &mr{from: mm + 1, f: func(z *z80, d []uint8) { cpu.regs.IXH = d[0] }}
+	mr1 := &mr{from: mm, f: func(z *z80, d []uint8) { *reg.l = d[0] }}
+	mr2 := &mr{from: mm + 1, f: func(z *z80, d []uint8) { *reg.h = d[0] }}
 	cpu.scheduler = append(cpu.scheduler, mr1, mr2)
 }
 
@@ -583,16 +583,16 @@ func ldHLn(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mw1)
 }
 
-func ldIXdN(cpu *z80, mem []uint8) {
-	addr := cpu.getIXn(mem[1])
+func ldIXYdN(cpu *z80, mem []uint8) {
+	addr := cpu.getIXYn(mem[1])
 	mw1 := &mw{addr: addr, data: mem[2]}
 	cpu.scheduler = append(cpu.scheduler, mw1)
 }
 
-func ldIXdR(cpu *z80, mem []uint8) {
+func ldIXYdR(cpu *z80, mem []uint8) {
 	rIdx := mem[0] & 0b111
 	reg := cpu.getRptr(rIdx)
-	addr := cpu.getIXn(mem[1])
+	addr := cpu.getIXYn(mem[1])
 	mw1 := &mw{addr: addr, data: *reg}
 	cpu.scheduler = append(cpu.scheduler, mw1)
 }
@@ -647,15 +647,12 @@ func incHL(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mr)
 }
 
-func incIXd(cpu *z80, mem []uint8) {
-	addr := cpu.getIXn(mem[1])
+func incIXYd(cpu *z80, mem []uint8) {
+	addr := cpu.getIXYn(mem[1])
 	mr := &mr{from: addr,
 		f: func(z *z80, d []uint8) {
-			fmt.Printf("> 0x%04X %+v\n", addr, d)
 			r := d[0]
-			println("r:", r)
 			r++
-			println("r:", r)
 			mw := &mw{addr: addr, data: r}
 			cpu.regs.F.S = r&0x80 != 0
 			cpu.regs.F.Z = r == 0
@@ -806,8 +803,8 @@ func decHL(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mr)
 }
 
-func decIXd(cpu *z80, mem []uint8) {
-	addr := cpu.getIXn(mem[1])
+func decIXYd(cpu *z80, mem []uint8) {
+	addr := cpu.getIXYn(mem[1])
 	mr := &mr{from: addr,
 		f: func(z *z80, d []uint8) {
 			r := d[0]
@@ -842,8 +839,8 @@ func ldRhl(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mr)
 }
 
-func ldRixD(cpu *z80, mem []uint8) {
-	addr := cpu.getIXn(mem[1])
+func ldRixyD(cpu *z80, mem []uint8) {
+	addr := cpu.getIXYn(mem[1])
 	rIdx := mem[0] >> 3 & 0b111
 	r := cpu.getRptr(rIdx)
 	mr := &mr{from: addr,
@@ -854,8 +851,8 @@ func ldRixD(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mr)
 }
 
-func addAixD(cpu *z80, mem []uint8) {
-	addr := cpu.getIXn(mem[1])
+func addAixyD(cpu *z80, mem []uint8) {
+	addr := cpu.getIXYn(mem[1])
 	mr := &mr{from: addr,
 		f: func(z *z80, d []uint8) {
 			cpu.addA(d[0])
@@ -864,8 +861,8 @@ func addAixD(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mr)
 }
 
-func adcAixD(cpu *z80, mem []uint8) {
-	addr := cpu.getIXn(mem[1])
+func adcAixyD(cpu *z80, mem []uint8) {
+	addr := cpu.getIXYn(mem[1])
 	mr := &mr{from: addr,
 		f: func(z *z80, d []uint8) {
 			cpu.adcA(d[0])
@@ -874,8 +871,8 @@ func adcAixD(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mr)
 }
 
-func subAixD(cpu *z80, mem []uint8) {
-	addr := cpu.getIXn(mem[1])
+func subAixyD(cpu *z80, mem []uint8) {
+	addr := cpu.getIXYn(mem[1])
 	mr := &mr{from: addr,
 		f: func(z *z80, d []uint8) {
 			cpu.subA(d[0])
@@ -884,8 +881,8 @@ func subAixD(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mr)
 }
 
-func sbcAixD(cpu *z80, mem []uint8) {
-	addr := cpu.getIXn(mem[1])
+func sbcAixyD(cpu *z80, mem []uint8) {
+	addr := cpu.getIXYn(mem[1])
 	mr := &mr{from: addr,
 		f: func(z *z80, d []uint8) {
 			cpu.sbcA(d[0])
@@ -894,8 +891,8 @@ func sbcAixD(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mr)
 }
 
-func andAixD(cpu *z80, mem []uint8) {
-	addr := cpu.getIXn(mem[1])
+func andAixyD(cpu *z80, mem []uint8) {
+	addr := cpu.getIXYn(mem[1])
 	mr := &mr{from: addr,
 		f: func(z *z80, d []uint8) {
 			cpu.and(d[0])
@@ -904,8 +901,8 @@ func andAixD(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mr)
 }
 
-func xorAixD(cpu *z80, mem []uint8) {
-	addr := cpu.getIXn(mem[1])
+func xorAixyD(cpu *z80, mem []uint8) {
+	addr := cpu.getIXYn(mem[1])
 	mr := &mr{from: addr,
 		f: func(z *z80, d []uint8) {
 			cpu.xor(d[0])
@@ -914,8 +911,8 @@ func xorAixD(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mr)
 }
 
-func cpAixD(cpu *z80, mem []uint8) {
-	addr := cpu.getIXn(mem[1])
+func cpAixyD(cpu *z80, mem []uint8) {
+	addr := cpu.getIXYn(mem[1])
 	mr := &mr{from: addr,
 		f: func(z *z80, d []uint8) {
 			cpu.cp(d[0])
@@ -924,8 +921,8 @@ func cpAixD(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mr)
 }
 
-func orAixD(cpu *z80, mem []uint8) {
-	addr := cpu.getIXn(mem[1])
+func orAixyD(cpu *z80, mem []uint8) {
+	addr := cpu.getIXYn(mem[1])
 	mr := &mr{from: addr,
 		f: func(z *z80, d []uint8) {
 			cpu.or(d[0])
@@ -941,7 +938,8 @@ func ldHLr(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mr)
 }
 
-func ldIXHr(cpu *z80, mem []uint8) {
+func ldIXYHr(cpu *z80, mem []uint8) {
+	reg := cpu.indexRegs[cpu.indexIdx]
 	rIdx := mem[0] & 0b111
 	var r *byte
 	switch rIdx {
@@ -954,18 +952,19 @@ func ldIXHr(cpu *z80, mem []uint8) {
 	case 0b011:
 		r = &cpu.regs.E
 	case 0b100:
-		r = &cpu.regs.IXH
+		r = reg.h
 	case 0b101:
-		r = &cpu.regs.IXL
+		r = reg.l
 	case 0b110:
 		panic(-1)
 	case 0b111:
 		r = &cpu.regs.A
 	}
-	cpu.regs.IXH = *r
+	*reg.h = *r
 }
 
-func ldIXLr(cpu *z80, mem []uint8) {
+func ldIXYLr(cpu *z80, mem []uint8) {
+	reg := cpu.indexRegs[cpu.indexIdx]
 	rIdx := mem[0] & 0b111
 	var r *byte
 	switch rIdx {
@@ -978,15 +977,15 @@ func ldIXLr(cpu *z80, mem []uint8) {
 	case 0b011:
 		r = &cpu.regs.E
 	case 0b100:
-		r = &cpu.regs.IXH
+		r = reg.h
 	case 0b101:
-		r = &cpu.regs.IXL
+		r = reg.l
 	case 0b110:
 		panic(-1)
 	case 0b111:
 		r = &cpu.regs.A
 	}
-	cpu.regs.IXL = *r
+	*reg.l = *r
 }
 
 func ldRr(cpu *z80, mem []uint8) {
@@ -1037,9 +1036,8 @@ func cbHL(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mr)
 }
 
-func cbIXdr(cpu *z80, mem []uint8) {
-	fmt.Printf("%v\n", mem)
-	addr := cpu.getIXn(mem[1])
+func cbIXYdr(cpu *z80, mem []uint8) {
+	addr := cpu.getIXYn(mem[1])
 	mr := &mr{from: addr,
 		f: func(z *z80, d []uint8) {
 			r := d[0]
@@ -1057,9 +1055,8 @@ func cbIXdr(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mr)
 }
 
-func cbIXd(cpu *z80, mem []uint8) {
-	fmt.Printf("%v\n", mem)
-	addr := cpu.getIXn(mem[1])
+func cbIXYd(cpu *z80, mem []uint8) {
+	addr := cpu.getIXYn(mem[1])
 	mr := &mr{from: addr,
 		f: func(z *z80, d []uint8) {
 			r := d[0]
@@ -1079,9 +1076,8 @@ func bit(cpu *z80, mem []uint8) {
 	cpu.bit(b, *r)
 }
 
-func bitIXd(cpu *z80, mem []uint8) {
-	fmt.Printf("%v\n", mem)
-	addr := cpu.getIXn(mem[1])
+func bitIXYd(cpu *z80, mem []uint8) {
+	addr := cpu.getIXYn(mem[1])
 	b := (mem[2] >> 3) & 0b111
 	mr := &mr{from: addr,
 		f: func(z *z80, d []uint8) {
@@ -1123,9 +1119,8 @@ func resHL(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mr)
 }
 
-func resIXdR(cpu *z80, mem []uint8) {
-	fmt.Printf("%v\n", mem)
-	addr := cpu.getIXn(mem[1])
+func resIXYdR(cpu *z80, mem []uint8) {
+	addr := cpu.getIXYn(mem[1])
 	b := (mem[2] >> 3) & 0b111
 	mr := &mr{from: addr,
 		f: func(z *z80, d []uint8) {
@@ -1143,9 +1138,8 @@ func resIXdR(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mr)
 }
 
-func resIXd(cpu *z80, mem []uint8) {
-	fmt.Printf("%v\n", mem)
-	addr := cpu.getIXn(mem[1])
+func resIXYd(cpu *z80, mem []uint8) {
+	addr := cpu.getIXYn(mem[1])
 	b := (mem[2] >> 3) & 0b111
 	mr := &mr{from: addr,
 		f: func(z *z80, d []uint8) {
@@ -1178,9 +1172,8 @@ func setHL(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mr)
 }
 
-func setIXdR(cpu *z80, mem []uint8) {
-	fmt.Printf("%v\n", mem)
-	addr := cpu.getIXn(mem[1])
+func setIXYdR(cpu *z80, mem []uint8) {
+	addr := cpu.getIXYn(mem[1])
 	b := (mem[2] >> 3) & 0b111
 	mr := &mr{from: addr,
 		f: func(z *z80, d []uint8) {
@@ -1198,9 +1191,8 @@ func setIXdR(cpu *z80, mem []uint8) {
 	cpu.scheduler = append(cpu.scheduler, mr)
 }
 
-func setIXd(cpu *z80, mem []uint8) {
-	fmt.Printf("%v\n", mem)
-	addr := cpu.getIXn(mem[1])
+func setIXYd(cpu *z80, mem []uint8) {
+	addr := cpu.getIXYn(mem[1])
 	b := (mem[2] >> 3) & 0b111
 	mr := &mr{from: addr,
 		f: func(z *z80, d []uint8) {
@@ -1443,18 +1435,12 @@ func (cpu *z80) readPort(port uint16) byte {
 	return 0xff
 }
 
-func (cpu *z80) getIXn(n byte) uint16 {
+func (cpu *z80) getIXYn(n byte) uint16 {
+	reg := cpu.indexRegs[cpu.indexIdx]
 	i := int16(int8(n))
-	ix := cpu.regs.IX.Get()
+	ix := reg.Get()
 	ix = uint16(int16(ix) + i)
 	return ix
-}
-
-func (cpu *z80) getIYn(n byte) uint16 {
-	i := int16(int8(n))
-	iy := cpu.regs.IY.Get()
-	iy = uint16(int16(iy) + i)
-	return iy
 }
 
 func (cpu *z80) res(b byte, v *byte) {

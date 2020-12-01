@@ -115,9 +115,6 @@ func TestOPCodes(t *testing.T) {
 		log.Printf("%s", hex.Dump(bus.mem[0:16]))
 		log.Printf("start test '%v' (endPC:%v)", test.name, result.endPC)
 
-		fmt.Printf("start test '%v' (endPC:%v)\n", test.name, result.endPC)
-		fmt.Printf("%s", hex.Dump(bus.mem[0:16]))
-
 		cpu.(*z80).halt = false
 
 		for {
