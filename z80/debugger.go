@@ -144,23 +144,12 @@ func (debug *debugger) SetStatus(sts string) { debug.status = sts }
 func (debug *debugger) GetStatus() string    { return debug.status }
 
 func (debug *debugger) GetNextInstruction() string {
-	ins, _ := GetOpCode(debug.memory.GetBlock(debug.cpu.Registers().(*Z80Registers).PC, 4))
-	return ins.Dump(debug.cpu.Registers().(*Z80Registers).PC)
+	return "ins.Dump(debug.cpu.Registers().(*Z80Registers).PC)"
 }
 
 func (debug *debugger) GetFollowingInstruction() string {
 	var log []string
-	pc := debug.cpu.Registers().(*Z80Registers).PC
-	ins, _ := GetOpCode(debug.memory.GetBlock(pc, 4))
-	pc += ins.Length
-	for len(log) < 10 {
-		ins, err := GetOpCode(debug.memory.GetBlock(pc, 4))
-		if err == nil {
-			log = append(log, ins.Dump(pc))
-			pc += ins.Length
-		}
-	}
-	return strings.Join(log, "\n")
+	return strings.Join(log, "XXXXXXX\n")
 }
 
 func (debug *debugger) GetLog() string {

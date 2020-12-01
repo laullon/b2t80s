@@ -104,7 +104,6 @@ func init() {
 }
 
 func NewZ80(bus emulator.Bus) emulator.CPU {
-	LoadOPCodess()
 	cpu := &z80{
 		Bus:   bus,
 		traps: make(map[uint16]emulator.CPUTrap),
