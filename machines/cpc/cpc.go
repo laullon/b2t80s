@@ -22,6 +22,7 @@ type CPC interface {
 }
 
 type cpc struct {
+	bus      emulator.Bus
 	cpu      emulator.CPU
 	mem      emulator.Memory
 	ga       *gatearray
@@ -56,27 +57,29 @@ func NewCPC(cpc464 bool) machines.Machine {
 		cas.LoadTapFile(*machines.TapFile)
 	}
 
-	cpu := z80.NewZ80(mem)
+	bus := emulator.NewBus(mem)
+
+	cpu := z80.NewZ80(bus)
 
 	ay8912 := ay8912.New()
 	sound := emulator.NewSoundSystem(CLOCK_CPC / 80)
 	sound.AddSource(ay8912)
 
 	crtc := newCRTC(cpu)
-	cpu.RegisterPort(emulator.PortMask{Mask: 0x4000, Value: 0x0000}, crtc)
+	bus.RegisterPort(emulator.PortMask{Mask: 0x4000, Value: 0x0000}, crtc)
 
 	ppi := newPPI(crtc, cas, ay8912)
-	cpu.RegisterPort(emulator.PortMask{Mask: 0x0800, Value: 0x0000}, ppi)
+	bus.RegisterPort(emulator.PortMask{Mask: 0x0800, Value: 0x0000}, ppi)
 	sound.AddSource(ppi)
 
 	ga := newGateArray(mem, crtc)
-	cpu.RegisterPort(emulator.PortMask{Mask: 0xc000, Value: 0x4000}, ga)
+	bus.RegisterPort(emulator.PortMask{Mask: 0xc000, Value: 0x4000}, ga)
 
-	// cpu.RegisterPort(emulator.PortMask{Mask: 0xDF00, Value: 0xDF00}, mem)
-	cpu.RegisterPort(emulator.PortMask{Mask: 0x2000, Value: 0x0000}, mem)
+	// bus.RegisterPort(emulator.PortMask{Mask: 0xDF00, Value: 0xDF00}, mem)
+	bus.RegisterPort(emulator.PortMask{Mask: 0x2000, Value: 0x0000}, mem)
 
 	fdc := NewCPCFDC765()
-	cpu.RegisterPort(emulator.PortMask{Mask: 0x0400, Value: 0x0000}, fdc)
+	bus.RegisterPort(emulator.PortMask{Mask: 0x0400, Value: 0x0000}, fdc)
 	if len(*machines.DskAFile) > 0 {
 		disc := files.LoadDsk(*machines.DskAFile)
 		fdc.chip.SetDiscA(disc)
@@ -88,6 +91,7 @@ func NewCPC(cpc464 bool) machines.Machine {
 	// }
 
 	cpc := &cpc{
+		bus:      bus,
 		cpu:      cpu,
 		mem:      mem,
 		ga:       ga,
@@ -118,18 +122,18 @@ func NewCPC(cpc464 bool) machines.Machine {
 	return cpc
 }
 
-func (m *cpc) loadTapeBlockCPC464() uint16 {
-	return m.LoadTapeBlockCPC(0x2872)
+func (m *cpc) loadTapeBlockCPC464() {
+	m.LoadTapeBlockCPC(0x2872)
 }
 
-func (m *cpc) loadTapeBlockCPC6128() uint16 {
-	return m.LoadTapeBlockCPC(0x29E2)
+func (m *cpc) loadTapeBlockCPC6128() {
+	m.LoadTapeBlockCPC(0x29E2)
 }
 
-func (m *cpc) LoadTapeBlockCPC(exit uint16) uint16 {
+func (m *cpc) LoadTapeBlockCPC(exit uint16) {
 	data := m.cassette.NextDataBlock()
 	if data == nil {
-		return emulator.CONTINUE
+		return
 	}
 
 	regs := m.cpu.Registers().(*z80.Z80Registers)
@@ -148,7 +152,7 @@ func (m *cpc) LoadTapeBlockCPC(exit uint16) uint16 {
 		// } else {
 		// 	println("BAD Block")
 	}
-	return exit
+	return
 }
 
 func (m *cpc) Debugger() emulator.Debugger {

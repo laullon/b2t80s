@@ -1,6 +1,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/laullon/b2t80s)](https://goreportcard.com/report/github.com/laullon/b2t80s) [![Build Status](https://travis-ci.com/laullon/b2t80s.svg?branch=master)](https://travis-ci.com/laullon/b2t80s)
 
 # b2t80s
+
 Z80 Based Computers Emulator (back to the 80's)
 
 ## Download
@@ -37,9 +38,11 @@ Z80 Based Computers Emulator (back to the 80's)
 ### Requirements
 
 #### All OS
+
 - Go 1.13+
 
 #### Linux:
+
 - libgl1-mesa-dev
 - libegl1-mesa-dev
 - libgles2-mesa-dev
@@ -47,15 +50,18 @@ Z80 Based Computers Emulator (back to the 80's)
 - libasound2-dev
 
 #### Macos:
+
 - Xcode (latest)
 
 ### Dependencies
+
 ```
 go get -u github.com/go-bindata/go-bindata/...
 $HOME/go/bin/go-bindata -pkg data -o data/data.go data/...
 ```
 
 ### Run
+
 ```
 go run main.go --mode 48k -tap "./games/ManicMiner.tap"
 ```
@@ -64,27 +70,27 @@ go run main.go --mode 48k -tap "./games/ManicMiner.tap"
 
 ### ZX
 
-* <https://stackoverflow.com/questions/1215777/writing-a-graphical-z80-emulator-in-c-or-c>
-* tests: <http://mdfs.net/Software/Z80/Exerciser/>
-* The Complete Spectrum ROM Disassembly: <https://skoolkid.github.io/rom/maps/all.html#0038>
-* SPECTRUM 128 ROM 0 DISASSEMBLY <http://www.matthew-wilson.net/spectrum/rom/128_ROM0.html?LMCL=aH_qpw&LMCL=L7lymk#L1F45>
-* Roms: <http://www.shadowmagic.org.uk/spectrum/roms.html>
-* Contention Test Success <http://www.zxdesign.info/testSuccess.shtml>
-* Video Parameters <http://www.zxdesign.info/vidparam.shtml>
+- <https://stackoverflow.com/questions/1215777/writing-a-graphical-z80-emulator-in-c-or-c>
+- tests: <http://mdfs.net/Software/Z80/Exerciser/>
+- The Complete Spectrum ROM Disassembly: <https://skoolkid.github.io/rom/maps/all.html#0038>
+- SPECTRUM 128 ROM 0 DISASSEMBLY <http://www.matthew-wilson.net/spectrum/rom/128_ROM0.html?LMCL=aH_qpw&LMCL=L7lymk#L1F45>
+- Roms: <http://www.shadowmagic.org.uk/spectrum/roms.html>
+- Contention Test Success <http://www.zxdesign.info/testSuccess.shtml>
+- Video Parameters <http://www.zxdesign.info/vidparam.shtml>
 
 ### CPC
 
-* cpc6128 rom: <http://cpctech.cpc-live.com/docs/os.asm>
-* <http://cpctech.cpc-live.com/docs/basic.asm>
-* <http://cpctech.cpc-live.com/docs/amsdos.asm>
+- cpc6128 rom: <http://cpctech.cpc-live.com/docs/os.asm>
+- <http://cpctech.cpc-live.com/docs/basic.asm>
+- <http://cpctech.cpc-live.com/docs/amsdos.asm>
 
 ### Z80
 
-* <https://www.chibiakumas.com/z80/>
+- <https://www.chibiakumas.com/z80/>
 
 ### my
 
-* int.asm <https://gist.github.com/laullon/9928e27738df3c5a194d92c7b2977710>
+- int.asm <https://gist.github.com/laullon/9928e27738df3c5a194d92c7b2977710>
 
 ## ZexDoc
 
@@ -93,6 +99,13 @@ zmac --zmac zexdocsmall.asm
 go test -v -timeout 999m github.com/laullon/b2t80s/emulator -run TestZEXDoc
 ```
 
-
 ## TODOs
+
 // TODO: test OLC:PGE for UI - <https://github.com/OneLoneCoder/olcPixelGameEngine>
+
+## traces
+
+```
+/usr/local/bin/go test -trace=trace.out -timeout 15s github.com/laullon/b2t80s/z80 --v
+go tool trace trace.out
+```

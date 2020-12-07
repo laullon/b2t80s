@@ -186,7 +186,7 @@ func main() {
 			reg.SetText(machine.Debugger().GetRegisters())
 			ins.SetText(machine.Debugger().GetNextInstruction())
 			dis.SetText(machine.Debugger().GetFollowingInstruction())
-			status.SetText(machine.Debugger().GetStatus())
+			status.SetText(machine.Clock().Stats())
 		}
 	}()
 

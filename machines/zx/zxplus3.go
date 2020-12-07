@@ -26,9 +26,9 @@ func NewZXPlus3() machines.Machine {
 	zx.ula.scanlines = 311
 	zx.ula.displayStart = 63
 
-	zx.cpu.RegisterPort(emulator.PortMask{Mask: 0x8002, Value: 0x0000}, mem)
-	zx.cpu.RegisterPort(emulator.PortMask{Mask: 0x8002, Value: 0x4000}, mem)
-	zx.cpu.RegisterPort(emulator.PortMask{Mask: 0xC002, Value: 0x0000}, fdc)
+	zx.bus.RegisterPort(emulator.PortMask{Mask: 0x8002, Value: 0x0000}, mem)
+	zx.bus.RegisterPort(emulator.PortMask{Mask: 0x8002, Value: 0x4000}, mem)
+	zx.bus.RegisterPort(emulator.PortMask{Mask: 0xC002, Value: 0x0000}, fdc)
 
 	return zx
 }

@@ -115,7 +115,7 @@ func (ula *ula) OnKeyEvent(key *fyne.KeyEvent) {
 
 var onlyOnce sync.Once
 
-func (ula *ula) LoadCommand() uint16 {
+func (ula *ula) LoadCommand() {
 	go onlyOnce.Do(func() {
 		time.Sleep(time.Second)
 		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyJ})
@@ -136,15 +136,15 @@ func (ula *ula) LoadCommand() uint16 {
 		time.Sleep(150 * time.Millisecond)
 		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyReturn})
 	})
-	return 0
+	return
 }
 
-func (ula *ula) LoadCommand128() uint16 {
+func (ula *ula) LoadCommand128() {
 	go onlyOnce.Do(func() {
 		time.Sleep(time.Second)
 		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyReturn})
 		time.Sleep(150 * time.Millisecond)
 		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyReturn})
 	})
-	return 0
+	return
 }

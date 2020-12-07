@@ -106,6 +106,9 @@ func NewULA(mem *memory, plus bool) *ula {
 }
 
 func (ula *ula) Tick() {
+	// CPU CLOCK
+	ula.cpu.Tick()
+
 	// EAR
 	if ula.cassette != nil {
 		ula.ear = ula.cassette.Ear()
@@ -117,12 +120,9 @@ func (ula *ula) Tick() {
 	if ula.col < 128 && ula.row >= ula.displayStart && ula.row < ula.displayStart+192 {
 		ula.io = (ula.col % 8) < 6
 		draw = ula.col%4 == 0
-		print(0)
 	} else {
 		ula.io = false
 		ula.floatingBus = 0xff
-		ula.cpu.Tick()
-		print(1)
 	}
 
 	ula.scanlinesBorder[ula.row][ula.col] = ula.borderColour
@@ -143,14 +143,12 @@ func (ula *ula) Tick() {
 
 	ula.col++
 	if ula.col == ula.tsPerRow {
-		println()
 		ula.row++
 		if ula.row == ula.scanlines {
 			// println("-", ula.col, ula.col*ula.row, ula.row)
 			ula.row = 0
 			ula.cpu.Interrupt(true)
 			ula.FrameDone()
-			panic(-1)
 		}
 		ula.col = 0
 	}

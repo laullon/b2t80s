@@ -402,32 +402,32 @@ var z80OpsCodeTableED = []*opCode{
 
 func decodeCB(cpu *z80, mem []uint8) {
 	cpu.fetched = nil
-	cpu.scheduler = append([]z80op{&fetch{table: lookupCB}}, cpu.scheduler...)
+	cpu.scheduler.append(newFetch(lookupCB))
 }
 
 func decodeDD(cpu *z80, mem []uint8) {
 	cpu.fetched = nil
 	cpu.indexIdx = 1
-	cpu.scheduler = append([]z80op{&fetch{table: lookupDD}}, cpu.scheduler...)
+	cpu.scheduler.append(newFetch(lookupDD))
 }
 
 func decodeED(cpu *z80, mem []uint8) {
 	cpu.fetched = nil
-	cpu.scheduler = append([]z80op{&fetch{table: lookupED}}, cpu.scheduler...)
+	cpu.scheduler.append(newFetch(lookupED))
 }
 
 func decodeFD(cpu *z80, mem []uint8) {
 	cpu.fetched = nil
 	cpu.indexIdx = 2
-	cpu.scheduler = append([]z80op{&fetch{table: lookupFD}}, cpu.scheduler...)
+	cpu.scheduler.append(newFetch(lookupFD))
 }
 
 func decodeDDCB(cpu *z80, mem []uint8) {
-	cpu.scheduler = append([]z80op{&fetch{table: lookupDDCB}}, cpu.scheduler...)
+	cpu.scheduler.append(newFetch(lookupDDCB))
 }
 
 func decodeFDCB(cpu *z80, mem []uint8) {
-	cpu.scheduler = append([]z80op{&fetch{table: lookupFDCB}}, cpu.scheduler...)
+	cpu.scheduler.append(newFetch(lookupFDCB))
 }
 
 func (o *opCode) String() string {
