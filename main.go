@@ -8,8 +8,6 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
-	"strconv"
-	"strings"
 	"time"
 
 	"fyne.io/fyne"
@@ -39,7 +37,7 @@ func main() {
 	debug := flag.Bool("debug", false, "shows debugger")
 	// turbo := flag.Bool("turbo", false, "run faster")
 
-	breaks := flag.String("bp", "", "Breakpoints [0xXXXX[,0xXXXX,...]]")
+	// breaks := flag.String("bp", "", "Breakpoints [0xXXXX[,0xXXXX,...]]")
 	machines.LoadSlow = flag.Bool("slow", false, "Real Spectrum loading process")
 	machines.DskAFile = flag.String("dskA", "", "disc file to load on drive A")
 
@@ -91,26 +89,23 @@ func main() {
 		}
 	}
 
-	if len(*breaks) > 0 {
-		bps := strings.Split(*breaks, ",")
-		for _, bp := range bps {
-			n, err := strconv.ParseUint(bp, 0, 16)
-			if err != nil {
-				panic(err)
-			}
-			machine.Debugger().SetBreakPoint(uint16(n))
-		}
-	}
+	// if len(*breaks) > 0 {
+	// 	bps := strings.Split(*breaks, ",")
+	// 	for _, bp := range bps {
+	// 		n, err := strconv.ParseUint(bp, 0, 16)
+	// 		if err != nil {
+	// 			panic(err)
+	// 		}
+	// 		machine.Debugger().SetBreakPoint(uint16(n))
+	// 	}
+	// }
 
 	app := app.New()
 	app.Settings().SetTheme(theme.LightTheme())
 
 	w := app.NewWindow(name + " - b2t80s Emulator")
 
-	reg := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
-	pas := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
-	ins := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true, Bold: true})
-	dis := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
+	debugger := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
 
 	status := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
 
@@ -145,16 +140,11 @@ func main() {
 					machine.Debugger().StopNextFrame()
 				}),
 				widget.NewButton("Dump 5 Frames", func() {
-					machine.Debugger().DumpNextFrame()
 				}),
 				widget.NewCheck("Dump", func(on bool) {
-					machine.Debugger().SetDump(on)
 				}),
 			),
-			reg,
-			pas,
-			ins,
-			dis,
+			debugger,
 		)
 
 		w.SetContent(
@@ -182,10 +172,7 @@ func main() {
 	ticker := time.NewTicker(wait)
 	go func() {
 		for range ticker.C {
-			pas.SetText(machine.Debugger().GetLog())
-			reg.SetText(machine.Debugger().GetRegisters())
-			ins.SetText(machine.Debugger().GetNextInstruction())
-			dis.SetText(machine.Debugger().GetFollowingInstruction())
+			debugger.SetText(machine.Debugger().GetStatus())
 			status.SetText(machine.Clock().Stats())
 		}
 	}()

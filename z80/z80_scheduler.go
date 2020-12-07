@@ -39,12 +39,12 @@ func (ops *fetch) tick(cpu *z80) {
 	switch ops.t {
 	case 1:
 		cpu.regs.M1 = true
-		cpu.Bus.SetAddr(cpu.regs.PC)
+		cpu.bus.SetAddr(cpu.regs.PC)
 		cpu.regs.PC++
 	case 3:
 		cpu.regs.M1 = false
-		cpu.Bus.ReadMemory()
-		d := cpu.Bus.GetData()
+		cpu.bus.ReadMemory()
+		d := cpu.bus.GetData()
 		cpu.fetched = append(cpu.fetched, d)
 	case 4:
 		op := ops.table[cpu.fetched[len(cpu.fetched)-1]]
@@ -83,11 +83,11 @@ func (ops *mrPC) tick(cpu *z80) {
 	// println("> [mrPC]", ops.t, "pc:", fmt.Sprintf("0x%04X", cpu.regs.PC))
 	switch ops.t {
 	case 1:
-		cpu.Bus.SetAddr(cpu.regs.PC)
+		cpu.bus.SetAddr(cpu.regs.PC)
 		cpu.regs.PC++
 	case 3:
-		cpu.Bus.ReadMemory()
-		d := cpu.Bus.GetData()
+		cpu.bus.ReadMemory()
+		d := cpu.bus.GetData()
 		cpu.fetched = append(cpu.fetched, d)
 		if ops.f != nil {
 			ops.f(cpu, cpu.fetched)
@@ -109,10 +109,10 @@ func (ops *mr) tick(cpu *z80) {
 	ops.t++
 	switch ops.t {
 	case 1:
-		cpu.Bus.SetAddr(ops.from)
+		cpu.bus.SetAddr(ops.from)
 	case 3:
-		cpu.Bus.ReadMemory()
-		d := cpu.Bus.GetData()
+		cpu.bus.ReadMemory()
+		d := cpu.bus.GetData()
 		if ops.f != nil {
 			ops.f(cpu, []byte{d})
 		}
@@ -143,10 +143,10 @@ func (ops *in) tick(cpu *z80) {
 	ops.t++
 	switch ops.t {
 	case 1:
-		cpu.Bus.SetAddr(ops.from)
+		cpu.bus.SetAddr(ops.from)
 	case 4:
-		cpu.Bus.ReadPort()
-		data := cpu.Bus.GetData()
+		cpu.bus.ReadPort()
+		data := cpu.bus.GetData()
 		cpu.regs.F.S = data&0x0080 != 0
 		cpu.regs.F.Z = data == 0
 		cpu.regs.F.H = false
@@ -172,11 +172,11 @@ func (ops *mw) tick(cpu *z80) {
 	ops.t++
 	switch ops.t {
 	case 1:
-		cpu.Bus.SetAddr(ops.addr)
+		cpu.bus.SetAddr(ops.addr)
 	case 2:
-		cpu.Bus.SetData(ops.data)
+		cpu.bus.SetData(ops.data)
 	case 3:
-		cpu.Bus.WriteMemory()
+		cpu.bus.WriteMemory()
 		if ops.f != nil {
 			ops.f(cpu)
 		}
@@ -208,9 +208,9 @@ func (ops *out) tick(cpu *z80) {
 	ops.t++
 	switch ops.t {
 	case 1:
-		cpu.Bus.SetAddr(ops.addr)
-		cpu.Bus.SetData(ops.data)
-		cpu.Bus.WriteMemory()
+		cpu.bus.SetAddr(ops.addr)
+		cpu.bus.SetData(ops.data)
+		cpu.bus.WriteMemory()
 	case 3:
 		if ops.f != nil {
 			ops.f(cpu)

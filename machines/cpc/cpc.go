@@ -90,6 +90,7 @@ func NewCPC(cpc464 bool) machines.Machine {
 	// 	fdc.SetDiscB(disc)
 	// }
 
+	clock := emulator.NewCLock(4000000)
 	cpc := &cpc{
 		bus:      bus,
 		cpu:      cpu,
@@ -98,8 +99,8 @@ func NewCPC(cpc464 bool) machines.Machine {
 		ppi:      ppi,
 		cassette: cas,
 		sound:    sound,
-		clock:    emulator.NewCLock(4000000),
-		debugger: z80.NewDebugger(cpu, mem),
+		clock:    clock,
+		debugger: z80.NewDebugger(cpu, mem, clock),
 	}
 
 	cpc.clock.AddTicker(0, cpu)

@@ -97,7 +97,7 @@ func NewMSX() machines.Machine {
 		ppi:      ppi,
 		vdp:      vdp,
 		ay8912:   ay8912,
-		debugger: z80.NewDebugger(cpu, mem),
+		debugger: z80.NewDebugger(cpu, mem, clock),
 	}
 
 	bus.RegisterPort(emulator.PortMask{Mask: 0x0000, Value: 0x0000}, msx)
