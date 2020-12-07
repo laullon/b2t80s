@@ -63,7 +63,7 @@ func NewZX(mem *memory, plus, cas, ay bool) *zx {
 		mem:      mem,
 		sound:    sound,
 		clock:    clock,
-		debugger: z80.NewDebugger(cpu, mem),
+		debugger: z80.NewDebugger(cpu, mem, clock),
 	}
 
 	if ay {

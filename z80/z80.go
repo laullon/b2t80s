@@ -64,7 +64,7 @@ type Z80Registers struct {
 type z80 struct {
 	debugger emulator.Debugger
 
-	Bus emulator.Bus
+	bus emulator.Bus
 
 	regs      *Z80Registers
 	indexRegs []*RegPair
@@ -103,7 +103,7 @@ func init() {
 
 func NewZ80(bus emulator.Bus) emulator.CPU {
 	cpu := &z80{
-		Bus:       bus,
+		bus:       bus,
 		scheduler: newCircularBuffer(),
 		traps:     make(map[uint16]emulator.CPUTrap),
 		regs: &Z80Registers{
@@ -195,6 +195,9 @@ func (cpu *z80) newInstruction() {
 	cpu.indexIdx = 0
 
 	cpu.doTraps()
+
+	cpu.debugger.AddInstruction(cpu.bus.GetBlock(cpu.regs.PC, 4*12))
+	cpu.debugger.Tick()
 
 	// if cpu.doInterrupt {
 	// 	cpu.execInterrupt()

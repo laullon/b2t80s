@@ -15,6 +15,9 @@ type Bus interface {
 	RegisterPort(mask PortMask, manager PortManager)
 	ReadPort()
 	WritePort()
+
+	// debuger
+	GetBlock(addr uint16, l uint16) []byte
 }
 
 func NewBus(mem Memory) Bus {
@@ -77,4 +80,12 @@ func (bus *genericBus) ReadPort() {
 	// panic(fmt.Sprintf("[readPort]-(no PM)-> port:0x%04X pc:0x%04X", port, cpu.regs.PC))
 	// fmt.Printf("[readPort]-(no PM)-> port:0x%04X pc:0x%04X \n", port, cpu.regs.PC)
 	bus.data = 0xff
+}
+
+func (bus *genericBus) GetBlock(addr uint16, l uint16) []byte {
+	var res []byte
+	for i := uint16(0); i < l; i++ {
+		res = append(res, bus.mem.GetByte(addr+i))
+	}
+	return res
 }

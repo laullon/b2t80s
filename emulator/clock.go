@@ -10,6 +10,8 @@ type Clock interface {
 	AddTicker(mod uint, t Ticker)
 	Run()
 	Stats() string
+	Pause()
+	Resume()
 }
 
 type Ticker interface {
@@ -27,6 +29,7 @@ type clock struct {
 	tStates         uint
 	tickers         []*ticker
 	lastFrameTime   float64
+	pasued          bool
 }
 
 func NewCLock(hz int) Clock {
@@ -45,6 +48,14 @@ func (c *clock) tick() {
 			t.ticker.Tick()
 		}
 	}
+}
+
+func (c *clock) Pause() {
+	c.pasued = true
+}
+
+func (c *clock) Resume() {
+	c.pasued = false
 }
 
 func (c *clock) frameDone() bool {
@@ -72,7 +83,7 @@ func (c *clock) Run() {
 	go func() {
 		for range ticker.C {
 			start := time.Now()
-			for !c.frameDone() {
+			for !c.frameDone() && !c.pasued {
 				c.tick()
 			}
 			c.lastFrameTime = float64(time.Now().Sub(start).Microseconds()) / 1000.0

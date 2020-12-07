@@ -446,6 +446,8 @@ func (bus *dummyBus) ReadPort()                                                 
 func (bus *dummyBus) WritePort()                                                        {}
 func (bus *dummyBus) RegisterPort(mask emulator.PortMask, manager emulator.PortManager) {}
 
+func (bus *dummyBus) GetBlock(addr uint16, l uint16) []byte { return nil }
+
 // ***
 // ***
 
