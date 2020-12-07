@@ -21,6 +21,7 @@ type ZX interface {
 }
 
 type zx struct {
+	bus      emulator.Bus
 	ula      *ula
 	cpu      emulator.CPU
 	mem      emulator.Memory
@@ -37,7 +38,9 @@ func NewZX(mem *memory, plus, cas, ay bool) *zx {
 		speed = clock128k
 	}
 
-	cpu := z80.NewZ80(mem)
+	bus := emulator.NewBus(mem)
+
+	cpu := z80.NewZ80(bus)
 	clock := emulator.NewCLock(speed)
 
 	ula := NewULA(mem, plus)
@@ -46,15 +49,15 @@ func NewZX(mem *memory, plus, cas, ay bool) *zx {
 	ula.cpu = cpu
 	sound.AddSource(ula)
 
-	// clock.AddTicker(0, cpu)
 	clock.AddTicker(0, ula)
 	clock.AddTicker(80, sound)
 
-	cpu.RegisterPort(emulator.PortMask{Mask: 0x00FF, Value: 0x00FE}, ula)
-	cpu.RegisterPort(emulator.PortMask{Mask: 0x00FF, Value: 0x00FF}, ula)
-	cpu.RegisterPort(emulator.PortMask{Mask: 0x00e0, Value: 0x0000}, &kempston{})
+	bus.RegisterPort(emulator.PortMask{Mask: 0x00FF, Value: 0x00FE}, ula)
+	bus.RegisterPort(emulator.PortMask{Mask: 0x00FF, Value: 0x00FF}, ula)
+	bus.RegisterPort(emulator.PortMask{Mask: 0x00e0, Value: 0x0000}, &kempston{})
 
 	zx := &zx{
+		bus:      bus,
 		ula:      ula,
 		cpu:      cpu,
 		mem:      mem,
@@ -66,8 +69,8 @@ func NewZX(mem *memory, plus, cas, ay bool) *zx {
 	if ay {
 		zx.ay8912 = ay8912.New()
 		sound.AddSource(zx.ay8912)
-		cpu.RegisterPort(emulator.PortMask{Mask: 0xc002, Value: 0xc000}, zx.ay8912)
-		cpu.RegisterPort(emulator.PortMask{Mask: 0xc002, Value: 0x8000}, zx.ay8912)
+		// cpu.RegisterPort(emulator.PortMask{Mask: 0xc002, Value: 0xc000}, zx.ay8912)
+		// cpu.RegisterPort(emulator.PortMask{Mask: 0xc002, Value: 0x8000}, zx.ay8912)
 		clock.AddTicker(2, zx.ay8912)
 	}
 
@@ -103,10 +106,10 @@ func (zx *zx) Clock() emulator.Clock {
 	return zx.clock
 }
 
-func (zx *zx) loadDataBlock() uint16 {
+func (zx *zx) loadDataBlock() {
 	data := zx.cassette.NextDataBlock()
 	if data == nil {
-		return emulator.CONTINUE
+		return //emulator.CONTINUE
 	}
 
 	regs := zx.cpu.Registers().(*z80.Z80Registers)
@@ -131,7 +134,7 @@ func (zx *zx) loadDataBlock() uint16 {
 		regs.F.C = false
 		// log.Print("BAD Block")
 	}
-	return 0x05e2
+	return //0x05e2
 }
 
 type kempston struct {

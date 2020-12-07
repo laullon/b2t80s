@@ -1,6 +1,7 @@
 package emulator
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -8,6 +9,7 @@ type Clock interface {
 	// AddTStates increment the tStates counter and return true if the frame is not done
 	AddTicker(mod uint, t Ticker)
 	Run()
+	Stats() string
 }
 
 type Ticker interface {
@@ -24,6 +26,7 @@ type clock struct {
 	tStatesPerFrame uint
 	tStates         uint
 	tickers         []*ticker
+	lastFrameTime   float64
 }
 
 func NewCLock(hz int) Clock {
@@ -59,14 +62,20 @@ func (c *clock) AddTicker(mod uint, t Ticker) {
 	c.tickers = append(c.tickers, &ticker{mod: mod, ticker: t})
 }
 
+func (c *clock) Stats() string {
+	return fmt.Sprintf("%5.2fms", c.lastFrameTime)
+}
+
 func (c *clock) Run() {
 	wait := time.Duration(20 * time.Millisecond)
 	ticker := time.NewTicker(wait)
 	go func() {
 		for range ticker.C {
+			start := time.Now()
 			for !c.frameDone() {
 				c.tick()
 			}
+			c.lastFrameTime = float64(time.Now().Sub(start).Microseconds()) / 1000.0
 		}
 	}()
 }

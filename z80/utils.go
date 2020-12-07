@@ -32,3 +32,59 @@ func (reg *RegPair) Set(hl uint16) {
 func toWord(a, b byte) uint16 {
 	return uint16(a) | uint16(b)<<8
 }
+
+//*****
+
+type objectPool struct {
+	objects []interface{}
+	idx     int
+}
+
+func (op *objectPool) next() interface{} {
+	op.idx++
+	op.idx &= 0xf
+	return op.objects[op.idx]
+}
+
+func newObjectPool(new func() interface{}) *objectPool {
+	op := &objectPool{objects: make([]interface{}, 0x10)}
+	for i := 0; i < 0x10; i++ {
+		op.objects[i] = new()
+	}
+	return op
+}
+
+//******
+
+type circularBuffer struct {
+	elemets []z80op
+	i, e    byte
+}
+
+func newCircularBuffer() *circularBuffer {
+	return &circularBuffer{
+		elemets: make([]z80op, 0x10),
+	}
+}
+
+func (cb *circularBuffer) isEmpty() bool {
+	return cb.i == cb.e
+}
+
+func (cb *circularBuffer) append(ops ...z80op) {
+	for _, op := range ops {
+		cb.elemets[cb.e] = op
+		cb.e++
+		cb.e &= 0x0F
+	}
+}
+
+func (cb *circularBuffer) first() z80op {
+	res := cb.elemets[cb.i]
+	return res
+}
+
+func (cb *circularBuffer) next() {
+	cb.i++
+	cb.i &= 0x0F
+}

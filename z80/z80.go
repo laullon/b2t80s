@@ -62,7 +62,6 @@ type Z80Registers struct {
 }
 
 type z80 struct {
-	memory   emulator.Memory
 	debugger emulator.Debugger
 
 	Bus emulator.Bus
@@ -76,10 +75,9 @@ type z80 struct {
 	doInterrupt bool
 
 	fetched   []uint8
-	scheduler []z80op
+	scheduler *circularBuffer
 
 	traps map[uint16]emulator.CPUTrap
-	ports map[emulator.PortMask]emulator.PortManager
 }
 
 func init() {
@@ -105,9 +103,9 @@ func init() {
 
 func NewZ80(bus emulator.Bus) emulator.CPU {
 	cpu := &z80{
-		Bus:   bus,
-		traps: make(map[uint16]emulator.CPUTrap),
-		ports: make(map[emulator.PortMask]emulator.PortManager),
+		Bus:       bus,
+		scheduler: newCircularBuffer(),
+		traps:     make(map[uint16]emulator.CPUTrap),
 		regs: &Z80Registers{
 			PC: 0,
 			M1: false,
@@ -142,16 +140,12 @@ func NewZ80(bus emulator.Bus) emulator.CPU {
 	cpu.regs.IY = &RegPair{&cpu.regs.IYH, &cpu.regs.IYL}
 	cpu.indexRegs = []*RegPair{cpu.regs.HL, cpu.regs.IX, cpu.regs.IY}
 
-	cpu.scheduler = append(cpu.scheduler, &fetch{table: lookup})
+	cpu.scheduler.append(newFetch(lookup))
 	return cpu
 }
 
 func (cpu *z80) SetDebuger(debugger emulator.Debugger) {
 	cpu.debugger = debugger
-}
-
-func (cpu *z80) RegisterPort(mask emulator.PortMask, manager emulator.PortManager) {
-	cpu.ports[mask] = manager
 }
 
 func (cpu *z80) RegisterTrap(pc uint16, trap emulator.CPUTrap) {
@@ -170,42 +164,49 @@ func (cpu *z80) Halt() {
 	cpu.halt = true
 }
 
-func (cpu *z80) execInterrupt() uint {
+func (cpu *z80) execInterrupt() {
 	cpu.doInterrupt = false
-	if cpu.halt {
-		cpu.haltDone = true
-		cpu.halt = false
-	}
-	var ts uint
-	if cpu.regs.IFF1 {
-		cpu.regs.IFF1 = false
-		cpu.regs.IFF2 = false
 
-		// cpu.regs.SP.Push(cpu.regs.PC)
-
-		switch cpu.regs.InterruptsMode {
-		case 0, 1:
-			ts = 13
-			cpu.regs.PC = 0x38
-		case 2:
-			ts = 19
-			pos := uint16(cpu.regs.I)<<8 + 0xff
-			cpu.regs.PC = getWord(cpu.memory, pos)
-		}
+	switch cpu.regs.InterruptsMode {
+	case 0, 1:
+		code := &exec{l: 7, f: func(cpu *z80, u []uint8) {
+			cpu.pushToStack(cpu.regs.PC, func(cpu *z80) {
+				cpu.regs.PC = 0x0038
+			})
+		}}
+		cpu.scheduler.append(code)
+	default:
+		panic(cpu.regs.InterruptsMode)
 	}
-	return ts
 }
 
 func (cpu *z80) Tick() {
-	if cpu.scheduler[0].isDone() {
-		cpu.scheduler = cpu.scheduler[1:]
-		if len(cpu.scheduler) == 0 {
-			cpu.fetched = nil
-			cpu.indexIdx = 0
-			cpu.scheduler = append(cpu.scheduler, &fetch{table: lookup})
+	if cpu.scheduler.first().isDone() {
+		cpu.scheduler.next()
+		if cpu.scheduler.isEmpty() {
+			cpu.newInstruction()
 		}
 	}
-	cpu.scheduler[0].tick(cpu)
+	cpu.scheduler.first().tick(cpu)
+}
+
+func (cpu *z80) newInstruction() {
+	cpu.fetched = nil
+	cpu.indexIdx = 0
+
+	cpu.doTraps()
+
+	// if cpu.doInterrupt {
+	// 	cpu.execInterrupt()
+	// } else {
+	cpu.scheduler.append(newFetch(lookup))
+	// }
+}
+
+func (cpu *z80) doTraps() {
+	if trap, ok := cpu.traps[cpu.regs.PC]; ok {
+		trap()
+	}
 }
 
 // func (cpu *z80) Tick() {

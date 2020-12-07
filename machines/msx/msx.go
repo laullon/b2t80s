@@ -21,6 +21,7 @@ const (
 )
 
 type msx struct {
+	bus      emulator.Bus
 	cpu      emulator.CPU
 	mem      emulator.Memory
 	cassette cassette.Cassette
@@ -66,7 +67,9 @@ func NewMSX() machines.Machine {
 
 	clock := emulator.NewCLock(speed)
 
-	cpu := z80.NewZ80(mem)
+	bus := emulator.NewBus(mem)
+
+	cpu := z80.NewZ80(bus)
 	clock.AddTicker(0, cpu)
 
 	sound := emulator.NewSoundSystem(speed / 80)
@@ -86,6 +89,7 @@ func NewMSX() machines.Machine {
 	clock.AddTicker(80, sound)
 
 	msx := &msx{
+		bus:      bus,
 		cpu:      cpu,
 		mem:      mem,
 		sound:    sound,
@@ -96,7 +100,7 @@ func NewMSX() machines.Machine {
 		debugger: z80.NewDebugger(cpu, mem),
 	}
 
-	cpu.RegisterPort(emulator.PortMask{Mask: 0x0000, Value: 0x0000}, msx)
+	bus.RegisterPort(emulator.PortMask{Mask: 0x0000, Value: 0x0000}, msx)
 
 	return msx
 }

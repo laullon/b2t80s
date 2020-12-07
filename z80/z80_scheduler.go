@@ -54,12 +54,21 @@ func (ops *fetch) tick(cpu *z80) {
 		for _, op := range op.ops {
 			op.reset()
 		}
-		cpu.scheduler = append(cpu.scheduler, op.ops...)
+		cpu.scheduler.append(op.ops...)
 		if op.onFetch != nil {
 			op.onFetch(cpu, cpu.fetched)
 		}
 		ops.done = true
 	}
+}
+
+var fetchPool = newObjectPool(func() interface{} { return &fetch{} })
+
+func newFetch(table []*opCode) *fetch {
+	fetch := fetchPool.next().(*fetch)
+	fetch.reset()
+	fetch.table = table
+	return fetch
 }
 
 // -------------------------------------------------------------
@@ -109,6 +118,16 @@ func (ops *mr) tick(cpu *z80) {
 		}
 		ops.done = true
 	}
+}
+
+var mrsPool = newObjectPool(func() interface{} { return &mr{} })
+
+func newMR(from uint16, f z80f) *mr {
+	mr := mrsPool.next().(*mr)
+	mr.reset()
+	mr.from = from
+	mr.f = f
+	return mr
 }
 
 //
@@ -163,6 +182,17 @@ func (ops *mw) tick(cpu *z80) {
 		}
 		ops.done = true
 	}
+}
+
+var mwsPool = newObjectPool(func() interface{} { return &mw{} })
+
+func newMW(addr uint16, data uint8, f func(*z80)) *mw {
+	mw := mwsPool.next().(*mw)
+	mw.reset()
+	mw.addr = addr
+	mw.data = data
+	mw.f = f
+	return mw
 }
 
 // -------------------------------------------------------------

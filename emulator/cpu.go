@@ -5,15 +5,7 @@ import (
 	"strings"
 )
 
-type CPUTrap func() uint16
-
-const (
-	// STOP will not execute the instruction that fired the trap
-	STOP uint16 = 0xffff
-	// CONTINUE will execute the instruction that fired the trap
-	CONTINUE uint16 = 0
-)
-
+type CPUTrap func()
 type CPU interface {
 	Interrupt(bool)
 
@@ -22,7 +14,6 @@ type CPU interface {
 	SetDebuger(debugger Debugger)
 
 	RegisterTrap(pc uint16, trap CPUTrap)
-	RegisterPort(mask PortMask, manager PortManager)
 
 	// LoadTapeBlock() uint16
 	// LoadTapeBlockCPC(uint16) uint16

@@ -45,13 +45,6 @@ func (debug *debugger) SetDump(on bool) {
 }
 
 func (debug *debugger) SetBreakPoint(bp uint16) {
-	debug.cpu.RegisterTrap(bp, func() uint16 {
-		if debug.IsStoped() {
-			return emulator.CONTINUE
-		}
-		debug.Stop()
-		return emulator.STOP
-	})
 }
 
 func (debug *debugger) LoadSymbols(fileName string) {

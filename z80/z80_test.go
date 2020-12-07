@@ -22,19 +22,6 @@ func TestRegPair(t *testing.T) {
 	assert.Equal(t, uint16(0x0A0B), cpu.Registers().(*Z80Registers).BC.Get())
 }
 
-// func TestSP(t *testing.T) {
-// 	bus := &dummyBus{mem: make([]byte, 0xffff)}
-// 	sp := NewStackPointer(memory)
-
-// 	sp.Push(0xaabb)
-// 	sp.Push(2)
-// 	sp.Push(3)
-
-// 	assert.Equal(t, uint16(3), sp.Pop())
-// 	assert.Equal(t, uint16(2), sp.Pop())
-// 	assert.Equal(t, uint16(0xaabb), sp.Pop())
-// }
-
 type cpuTest struct {
 	name      string
 	registers string
@@ -82,8 +69,8 @@ func TestOPCodes(t *testing.T) {
 
 	var idx int
 	var test *cpuTest
+	bus := &dummyBus{mem: make([]byte, 0xffff)}
 	for idx, test = range tests {
-		bus := &dummyBus{mem: make([]byte, 0xffff)}
 
 		cpu := NewZ80(bus)
 
@@ -360,8 +347,8 @@ func TestZEXDoc(t *testing.T) {
 
 	cpu := NewZ80(&dummyBus{mem: mem})
 	cpu.Registers().(*Z80Registers).PC = uint16(0x100)
-	cpu.RegisterTrap(0x5, func() uint16 {
-		return printChar(cpu.Registers().(*Z80Registers), mem)
+	cpu.RegisterTrap(0x5, func() {
+		printChar(cpu.Registers().(*Z80Registers), mem)
 	})
 
 	for {
@@ -384,7 +371,7 @@ func setRRstr(hl string) (uint8, uint8) {
 // Emulate CP/M call 5; function is in register C.
 // Function 2: print char in register E
 // Function 9: print $ terminated string pointer in DE
-func printChar(regs *Z80Registers, memory []byte) uint16 {
+func printChar(regs *Z80Registers, memory []byte) {
 	switch byte(regs.C) {
 	case 2:
 		cpmScreen = append(cpmScreen, regs.E)
@@ -400,8 +387,11 @@ func printChar(regs *Z80Registers, memory []byte) uint16 {
 			fmt.Printf("%c", ch)
 		}
 	}
-	panic(-1)
-	return 1 //regs.SP.Pop()
+
+	newPC := uint16(memory[regs.SP.Get()])
+	newPC |= uint16(memory[regs.SP.Get()+1]) << 8
+	regs.SP.Set(regs.SP.Get() + 2)
+	regs.PC = newPC
 }
 
 // ***
@@ -452,8 +442,9 @@ func (bus *dummyBus) GetData() byte     { return bus.data }
 func (bus *dummyBus) ReadMemory()  { bus.data = bus.mem[bus.addr] }
 func (bus *dummyBus) WriteMemory() { bus.mem[bus.addr] = bus.data }
 
-func (bus *dummyBus) ReadPort()  { bus.data = uint8(bus.addr >> 8) }
-func (bus *dummyBus) WritePort() {}
+func (bus *dummyBus) ReadPort()                                                         { bus.data = uint8(bus.addr >> 8) }
+func (bus *dummyBus) WritePort()                                                        {}
+func (bus *dummyBus) RegisterPort(mask emulator.PortMask, manager emulator.PortManager) {}
 
 // ***
 // ***
