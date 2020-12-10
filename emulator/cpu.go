@@ -13,13 +13,16 @@ type CPU interface {
 }
 
 type Debugger interface {
-	AddInstruction([]byte)
+	AddInstruction(uint16, []byte)
+	NextInstruction([]byte)
 
 	Tick()
+
 	Stop()
 	Continue()
 	Step()
 	StopNextFrame()
+	SetDump(bool)
 
 	GetStatus() string
 }

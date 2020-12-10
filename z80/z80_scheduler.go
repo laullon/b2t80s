@@ -1,8 +1,6 @@
 package z80
 
-import (
-	"github.com/pkg/errors"
-)
+import "github.com/pkg/errors"
 
 type z80op interface {
 	tick(cpu *z80)
@@ -46,10 +44,11 @@ func (ops *fetch) tick(cpu *z80) {
 		cpu.bus.ReadMemory()
 		d := cpu.bus.GetData()
 		cpu.fetched = append(cpu.fetched, d)
+		cpu.opBytes = append(cpu.opBytes, d)
 	case 4:
 		op := ops.table[cpu.fetched[len(cpu.fetched)-1]]
 		if op == nil {
-			panic(errors.Errorf("opCode '0x%02X' not found", cpu.fetched[0]))
+			panic(errors.Errorf("opCode '0x%X' not found", cpu.opBytes))
 		}
 		for _, op := range op.ops {
 			op.reset()
@@ -89,6 +88,7 @@ func (ops *mrPC) tick(cpu *z80) {
 		cpu.bus.ReadMemory()
 		d := cpu.bus.GetData()
 		cpu.fetched = append(cpu.fetched, d)
+		cpu.opBytes = append(cpu.opBytes, d)
 		if ops.f != nil {
 			ops.f(cpu, cpu.fetched)
 		}
@@ -210,7 +210,7 @@ func (ops *out) tick(cpu *z80) {
 	case 1:
 		cpu.bus.SetAddr(ops.addr)
 		cpu.bus.SetData(ops.data)
-		cpu.bus.WriteMemory()
+		cpu.bus.WritePort()
 	case 3:
 		if ops.f != nil {
 			ops.f(cpu)

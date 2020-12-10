@@ -24,6 +24,7 @@ type debugger struct {
 
 	doStop          bool
 	doStopInterrupt bool
+	dump            bool
 }
 
 func NewDebugger(cpu emulator.CPU, mem emulator.Memory, clock emulator.Clock) emulator.Debugger {
@@ -31,12 +32,14 @@ func NewDebugger(cpu emulator.CPU, mem emulator.Memory, clock emulator.Clock) em
 		cpu:    cpu.(*z80),
 		memory: mem,
 		clock:  clock,
+		doStop: false,
 	}
 	cpu.SetDebuger(debug)
 	return debug
 }
 
 func (debug *debugger) SetDump(on bool) {
+	debug.dump = on
 }
 
 func (debug *debugger) SetBreakPoint(bp uint16) {
@@ -45,8 +48,7 @@ func (debug *debugger) SetBreakPoint(bp uint16) {
 func (debug *debugger) LoadSymbols(fileName string) {
 }
 
-func (debug *debugger) AddInstruction(mem []byte) {
-	debug.log = append(debug.log, debug.next)
+func (debug *debugger) AddInstruction(pc uint16, mem []byte) {
 
 	op := decode(mem)
 	if op == nil {
@@ -54,25 +56,27 @@ func (debug *debugger) AddInstruction(mem []byte) {
 	}
 	opMem := make([]byte, op.len)
 	copy(opMem, mem)
-	debug.next = &logEntry{op: op, mem: opMem, pc: debug.cpu.Registers().(*Z80Registers).PC}
+	le := &logEntry{op: op, mem: opMem, pc: pc}
+	debug.log = append(debug.log, le)
+
+	if debug.dump {
+		print(le.String())
+		println(debug.cpu.regs.dump())
+	}
 
 	if len(debug.log) > 10 {
 		debug.log = debug.log[len(debug.log)-10 : len(debug.log)]
 	}
+}
 
-	// pc := debug.cpu.Registers().(*Z80Registers).PC
-	// debug.diss = make([]*logEntry, 0)
-	// for len(debug.diss) < 10 {
-	// 	mem = mem[op.len:]
-	// 	pc += uint16(op.len)
-	// 	op = decode(mem)
-	// 	if op == nil {
-	// 		break
-	// 	}
-	// 	opMem := make([]byte, op.len)
-	// 	copy(opMem, mem)
-	// 	debug.diss = append(debug.diss, &logEntry{op: op, mem: opMem, pc: pc})
-	// }
+func (debug *debugger) NextInstruction(mem []byte) {
+	op := decode(mem)
+	if op == nil {
+		return
+	}
+	opMem := make([]byte, op.len)
+	copy(opMem, mem)
+	debug.next = &logEntry{op: op, mem: opMem, pc: debug.cpu.regs.PC}
 }
 
 func (debug *debugger) DumpNextFrame() {
@@ -151,7 +155,7 @@ func (debug *debugger) getRegisters() string {
 	res.WriteString(fmt.Sprintf("  H:0x%02X    L:0x%02X  HL:0x%04X    0x%04X\n", regs.H, regs.L, uint16(regs.H)<<8|uint16(regs.L), getWord(debug.memory, regs.SP.Get()+2)))
 	res.WriteString(fmt.Sprintf("IXH:0x%02X  IXL:0x%02X  IX:0x%04X    0x%04X\n", regs.IXH, regs.IXL, uint16(regs.IXH)<<8|uint16(regs.IXL), getWord(debug.memory, regs.SP.Get()+4)))
 	res.WriteString(fmt.Sprintf("IYH:0x%02X  IYL:0x%02X  IY:0x%04X    0x%04X\n", regs.IYH, regs.IYL, uint16(regs.IYH)<<8|uint16(regs.IYL), getWord(debug.memory, regs.SP.Get()+6)))
-	res.WriteString(fmt.Sprintf("SZ5H3PNC\n%08b", regs.F.GetByte()))
+	res.WriteString(fmt.Sprintf("SZ5H3PNC            PC:0x%04X\n%08b", regs.PC, regs.F.GetByte()))
 	return res.String()
 }
 
@@ -159,7 +163,7 @@ func (le *logEntry) String() string {
 	if le == nil {
 		return ""
 	}
-	return fmt.Sprintf("0x%04X %-12s %s", le.pc, dump(le.mem), le.op.String())
+	return fmt.Sprintf("0x%04X %-12s %-20s", le.pc, dump(le.mem), le.op.String())
 }
 
 func dump(buff []byte) string {

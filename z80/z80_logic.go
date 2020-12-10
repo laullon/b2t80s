@@ -1,29 +1,33 @@
 package z80
 
 func ini(cpu *z80, mem []uint8) { // TODO review tests changes
-	in := &in{from: cpu.regs.BC.Get(), f: func(z *z80, u []uint8) {
-		hl := cpu.regs.HL.Get()
-		v := u[0]
-		mw := newMW(hl, v, func(z *z80) {
-			cpu.regs.B--
-			cpu.regs.HL.Set(hl + 1)
-			cpu.regs.F.N = true
-			cpu.regs.F.Z = cpu.regs.B == 0
-		})
-		cpu.scheduler.append(mw)
-		if mem[0] > 0xAF {
-			cpu.scheduler.append(&exec{l: 1, f: func(z *z80, u []uint8) {
-				if cpu.regs.B != 0 {
-					cpu.regs.PC = cpu.regs.PC - 2
-				}
-			}})
-		}
-	}}
+	in := &in{from: cpu.regs.BC.Get(), f: ini_m1}
 	cpu.scheduler.append(in)
 }
 
+func ini_m1(cpu *z80, mem []uint8) {
+	mw := newMW(cpu.regs.HL.Get(), mem[0], ini_m2)
+	cpu.scheduler.append(mw)
+	if cpu.opBytes[1] > 0xAF {
+		cpu.scheduler.append(&exec{l: 1, f: ini_m3})
+	}
+}
+
+func ini_m2(cpu *z80) {
+	cpu.regs.B--
+	cpu.regs.HL.Set(cpu.regs.HL.Get() + 1)
+	cpu.regs.F.N = true
+	cpu.regs.F.Z = cpu.regs.B == 0
+}
+
+func ini_m3(cpu *z80, u []uint8) {
+	if cpu.regs.B != 0 {
+		cpu.regs.PC = cpu.regs.PC - 2
+	}
+}
+
 func ind(cpu *z80, mem []uint8) { // TODO review tests changes
-	in := &in{from: cpu.regs.BC.Get(), f: func(z *z80, u []uint8) {
+	in := &in{from: cpu.regs.BC.Get(), f: func(cpu *z80, u []uint8) {
 		hl := cpu.regs.HL.Get()
 		v := u[0]
 		mw := newMW(hl, v, func(z *z80) {
@@ -34,7 +38,7 @@ func ind(cpu *z80, mem []uint8) { // TODO review tests changes
 		})
 		cpu.scheduler.append(mw)
 		if mem[0] > 0xAF {
-			cpu.scheduler.append(&exec{l: 1, f: func(z *z80, u []uint8) {
+			cpu.scheduler.append(&exec{l: 1, f: func(cpu *z80, u []uint8) {
 				if cpu.regs.B != 0 {
 					cpu.regs.PC = cpu.regs.PC - 2
 				}
@@ -45,7 +49,7 @@ func ind(cpu *z80, mem []uint8) { // TODO review tests changes
 }
 
 func outi(cpu *z80, mem []uint8) { // TODO review tests changes
-	mr := newMR(cpu.regs.HL.Get(), func(z *z80, d []uint8) {
+	mr := newMR(cpu.regs.HL.Get(), func(cpu *z80, d []uint8) {
 		cpu.regs.B--
 		out := &out{addr: cpu.regs.BC.Get(), data: d[0], f: func(z *z80) {
 			cpu.regs.HL.Set(cpu.regs.HL.Get() + 1)
@@ -57,7 +61,7 @@ func outi(cpu *z80, mem []uint8) { // TODO review tests changes
 		}}
 		cpu.scheduler.append(out)
 		if mem[0] > 0xAF {
-			cpu.scheduler.append(&exec{l: 1, f: func(z *z80, u []uint8) {
+			cpu.scheduler.append(&exec{l: 1, f: func(cpu *z80, u []uint8) {
 				if cpu.regs.B != 0 {
 					cpu.regs.PC = cpu.regs.PC - 2
 				}
@@ -68,163 +72,200 @@ func outi(cpu *z80, mem []uint8) { // TODO review tests changes
 }
 
 func outd(cpu *z80, mem []uint8) { // TODO review tests changes
-	mr := newMR(cpu.regs.HL.Get(), func(z *z80, d []uint8) {
+	mr := newMR(cpu.regs.HL.Get(), func(cpu *z80, d []uint8) {
 		cpu.regs.B--
-		out := &out{addr: cpu.regs.BC.Get(), data: d[0], f: func(z *z80) {
-			cpu.regs.HL.Set(cpu.regs.HL.Get() - 1)
-			cpu.regs.F.Z = cpu.regs.B == 0
-			cpu.regs.F.S = cpu.regs.B&0x80 != 0
-			cpu.regs.F.N = cpu.regs.B&0x80 == 0
-			cpu.regs.F.H = true
-			cpu.regs.F.P = parityTable[cpu.regs.B]
-		}}
+		out := &out{addr: cpu.regs.BC.Get(), data: d[0], f: outd_m1}
 		cpu.scheduler.append(out)
 		if mem[0] > 0xAF {
-			cpu.scheduler.append(&exec{l: 1, f: func(z *z80, u []uint8) {
-				if cpu.regs.B != 0 {
-					cpu.regs.PC = cpu.regs.PC - 2
-				}
-			}})
+			cpu.scheduler.append(&exec{l: 1, f: outd_m2})
 		}
 	})
 	cpu.scheduler.append(mr)
+}
+
+func outd_m1(cpu *z80) {
+	cpu.regs.HL.Set(cpu.regs.HL.Get() - 1)
+	cpu.regs.F.Z = cpu.regs.B == 0
+	cpu.regs.F.S = cpu.regs.B&0x80 != 0
+	cpu.regs.F.N = cpu.regs.B&0x80 == 0
+	cpu.regs.F.H = true
+	cpu.regs.F.P = parityTable[cpu.regs.B]
+}
+
+func outd_m2(cpu *z80, u []uint8) {
+	if cpu.regs.B != 0 {
+		cpu.regs.PC = cpu.regs.PC - 2
+	}
 }
 
 func cpi(cpu *z80, mem []uint8) {
+	mr := newMR(cpu.regs.HL.Get(), cpi_m1)
+	cpu.scheduler.append(mr)
+}
+
+var cpi_result uint8
+
+func cpi_m1(cpu *z80, d []uint8) {
 	bc := cpu.regs.BC.Get()
 	hl := cpu.regs.HL.Get()
 
-	mr := newMR(hl, func(z *z80, d []uint8) {
-		val := d[0]
-		result := cpu.regs.A - val
-		lookup := (cpu.regs.A&0x08)>>3 | (val&0x08)>>2 | (result&0x08)>>1
+	val := d[0]
+	cpi_result = cpu.regs.A - val
+	lookup := (cpu.regs.A&0x08)>>3 | (val&0x08)>>2 | (cpi_result&0x08)>>1
 
-		bc--
-		hl++
+	bc--
+	hl++
 
-		cpu.regs.BC.Set(bc)
-		cpu.regs.HL.Set(hl)
+	cpu.regs.BC.Set(bc)
+	cpu.regs.HL.Set(hl)
 
-		cpu.regs.F.S = result&0x80 != 0
-		cpu.regs.F.Z = result == 0
-		cpu.regs.F.H = halfcarrySubTable[lookup]
-		cpu.regs.F.P = bc != 0
-		cpu.regs.F.N = true
-		if mem[0] > 0xAF {
-			cpu.scheduler.append(&exec{l: 1, f: func(z *z80, u []uint8) {
-				if (cpu.regs.BC.Get()) != 0 && (result != 0) {
-					cpu.regs.PC = cpu.regs.PC - 2
-				}
-			}})
-		}
-	})
-	cpu.scheduler.append(mr)
+	cpu.regs.F.S = cpi_result&0x80 != 0
+	cpu.regs.F.Z = cpi_result == 0
+	cpu.regs.F.H = halfcarrySubTable[lookup]
+	cpu.regs.F.P = bc != 0
+	cpu.regs.F.N = true
+	if cpu.fetched[0] > 0xAF {
+		cpu.scheduler.append(&exec{l: 1, f: cpi_m2})
+	}
+}
+
+func cpi_m2(cpu *z80, u []uint8) {
+	if (cpu.regs.BC.Get()) != 0 && (cpi_result != 0) {
+		cpu.regs.PC = cpu.regs.PC - 2
+	}
 }
 
 func cpd(cpu *z80, mem []uint8) {
+	hl := cpu.regs.HL.Get()
+	mr := newMR(hl, cpd_m1)
+	cpu.scheduler.append(mr)
+}
+
+func cpd_m1(cpu *z80, d []uint8) {
 	bc := cpu.regs.BC.Get()
 	hl := cpu.regs.HL.Get()
 
-	mr := newMR(hl, func(z *z80, d []uint8) {
-		val := d[0]
-		result := cpu.regs.A - val
-		lookup := (cpu.regs.A&0x08)>>3 | (val&0x08)>>2 | (result&0x08)>>1
+	val := d[0]
+	result := cpu.regs.A - val
+	lookup := (cpu.regs.A&0x08)>>3 | (val&0x08)>>2 | (result&0x08)>>1
 
-		bc--
-		hl--
+	bc--
+	hl--
 
-		cpu.regs.BC.Set(bc)
-		cpu.regs.HL.Set(hl)
+	cpu.regs.BC.Set(bc)
+	cpu.regs.HL.Set(hl)
 
-		cpu.regs.F.S = result&0x80 != 0
-		cpu.regs.F.Z = result == 0
-		cpu.regs.F.H = halfcarrySubTable[lookup]
-		cpu.regs.F.P = bc != 0
-		cpu.regs.F.N = true
-		if mem[0] > 0xAF {
-			cpu.scheduler.append(&exec{l: 1, f: func(z *z80, u []uint8) {
-				if cpu.regs.BC.Get() != 0 {
-					cpu.regs.PC = cpu.regs.PC - 2
-				}
-			}})
-		}
-	})
-	cpu.scheduler.append(mr)
+	cpu.regs.F.S = result&0x80 != 0
+	cpu.regs.F.Z = result == 0
+	cpu.regs.F.H = halfcarrySubTable[lookup]
+	cpu.regs.F.P = bc != 0
+	cpu.regs.F.N = true
+	if cpu.fetched[0] > 0xAF {
+		cpu.scheduler.append(&exec{l: 1, f: cpd_m2})
+	}
+}
+
+func cpd_m2(cpu *z80, u []uint8) {
+	if cpu.regs.BC.Get() != 0 {
+		cpu.regs.PC = cpu.regs.PC - 2
+	}
 }
 
 func ldi(cpu *z80, mem []uint8) {
+	hl := cpu.regs.HL.Get()
+	mr := newMR(hl, ldi_m1)
+	cpu.scheduler.append(mr)
+}
+
+func ldi_m1(cpu *z80, d []uint8) {
+	v := d[0]
+	de := cpu.regs.DE.Get()
+	mw := newMW(de, v, ldi_m2)
+	cpu.scheduler.append(mw)
+}
+
+func ldi_m2(cpu *z80) {
 	bc := cpu.regs.BC.Get()
 	de := cpu.regs.DE.Get()
 	hl := cpu.regs.HL.Get()
 
-	mr := newMR(hl, func(z *z80, d []uint8) {
-		v := d[0]
-		mw := newMW(de, v, func(z *z80) {
-			bc--
-			de++
-			hl++
+	bc--
+	de++
+	hl++
 
-			cpu.regs.BC.Set(bc)
-			cpu.regs.DE.Set(de)
-			cpu.regs.HL.Set(hl)
+	cpu.regs.BC.Set(bc)
+	cpu.regs.DE.Set(de)
+	cpu.regs.HL.Set(hl)
 
-			cpu.regs.F.P = bc != 0
-			cpu.regs.F.H = false
-			cpu.regs.F.N = false
-			if mem[0] > 0xAF {
-				cpu.scheduler.append(&exec{l: 1, f: func(z *z80, u []uint8) {
-					if cpu.regs.BC.Get() != 0 {
-						cpu.regs.PC = cpu.regs.PC - 2
-					}
-				}})
-			}
-		})
-		cpu.scheduler.append(mw)
-	})
-	cpu.scheduler.append(mr)
+	cpu.regs.F.P = bc != 0
+	cpu.regs.F.H = false
+	cpu.regs.F.N = false
+	if cpu.fetched[0] > 0xAF {
+		cpu.scheduler.append(&exec{l: 1, f: ldi_m3})
+	}
+}
+
+func ldi_m3(cpu *z80, u []uint8) {
+	if cpu.regs.BC.Get() != 0 {
+		cpu.regs.PC = cpu.regs.PC - 2
+	}
 }
 
 func ldd(cpu *z80, mem []uint8) {
+	hl := cpu.regs.HL.Get()
+
+	mr := newMR(hl, ldd_m1)
+	cpu.scheduler.append(mr)
+}
+
+func ldd_m1(cpu *z80, d []uint8) {
+	de := cpu.regs.DE.Get()
+	v := d[0]
+	mw := newMW(de, v, ldd_m2)
+	cpu.scheduler.append(mw)
+}
+
+func ldd_m2(cpu *z80) {
 	bc := cpu.regs.BC.Get()
 	de := cpu.regs.DE.Get()
 	hl := cpu.regs.HL.Get()
 
-	mr := newMR(hl, func(z *z80, d []uint8) {
-		v := d[0]
-		mw := newMW(de, v, func(z *z80) {
-			bc--
-			de--
-			hl--
+	bc--
+	de--
+	hl--
 
-			cpu.regs.BC.Set(bc)
-			cpu.regs.DE.Set(de)
-			cpu.regs.HL.Set(hl)
+	cpu.regs.BC.Set(bc)
+	cpu.regs.DE.Set(de)
+	cpu.regs.HL.Set(hl)
 
-			cpu.regs.F.P = bc != 0
-			cpu.regs.F.H = false
-			cpu.regs.F.N = false
-			if mem[0] > 0xAF {
-				cpu.scheduler.append(&exec{l: 1, f: func(z *z80, u []uint8) {
-					if cpu.regs.BC.Get() != 0 {
-						cpu.regs.PC = cpu.regs.PC - 2
-					}
-				}})
-			}
-		})
-		cpu.scheduler.append(mw)
-	})
-	cpu.scheduler.append(mr)
+	cpu.regs.F.P = bc != 0
+	cpu.regs.F.H = false
+	cpu.regs.F.N = false
+	if cpu.fetched[0] > 0xAF {
+		cpu.scheduler.append(&exec{l: 1, f: ldd_m3})
+	}
 }
+
+func ldd_m3(cpu *z80, u []uint8) {
+	if cpu.regs.BC.Get() != 0 {
+		cpu.regs.PC = cpu.regs.PC - 2
+	}
+}
+
+var spv uint16
 
 func exSP(cpu *z80, mem []uint8) {
-	var spv uint16
 	reg := cpu.indexRegs[cpu.indexIdx]
-	mr1 := newMR(cpu.regs.SP.Get(), func(zz *z80, u []uint8) { spv = uint16(u[0]) })
-	mr2 := newMR(cpu.regs.SP.Get()+1, func(z *z80, u []uint8) { spv |= uint16(u[0]) << 8 })
+	mr1 := newMR(cpu.regs.SP.Get(), exSP_m1)
+	mr2 := newMR(cpu.regs.SP.Get()+1, exSP_m2)
 	mw1 := newMW(cpu.regs.SP.Get(), *reg.l, nil)
-	mw2 := newMW(cpu.regs.SP.Get()+1, *reg.h, func(z *z80) { reg.Set(spv) })
+	mw2 := newMW(cpu.regs.SP.Get()+1, *reg.h, exSP_m3)
 	cpu.scheduler.append(mr1, mr2, mw1, mw2)
 }
+
+func exSP_m1(cpu *z80, u []uint8) { spv = uint16(u[0]) }
+func exSP_m2(cpu *z80, u []uint8) { spv |= uint16(u[0]) << 8 }
+func exSP_m3(cpu *z80)            { reg := cpu.indexRegs[cpu.indexIdx]; reg.Set(spv) }
 
 func addIXY(cpu *z80, mem []uint8) {
 	var reg *RegPair
@@ -280,21 +321,27 @@ func outNa(cpu *z80, mem []uint8) {
 	cpu.scheduler.append(&out{addr: port, data: cpu.regs.A})
 }
 
+var inAn_f byte
+
 func inAn(cpu *z80, mem []uint8) {
-	f := cpu.regs.F.GetByte()
+	inAn_f = cpu.regs.F.GetByte()
 	port := toWord(mem[1], cpu.regs.A)
-	cpu.scheduler.append(&in{from: port, f: func(cpu *z80, data []uint8) {
-		cpu.regs.A = data[0]
-		cpu.regs.F.SetByte(f)
-	}})
+	cpu.scheduler.append(&in{from: port, f: inAn_m1})
+}
+
+func inAn_m1(cpu *z80, data []uint8) {
+	cpu.regs.A = data[0]
+	cpu.regs.F.SetByte(inAn_f)
 }
 
 func inRc(cpu *z80, mem []uint8) {
-	rIdx := mem[0] >> 3 & 0b111
+	cpu.scheduler.append(&in{from: cpu.regs.BC.Get(), f: inRc_m1})
+}
+
+func inRc_m1(cpu *z80, data []uint8) {
+	rIdx := cpu.fetched[0] >> 3 & 0b111
 	r := cpu.getRptr(rIdx)
-	cpu.scheduler.append(&in{from: cpu.regs.BC.Get(), f: func(cpu *z80, data []uint8) {
-		*r = data[0]
-	}})
+	*r = data[0]
 }
 
 func inC(cpu *z80, mem []uint8) {
@@ -328,9 +375,13 @@ func ret(cpu *z80, mem []uint8) {
 }
 
 func rstP(cpu *z80, mem []uint8) {
+	cpu.pushToStack(cpu.regs.PC, rstP_m1)
+}
+
+func rstP_m1(cpu *z80) {
 	newPCs := []uint16{0x00, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38}
-	pIdx := mem[0] >> 3 & 0b111
-	cpu.pushToStack(cpu.regs.PC, func(cpu *z80) { cpu.regs.PC = newPCs[pIdx] })
+	pIdx := cpu.opBytes[0] >> 3 & 0b111
+	cpu.regs.PC = newPCs[pIdx]
 }
 
 func jpCC(cpu *z80, mem []uint8) {
@@ -345,17 +396,15 @@ func callCC(cpu *z80, mem []uint8) {
 	ccIdx := mem[0] >> 3 & 0b111
 	branch := cpu.checkCondition(ccIdx)
 	if branch {
-		cpu.pushToStack(cpu.regs.PC, func(cpu *z80) {
-			cpu.regs.PC = toWord(mem[1], mem[2])
-		})
+		cpu.pushToStack(cpu.regs.PC, call_m1)
 	}
 }
 
 func call(cpu *z80, mem []uint8) {
-	cpu.pushToStack(cpu.regs.PC, func(cpu *z80) {
-		cpu.regs.PC = toWord(mem[1], mem[2])
-	})
+	cpu.pushToStack(cpu.regs.PC, call_m1)
 }
+
+func call_m1(cpu *z80) { cpu.regs.PC = toWord(cpu.fetched[1], cpu.fetched[2]) }
 
 func (cpu *z80) checkCondition(ccIdx byte) bool {
 	res := false
@@ -380,44 +429,57 @@ func (cpu *z80) checkCondition(ccIdx byte) bool {
 	return res
 }
 
-func (cpu *z80) pushToStack(data uint16, f func(cpu *z80)) {
-	cpu.regs.SP.Set(cpu.regs.SP.Get() - 2)
+var pushF func(cpu *z80)
 
-	push1 := newMW(cpu.regs.SP.Get(), uint8(data), nil)
-	push2 := newMW(cpu.regs.SP.Get()+1, uint8(data>>8), func(z *z80) {
-		if f != nil {
-			f(cpu)
-		}
-	})
+func (cpu *z80) pushToStack(data uint16, f func(cpu *z80)) {
+	pushF = f
+	push1 := newMW(cpu.regs.SP.Get()-1, uint8(data>>8), nil)
+	push2 := newMW(cpu.regs.SP.Get()-2, uint8(data), push_m1)
 	cpu.scheduler.append(push1, push2)
 }
 
+func push_m1(cpu *z80) {
+	cpu.regs.SP.Set(cpu.regs.SP.Get() - 2)
+	if pushF != nil {
+		pushF(cpu)
+	}
+}
+
+var popData uint16
+var popF func(cpu *z80, data uint16)
+
 func (cpu *z80) popFromStack(f func(cpu *z80, data uint16)) {
-	var data uint16
-	pop1 := newMR(cpu.regs.SP.Get(), func(z *z80, d []uint8) { data = uint16(d[0]) })
-	pop2 := newMR(cpu.regs.SP.Get()+1, func(z *z80, d []uint8) {
-		data |= (uint16(d[0]) << 8)
-		cpu.regs.SP.Set(cpu.regs.SP.Get() + 2)
-		f(cpu, data)
-	})
+	popF = f
+	pop1 := newMR(cpu.regs.SP.Get(), pop_m1)
+	pop2 := newMR(cpu.regs.SP.Get()+1, pop_m2)
 	cpu.scheduler.append(pop1, pop2)
 }
 
+func pop_m1(cpu *z80, d []uint8) { popData = uint16(d[0]) }
+
+func pop_m2(cpu *z80, d []uint8) {
+	popData |= (uint16(d[0]) << 8)
+	cpu.regs.SP.Set(cpu.regs.SP.Get() + 2)
+	popF(cpu, popData)
+}
+
 func popSS(cpu *z80, mem []uint8) {
-	t := mem[0] >> 4 & 0b11
-	cpu.popFromStack(func(cpu *z80, data uint16) {
-		switch t {
-		case 0b00:
-			cpu.regs.BC.Set(data)
-		case 0b01:
-			cpu.regs.DE.Set(data)
-		case 0b10:
-			cpu.regs.HL.Set(data)
-		case 0b11:
-			cpu.regs.A = uint8(data >> 8)
-			cpu.regs.F.SetByte(uint8(data))
-		}
-	})
+	cpu.popFromStack(popSS_m1)
+}
+
+func popSS_m1(cpu *z80, data uint16) {
+	t := cpu.fetched[0] >> 4 & 0b11
+	switch t {
+	case 0b00:
+		cpu.regs.BC.Set(data)
+	case 0b01:
+		cpu.regs.DE.Set(data)
+	case 0b10:
+		cpu.regs.HL.Set(data)
+	case 0b11:
+		cpu.regs.A = uint8(data >> 8)
+		cpu.regs.F.SetByte(uint8(data))
+	}
 }
 
 func pushSS(cpu *z80, mem []uint8) {
@@ -486,36 +548,46 @@ func ldNNa(cpu *z80, mem []uint8) {
 	cpu.scheduler.append(mw1)
 }
 
+var hlv uint8
+
 func rrd(cpu *z80, mem []uint8) {
-	mr := newMR(cpu.regs.HL.Get(), func(z *z80, d []uint8) {
-		hlv := d[0]
-		mw := newMW(cpu.regs.HL.Get(), (cpu.regs.A<<4 | hlv>>4), func(cpu *z80) {
-			cpu.regs.A = (cpu.regs.A & 0xf0) | (hlv & 0x0f)
-			cpu.regs.F.S = cpu.regs.A&0x80 != 0
-			cpu.regs.F.Z = cpu.regs.A == 0
-			cpu.regs.F.P = parityTable[cpu.regs.A]
-			cpu.regs.F.H = false
-			cpu.regs.F.N = false
-		})
-		cpu.scheduler.append(mw)
-	})
+	mr := newMR(cpu.regs.HL.Get(), rrd_m1)
 	cpu.scheduler.append(mr)
 }
 
+func rrd_m1(cpu *z80, d []uint8) {
+	hlv = d[0]
+	mw := newMW(cpu.regs.HL.Get(), (cpu.regs.A<<4 | hlv>>4), rrd_m2)
+	cpu.scheduler.append(mw)
+}
+
+func rrd_m2(cpu *z80) {
+	cpu.regs.A = (cpu.regs.A & 0xf0) | (hlv & 0x0f)
+	cpu.regs.F.S = cpu.regs.A&0x80 != 0
+	cpu.regs.F.Z = cpu.regs.A == 0
+	cpu.regs.F.P = parityTable[cpu.regs.A]
+	cpu.regs.F.H = false
+	cpu.regs.F.N = false
+}
+
 func rld(cpu *z80, mem []uint8) {
-	mr := newMR(cpu.regs.HL.Get(), func(z *z80, d []uint8) {
-		hlv := d[0]
-		mw := newMW(cpu.regs.HL.Get(), (hlv<<4 | cpu.regs.A&0x0f), func(cpu *z80) {
-			cpu.regs.A = (cpu.regs.A & 0xf0) | (hlv >> 4)
-			cpu.regs.F.S = cpu.regs.A&0x80 != 0
-			cpu.regs.F.Z = cpu.regs.A == 0
-			cpu.regs.F.P = parityTable[cpu.regs.A]
-			cpu.regs.F.H = false
-			cpu.regs.F.N = false
-		})
-		cpu.scheduler.append(mw)
-	})
+	mr := newMR(cpu.regs.HL.Get(), rld_m1)
 	cpu.scheduler.append(mr)
+}
+
+func rld_m1(cpu *z80, d []uint8) {
+	hlv = d[0]
+	mw := newMW(cpu.regs.HL.Get(), (hlv<<4 | cpu.regs.A&0x0f), rld_m2)
+	cpu.scheduler.append(mw)
+}
+
+func rld_m2(cpu *z80) {
+	cpu.regs.A = (cpu.regs.A & 0xf0) | (hlv >> 4)
+	cpu.regs.F.S = cpu.regs.A&0x80 != 0
+	cpu.regs.F.Z = cpu.regs.A == 0
+	cpu.regs.F.P = parityTable[cpu.regs.A]
+	cpu.regs.F.H = false
+	cpu.regs.F.N = false
 }
 
 func ldNNdd(cpu *z80, mem []uint8) {
@@ -528,12 +600,21 @@ func ldNNdd(cpu *z80, mem []uint8) {
 }
 
 func ldDDnn(cpu *z80, mem []uint8) {
-	rIdx := mem[0] >> 4 & 0b11
-	reg := cpu.getRRptr(rIdx)
 	mm := toWord(mem[1], mem[2])
-	mr1 := newMR(mm, func(z *z80, d []uint8) { *reg.l = d[0] })
-	mr2 := newMR(mm+1, func(z *z80, d []uint8) { *reg.h = d[0] })
+	mr1 := newMR(mm, ldDDnn_m1)
+	mr2 := newMR(mm+1, ldDDnn_m2)
 	cpu.scheduler.append(mr1, mr2)
+}
+
+func ldDDnn_m1(cpu *z80, d []uint8) {
+	rIdx := cpu.opBytes[1] >> 4 & 0b11
+	reg := cpu.getRRptr(rIdx)
+	*reg.l = d[0]
+}
+func ldDDnn_m2(cpu *z80, d []uint8) {
+	rIdx := cpu.opBytes[1] >> 4 & 0b11
+	reg := cpu.getRRptr(rIdx)
+	*reg.h = d[0]
 }
 
 func ldAi(cpu *z80, mem []uint8) {
@@ -555,24 +636,37 @@ func ldAr(cpu *z80, mem []uint8) {
 
 func ldHLnn(cpu *z80, mem []uint8) {
 	mm := toWord(mem[1], mem[2])
-	mr1 := newMR(mm, func(z *z80, d []uint8) { cpu.regs.L = d[0] })
-	mr2 := newMR(mm+1, func(z *z80, d []uint8) { cpu.regs.H = d[0] })
+	mr1 := newMR(mm, ldHLnn_m1)
+	mr2 := newMR(mm+1, ldHLnn_m2)
+	cpu.scheduler.append(mr1, mr2)
+}
+func ldHLnn_m1(cpu *z80, d []uint8) { cpu.regs.L = d[0] }
+func ldHLnn_m2(cpu *z80, d []uint8) { cpu.regs.H = d[0] }
+
+func ldIXYnn(cpu *z80, mem []uint8) {
+	mm := toWord(mem[1], mem[2])
+	mr1 := newMR(mm, ldIXYnn_m1)
+	mr2 := newMR(mm+1, ldIXYnn_m2)
 	cpu.scheduler.append(mr1, mr2)
 }
 
-func ldIXYnn(cpu *z80, mem []uint8) {
+func ldIXYnn_m1(cpu *z80, d []uint8) {
 	reg := cpu.indexRegs[cpu.indexIdx]
-	mm := toWord(mem[1], mem[2])
-	mr1 := newMR(mm, func(z *z80, d []uint8) { *reg.l = d[0] })
-	mr2 := newMR(mm+1, func(z *z80, d []uint8) { *reg.h = d[0] })
-	cpu.scheduler.append(mr1, mr2)
+	*reg.l = d[0]
+}
+
+func ldIXYnn_m2(cpu *z80, d []uint8) {
+	reg := cpu.indexRegs[cpu.indexIdx]
+	*reg.h = d[0]
 }
 
 func ldAnn(cpu *z80, mem []uint8) {
 	mm := toWord(mem[1], mem[2])
-	mr1 := newMR(mm, func(z *z80, d []uint8) { cpu.regs.A = d[0] })
+	mr1 := newMR(mm, ldAnn_n1)
 	cpu.scheduler.append(mr1)
 }
+
+func ldAnn_n1(cpu *z80, d []uint8) { cpu.regs.A = d[0] }
 
 func ldHLn(cpu *z80, mem []uint8) {
 	mw1 := newMW(cpu.regs.HL.Get(), mem[1], nil)
@@ -627,7 +721,7 @@ func (cpu *z80) incR(r *byte) {
 
 func incHL(cpu *z80, mem []uint8) {
 	mr := newMR(cpu.regs.HL.Get(),
-		func(z *z80, d []uint8) {
+		func(cpu *z80, d []uint8) {
 			r := d[0]
 			r++
 			mw := newMW(cpu.regs.HL.Get(), r, nil)
@@ -646,7 +740,7 @@ func incHL(cpu *z80, mem []uint8) {
 func incIXYd(cpu *z80, mem []uint8) {
 	addr := cpu.getIXYn(mem[1])
 	mr := newMR(addr,
-		func(z *z80, d []uint8) {
+		func(cpu *z80, d []uint8) {
 			r := d[0]
 			r++
 			mw := newMW(addr, r, nil)
@@ -726,48 +820,64 @@ func cpR(cpu *z80, mem []uint8) {
 }
 
 func addAhl(cpu *z80, mem []uint8) {
-	mr := newMR(cpu.regs.HL.Get(), func(z *z80, d []uint8) { cpu.addA(d[0]) })
+	mr := newMR(cpu.regs.HL.Get(), addAhl_m1)
 	cpu.scheduler.append(mr)
 }
+
+func addAhl_m1(cpu *z80, d []uint8) { cpu.addA(d[0]) }
 
 func subAhl(cpu *z80, mem []uint8) {
-	mr := newMR(cpu.regs.HL.Get(), func(z *z80, d []uint8) { cpu.subA(d[0]) })
+	mr := newMR(cpu.regs.HL.Get(), subAhl_m1)
 	cpu.scheduler.append(mr)
 }
+
+func subAhl_m1(cpu *z80, d []uint8) { cpu.subA(d[0]) }
 
 func sbcAhl(cpu *z80, mem []uint8) {
-	mr := newMR(cpu.regs.HL.Get(), func(z *z80, d []uint8) { cpu.sbcA(d[0]) })
+	mr := newMR(cpu.regs.HL.Get(), sbcAhl_m1)
 	cpu.scheduler.append(mr)
 }
+
+func sbcAhl_m1(cpu *z80, d []uint8) { cpu.sbcA(d[0]) }
 
 func adcAhl(cpu *z80, mem []uint8) {
-	mr := newMR(cpu.regs.HL.Get(), func(z *z80, d []uint8) { cpu.adcA(d[0]) })
+	mr := newMR(cpu.regs.HL.Get(), adcAhl_m1)
 	cpu.scheduler.append(mr)
 }
+
+func adcAhl_m1(cpu *z80, d []uint8) { cpu.adcA(d[0]) }
 
 func andAhl(cpu *z80, mem []uint8) {
-	mr := newMR(cpu.regs.HL.Get(), func(z *z80, d []uint8) { cpu.and(d[0]) })
+	mr := newMR(cpu.regs.HL.Get(), andAhl_m1)
 	cpu.scheduler.append(mr)
 }
+
+func andAhl_m1(cpu *z80, d []uint8) { cpu.and(d[0]) }
 
 func orAhl(cpu *z80, mem []uint8) {
-	mr := newMR(cpu.regs.HL.Get(), func(z *z80, d []uint8) { cpu.or(d[0]) })
+	mr := newMR(cpu.regs.HL.Get(), orAhl_m1)
 	cpu.scheduler.append(mr)
 }
+
+func orAhl_m1(cpu *z80, d []uint8) { cpu.or(d[0]) }
 
 func xorAhl(cpu *z80, mem []uint8) {
-	mr := newMR(cpu.regs.HL.Get(), func(z *z80, d []uint8) { cpu.xor(d[0]) })
+	mr := newMR(cpu.regs.HL.Get(), xorAhl_m1)
 	cpu.scheduler.append(mr)
 }
 
+func xorAhl_m1(cpu *z80, d []uint8) { cpu.xor(d[0]) }
+
 func cpHl(cpu *z80, mem []uint8) {
-	mr := newMR(cpu.regs.HL.Get(), func(z *z80, d []uint8) { cpu.cp(d[0]) })
+	mr := newMR(cpu.regs.HL.Get(), cpHl_m1)
 	cpu.scheduler.append(mr)
 }
+
+func cpHl_m1(cpu *z80, d []uint8) { cpu.cp(d[0]) }
 
 func decHL(cpu *z80, mem []uint8) {
 	mr := newMR(cpu.regs.HL.Get(),
-		func(z *z80, d []uint8) {
+		func(cpu *z80, d []uint8) {
 			r := d[0]
 			cpu.regs.F.H = r&0x0f == 0
 			r--
@@ -786,7 +896,7 @@ func decHL(cpu *z80, mem []uint8) {
 func decIXYd(cpu *z80, mem []uint8) {
 	addr := cpu.getIXYn(mem[1])
 	mr := newMR(addr,
-		func(z *z80, d []uint8) {
+		func(cpu *z80, d []uint8) {
 			r := d[0]
 			cpu.regs.F.H = r&0x0f == 0
 			r--
@@ -809,67 +919,85 @@ func ldRn(cpu *z80, mem []uint8) {
 }
 
 func ldRhl(cpu *z80, mem []uint8) {
-	rIdx := mem[0] >> 3 & 0b111
-	r := cpu.getRptr(rIdx)
-	mr := newMR(cpu.regs.HL.Get(), func(z *z80, d []uint8) { *r = d[0] })
+	mr := newMR(cpu.regs.HL.Get(), ldR_m1)
 	cpu.scheduler.append(mr)
 }
 
 func ldRixyD(cpu *z80, mem []uint8) {
 	addr := cpu.getIXYn(mem[1])
-	rIdx := mem[0] >> 3 & 0b111
-	r := cpu.getRptr(rIdx)
-	mr := newMR(addr, func(z *z80, d []uint8) { *r = d[0] })
+	mr := newMR(addr, ldR_m1)
 	cpu.scheduler.append(mr)
+}
+
+func ldR_m1(cpu *z80, d []uint8) {
+	rIdx := cpu.fetched[0] >> 3 & 0b111
+	r := cpu.getRptr(rIdx)
+	*r = d[0]
 }
 
 func addAixyD(cpu *z80, mem []uint8) {
 	addr := cpu.getIXYn(mem[1])
-	mr := newMR(addr, func(z *z80, d []uint8) { cpu.addA(d[0]) })
+	mr := newMR(addr, addAixyD_m1)
 	cpu.scheduler.append(mr)
 }
+
+func addAixyD_m1(cpu *z80, d []uint8) { cpu.addA(d[0]) }
 
 func adcAixyD(cpu *z80, mem []uint8) {
 	addr := cpu.getIXYn(mem[1])
-	mr := newMR(addr, func(z *z80, d []uint8) { cpu.adcA(d[0]) })
+	mr := newMR(addr, adcAixyD_m1)
 	cpu.scheduler.append(mr)
 }
+
+func adcAixyD_m1(cpu *z80, d []uint8) { cpu.adcA(d[0]) }
 
 func subAixyD(cpu *z80, mem []uint8) {
 	addr := cpu.getIXYn(mem[1])
-	mr := newMR(addr, func(z *z80, d []uint8) { cpu.subA(d[0]) })
+	mr := newMR(addr, subAixyD_m1)
 	cpu.scheduler.append(mr)
 }
+
+func subAixyD_m1(cpu *z80, d []uint8) { cpu.subA(d[0]) }
 
 func sbcAixyD(cpu *z80, mem []uint8) {
 	addr := cpu.getIXYn(mem[1])
-	mr := newMR(addr, func(z *z80, d []uint8) { cpu.sbcA(d[0]) })
+	mr := newMR(addr, sbcAixyD_m1)
 	cpu.scheduler.append(mr)
 }
+
+func sbcAixyD_m1(cpu *z80, d []uint8) { cpu.sbcA(d[0]) }
 
 func andAixyD(cpu *z80, mem []uint8) {
 	addr := cpu.getIXYn(mem[1])
-	mr := newMR(addr, func(z *z80, d []uint8) { cpu.and(d[0]) })
+	mr := newMR(addr, andAixyD_m1)
 	cpu.scheduler.append(mr)
 }
+
+func andAixyD_m1(cpu *z80, d []uint8) { cpu.and(d[0]) }
 
 func xorAixyD(cpu *z80, mem []uint8) {
 	addr := cpu.getIXYn(mem[1])
-	mr := newMR(addr, func(z *z80, d []uint8) { cpu.xor(d[0]) })
+	mr := newMR(addr, xorAixyD_m1)
 	cpu.scheduler.append(mr)
 }
+
+func xorAixyD_m1(cpu *z80, d []uint8) { cpu.xor(d[0]) }
 
 func cpAixyD(cpu *z80, mem []uint8) {
 	addr := cpu.getIXYn(mem[1])
-	mr := newMR(addr, func(z *z80, d []uint8) { cpu.cp(d[0]) })
+	mr := newMR(addr, cpAixyD_m1)
 	cpu.scheduler.append(mr)
 }
 
+func cpAixyD_m1(cpu *z80, d []uint8) { cpu.cp(d[0]) }
+
 func orAixyD(cpu *z80, mem []uint8) {
 	addr := cpu.getIXYn(mem[1])
-	mr := newMR(addr, func(z *z80, d []uint8) { cpu.or(d[0]) })
+	mr := newMR(addr, orAixyD_m1)
 	cpu.scheduler.append(mr)
 }
+
+func orAixyD_m1(cpu *z80, d []uint8) { cpu.or(d[0]) }
 
 func ldHLr(cpu *z80, mem []uint8) {
 	rIdx := mem[0] & 0b111
@@ -965,7 +1093,7 @@ func cbR(cpu *z80, mem []uint8) {
 
 func cbHL(cpu *z80, mem []uint8) {
 	mr := newMR(cpu.regs.HL.Get(),
-		func(z *z80, d []uint8) {
+		func(cpu *z80, d []uint8) {
 			b := d[0]
 			fIdx := mem[0] >> 3
 			cbFuncs[fIdx](cpu, &b)
@@ -978,7 +1106,7 @@ func cbHL(cpu *z80, mem []uint8) {
 func cbIXYdr(cpu *z80, mem []uint8) {
 	addr := cpu.getIXYn(mem[1])
 	mr := newMR(addr,
-		func(z *z80, d []uint8) {
+		func(cpu *z80, d []uint8) {
 			r := d[0]
 			fIdx := (mem[2] >> 3) & 0b111
 			cbFuncs[fIdx](cpu, &r)
@@ -996,7 +1124,7 @@ func cbIXYdr(cpu *z80, mem []uint8) {
 func cbIXYd(cpu *z80, mem []uint8) {
 	addr := cpu.getIXYn(mem[1])
 	mr := newMR(addr,
-		func(z *z80, d []uint8) {
+		func(cpu *z80, d []uint8) {
 			r := d[0]
 			fIdx := (mem[2] >> 3) & 0b111
 			cbFuncs[fIdx](cpu, &r)
@@ -1017,7 +1145,7 @@ func bitIXYd(cpu *z80, mem []uint8) {
 	addr := cpu.getIXYn(mem[1])
 	b := (mem[2] >> 3) & 0b111
 	mr := newMR(addr,
-		func(z *z80, d []uint8) {
+		func(cpu *z80, d []uint8) {
 			r := d[0]
 			cpu.bit(b, r)
 		})
@@ -1026,7 +1154,7 @@ func bitIXYd(cpu *z80, mem []uint8) {
 
 func bitHL(cpu *z80, mem []uint8) {
 	mr := newMR(cpu.regs.HL.Get(),
-		func(z *z80, d []uint8) {
+		func(cpu *z80, d []uint8) {
 			v := d[0]
 			b := (mem[0] >> 3) & 0b111
 			cpu.bit(b, v)
@@ -1043,7 +1171,7 @@ func res(cpu *z80, mem []uint8) {
 
 func resHL(cpu *z80, mem []uint8) {
 	mr := newMR(cpu.regs.HL.Get(),
-		func(z *z80, d []uint8) {
+		func(cpu *z80, d []uint8) {
 			v := d[0]
 			b := (mem[0] >> 3) & 0b111
 			cpu.res(b, &v)
@@ -1057,7 +1185,7 @@ func resIXYdR(cpu *z80, mem []uint8) {
 	addr := cpu.getIXYn(mem[1])
 	b := (mem[2] >> 3) & 0b111
 	mr := newMR(addr,
-		func(z *z80, d []uint8) {
+		func(cpu *z80, d []uint8) {
 			r := d[0]
 			cpu.res(b, &r)
 
@@ -1075,7 +1203,7 @@ func resIXYd(cpu *z80, mem []uint8) {
 	addr := cpu.getIXYn(mem[1])
 	b := (mem[2] >> 3) & 0b111
 	mr := newMR(addr,
-		func(z *z80, d []uint8) {
+		func(cpu *z80, d []uint8) {
 			r := d[0]
 			cpu.res(b, &r)
 			mw := newMW(addr, r, nil)
@@ -1093,7 +1221,7 @@ func set(cpu *z80, mem []uint8) {
 
 func setHL(cpu *z80, mem []uint8) {
 	mr := newMR(cpu.regs.HL.Get(),
-		func(z *z80, d []uint8) {
+		func(cpu *z80, d []uint8) {
 			v := d[0]
 			b := (mem[0] >> 3) & 0b111
 			cpu.set(b, &v)
@@ -1107,7 +1235,7 @@ func setIXYdR(cpu *z80, mem []uint8) {
 	addr := cpu.getIXYn(mem[1])
 	b := (mem[2] >> 3) & 0b111
 	mr := newMR(addr,
-		func(z *z80, d []uint8) {
+		func(cpu *z80, d []uint8) {
 			r := d[0]
 			cpu.set(b, &r)
 
@@ -1125,7 +1253,7 @@ func setIXYd(cpu *z80, mem []uint8) {
 	addr := cpu.getIXYn(mem[1])
 	b := (mem[2] >> 3) & 0b111
 	mr := newMR(addr,
-		func(z *z80, d []uint8) {
+		func(cpu *z80, d []uint8) {
 			r := d[0]
 			cpu.set(b, &r)
 			mw := newMW(addr, r, nil)
@@ -1172,12 +1300,9 @@ func exx(cpu *z80, mem []uint8) {
 }
 
 func halt(cpu *z80, mem []uint8) {
-	if cpu.haltDone {
-		cpu.haltDone = false
-	} else {
-		cpu.halt = true
-	}
+	cpu.halt = true
 }
+
 func addHLss(cpu *z80, mem []uint8) {
 	rIdx := mem[0] >> 4 & 0b11
 	reg := cpu.getRRptr(rIdx)
@@ -1194,15 +1319,19 @@ func addHLss(cpu *z80, mem []uint8) {
 
 func ldAbc(cpu *z80, mem []uint8) {
 	from := cpu.regs.BC.Get()
-	mr := newMR(from, func(z *z80, data []uint8) { cpu.regs.A = data[0] })
+	mr := newMR(from, ldAbc_m1)
 	cpu.scheduler.append(mr)
 }
 
+func ldAbc_m1(cpu *z80, data []uint8) { cpu.regs.A = data[0] }
+
 func ldAde(cpu *z80, mem []uint8) {
 	from := cpu.regs.DE.Get()
-	mr := newMR(from, func(z *z80, data []uint8) { cpu.regs.A = data[0] })
+	mr := newMR(from, ldAde_m1)
 	cpu.scheduler.append(mr)
 }
+
+func ldAde_m1(cpu *z80, data []uint8) { cpu.regs.A = data[0] }
 
 func djnz(cpu *z80, mem []uint8) {
 	cpu.regs.B--

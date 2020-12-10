@@ -398,30 +398,14 @@ func printChar(regs *Z80Registers, memory []byte) {
 // ***
 
 type basicMemory struct {
-	memory  []byte
-	tStates *uint
+	memory []byte
 }
 
-func (mem *basicMemory) LoadRom(idx int, rom []byte)       {}
-func (mem *basicMemory) Paging(config byte)                {}
-func (mem *basicMemory) ReadPort(port uint16) (byte, bool) { return 0, true }
-func (mem *basicMemory) WritePort(port uint16, data byte)  {}
-
-func (mem *basicMemory) GetBlock(start, length uint16) []byte {
-	return mem.memory[start : start+length]
-}
 func (mem *basicMemory) GetByte(pos uint16) byte {
 	return mem.memory[pos]
 }
 func (mem *basicMemory) PutByte(pos uint16, b byte) {
 	mem.memory[pos] = b
-}
-func (mem *basicMemory) GetWord(pos uint16) uint16 {
-	return uint16(mem.memory[pos+1])<<8 | uint16(mem.memory[pos])
-}
-func (mem *basicMemory) PutWord(pos, w uint16) {
-	mem.memory[pos+1] = byte(w >> 8)
-	mem.memory[pos] = byte(w)
 }
 
 // ***
