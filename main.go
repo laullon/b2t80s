@@ -142,6 +142,7 @@ func main() {
 				widget.NewButton("Dump 5 Frames", func() {
 				}),
 				widget.NewCheck("Dump", func(on bool) {
+					machine.Debugger().SetDump(on)
 				}),
 			),
 			debugger,

@@ -1,6 +1,8 @@
 package z80
 
 import (
+	"fmt"
+
 	"github.com/laullon/b2t80s/emulator"
 )
 
@@ -87,4 +89,16 @@ func (cb *circularBuffer) first() z80op {
 func (cb *circularBuffer) next() {
 	cb.i++
 	cb.i &= 0x0F
+}
+
+// -----------
+
+func (regs *Z80Registers) dump() string {
+	return fmt.Sprintf(
+		"A:0x%02X F:%08b BC:0x%04X DE:0x%04X HL:0x%04X SP:0x%04X",
+		regs.A, regs.F.GetByte(),
+		uint16(regs.B)<<8|uint16(regs.C),
+		uint16(regs.D)<<8|uint16(regs.E),
+		uint16(regs.H)<<8|uint16(regs.L),
+		regs.SP.Get())
 }

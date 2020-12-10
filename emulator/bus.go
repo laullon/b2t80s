@@ -1,6 +1,9 @@
 package emulator
 
-import "fmt"
+import (
+	"fmt"
+	"reflect"
+)
 
 type Bus interface {
 	SetAddr(uint16)
@@ -48,12 +51,12 @@ func (bus *genericBus) RegisterPort(mask PortMask, manager PortManager) {
 }
 
 func (bus *genericBus) WritePort() {
-	// fmt.Printf("[writePort]-> port:0x%04X data:%v pc:0x%04X \n", port, data, cpu.regs.PC)
+	fmt.Printf("[writePort]-> port:0x%04X data:%v  \n", bus.addr, bus.data)
 	ok := false
 	for portMask, portManager := range bus.ports {
-		// fmt.Printf("[writePort] (0x%04X) port:0x%04X (0x%04X)(0x%04X) data:%v\n", cpu.regs.PC, port, port&portMask.Mask, portMask.Value, data)
+		fmt.Printf("[writePort] port:0x%04X (0x%04X)(0x%04X) data:%v\n", bus.addr, bus.addr&portMask.Mask, portMask.Value, bus.data)
 		if (bus.addr & portMask.Mask) == portMask.Value {
-			// println(reflect.TypeOf(portManager).String())
+			println(reflect.TypeOf(portManager).String())
 			portManager.WritePort(bus.addr, bus.data)
 			ok = true
 		}

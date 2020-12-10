@@ -37,7 +37,7 @@ var z80OpsCodeTable = []*opCode{
 	{"JP cc, nn", 0b11000111, 0b11000010, 3, []z80op{&mrPC{}, &mrPC{f: jpCC}}, nil},
 	{"CALL cc, nn", 0b11000111, 0b11000100, 3, []z80op{&mrPC{}, &mrPC{f: callCC}}, nil},
 	{"RST p", 0b11000111, 0b11000111, 1, []z80op{&exec{l: 1, f: rstP}}, nil},
-	{"CALL cc, nn", 0xFF, 0xCD, 3, []z80op{&mrPC{}, &mrPC{f: call}}, nil},
+	{"CALL nn", 0xFF, 0xCD, 3, []z80op{&mrPC{}, &mrPC{f: call}}, nil},
 
 	// {"", 0xFF, 0x1,,[]z80op{},nil},
 	{"NOP", 0xFF, 0x00, 1, []z80op{}, nil},

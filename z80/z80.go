@@ -70,9 +70,12 @@ type z80 struct {
 	indexRegs []*RegPair
 	indexIdx  int
 
-	halt, haltDone bool
+	halt bool
 
 	doInterrupt bool
+
+	opBytes []uint8
+	opPC    uint16
 
 	fetched   []uint8
 	scheduler *circularBuffer
@@ -166,24 +169,47 @@ func (cpu *z80) Halt() {
 
 func (cpu *z80) execInterrupt() {
 	cpu.doInterrupt = false
+	cpu.halt = false
 
-	switch cpu.regs.InterruptsMode {
-	case 0, 1:
-		code := &exec{l: 7, f: func(cpu *z80, u []uint8) {
-			cpu.pushToStack(cpu.regs.PC, func(cpu *z80) {
-				cpu.regs.PC = 0x0038
-			})
-		}}
-		cpu.scheduler.append(code)
-	default:
-		panic(cpu.regs.InterruptsMode)
+	if cpu.regs.IFF1 {
+		cpu.regs.IFF1 = false
+		cpu.regs.IFF2 = false
+		switch cpu.regs.InterruptsMode {
+		case 0, 1:
+			code := &exec{l: 7, f: func(cpu *z80, u []uint8) {
+				cpu.pushToStack(cpu.regs.PC, func(cpu *z80) {
+					cpu.regs.PC = 0x0038
+				})
+			}}
+			cpu.scheduler.append(code)
+		default:
+			panic(cpu.regs.InterruptsMode)
+		}
 	}
 }
 
 func (cpu *z80) Tick() {
+	if cpu.halt {
+		if cpu.doInterrupt {
+			cpu.execInterrupt()
+		} else {
+			return
+		}
+	}
 	if cpu.scheduler.first().isDone() {
 		cpu.scheduler.next()
 		if cpu.scheduler.isEmpty() {
+			if cpu.debugger != nil { // TODO: add dummy debuger on the test to remove this IF
+				if len(cpu.opBytes) > 0 {
+					cpu.debugger.AddInstruction(cpu.opPC, cpu.opBytes)
+				}
+			}
+			if cpu.doInterrupt {
+				cpu.execInterrupt()
+			}
+			if cpu.halt {
+				return
+			}
 			cpu.newInstruction()
 		}
 	}
@@ -191,19 +217,19 @@ func (cpu *z80) Tick() {
 }
 
 func (cpu *z80) newInstruction() {
+	cpu.opPC = cpu.regs.PC
 	cpu.fetched = nil
+	cpu.opBytes = nil
 	cpu.indexIdx = 0
 
 	cpu.doTraps()
 
-	cpu.debugger.AddInstruction(cpu.bus.GetBlock(cpu.regs.PC, 4*12))
-	cpu.debugger.Tick()
+	if cpu.debugger != nil { // TODO: add dummy debuger on the test to remove this IF
+		cpu.debugger.NextInstruction(cpu.bus.GetBlock(cpu.regs.PC, 4))
+		cpu.debugger.Tick()
+	}
 
-	// if cpu.doInterrupt {
-	// 	cpu.execInterrupt()
-	// } else {
 	cpu.scheduler.append(newFetch(lookup))
-	// }
 }
 
 func (cpu *z80) doTraps() {
