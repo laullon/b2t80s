@@ -7,3 +7,4 @@ zout
 dump.txt
 data.go
 cpu.prof
+trace.out

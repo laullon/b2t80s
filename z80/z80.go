@@ -61,6 +61,13 @@ type Z80Registers struct {
 	InterruptsMode byte
 }
 
+type fetchedData struct {
+	prefix uint16
+	opCode uint8
+	n      uint8
+	n2     uint8
+	nn     uint16
+}
 type z80 struct {
 	debugger emulator.Debugger
 
@@ -77,7 +84,7 @@ type z80 struct {
 	opBytes []uint8
 	opPC    uint16
 
-	fetched   []uint8
+	fetched   *fetchedData
 	scheduler *circularBuffer
 
 	traps map[uint16]emulator.CPUTrap
@@ -107,6 +114,7 @@ func init() {
 func NewZ80(bus emulator.Bus) emulator.CPU {
 	cpu := &z80{
 		bus:       bus,
+		fetched:   &fetchedData{},
 		scheduler: newCircularBuffer(),
 		traps:     make(map[uint16]emulator.CPUTrap),
 		regs: &Z80Registers{
@@ -176,7 +184,7 @@ func (cpu *z80) execInterrupt() {
 		cpu.regs.IFF2 = false
 		switch cpu.regs.InterruptsMode {
 		case 0, 1:
-			code := &exec{l: 7, f: func(cpu *z80, u []uint8) {
+			code := &exec{l: 7, f: func(cpu *z80) {
 				cpu.pushToStack(cpu.regs.PC, func(cpu *z80) {
 					cpu.regs.PC = 0x0038
 				})
@@ -217,9 +225,12 @@ func (cpu *z80) Tick() {
 }
 
 func (cpu *z80) newInstruction() {
-	cpu.opPC = cpu.regs.PC
-	cpu.fetched = nil
+	cpu.fetched.n = 0
+	cpu.fetched.nn = 0
+	cpu.fetched.opCode = 0
+	cpu.fetched.prefix = 0
 	cpu.opBytes = nil
+	cpu.opPC = cpu.regs.PC
 	cpu.indexIdx = 0
 
 	cpu.doTraps()
