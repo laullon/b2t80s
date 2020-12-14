@@ -7,9 +7,9 @@ func ini(cpu *z80) { // TODO review tests changes
 
 func ini_m1(cpu *z80, data uint8) {
 	mw := newMW(cpu.regs.HL.Get(), data, ini_m2)
-	cpu.scheduler.append(mw)
+	cpu.scheduler.append(&exec{l: 1}, mw)
 	if cpu.opBytes[1] > 0xAF {
-		cpu.scheduler.append(&exec{l: 1, f: ini_m3})
+		cpu.scheduler.append(&exec{l: 5, f: ini_m3})
 	}
 }
 
@@ -27,62 +27,75 @@ func ini_m3(cpu *z80) {
 }
 
 func ind(cpu *z80) { // TODO review tests changes
-	in := &in{from: cpu.regs.BC.Get(), f: func(cpu *z80, data uint8) {
-		hl := cpu.regs.HL.Get()
-		mw := newMW(hl, data, func(z *z80) {
-			cpu.regs.B--
-			cpu.regs.HL.Set(hl - 1)
-			cpu.regs.F.N = true
-			cpu.regs.F.Z = cpu.regs.B == 0
-		})
-		cpu.scheduler.append(mw)
-		if cpu.fetched.opCode > 0xAF {
-			cpu.scheduler.append(&exec{l: 1, f: func(cpu *z80) {
-				if cpu.regs.B != 0 {
-					cpu.regs.PC = cpu.regs.PC - 2
-				}
-			}})
-		}
-	}}
-	cpu.scheduler.append(in)
+	in := &in{from: cpu.regs.BC.Get(), f: ind_m1}
+	cpu.scheduler.append(&exec{l: 1}, in)
+}
+
+func ind_m1(cpu *z80, data uint8) {
+	hl := cpu.regs.HL.Get()
+	mw := newMW(hl, data, ind_m2)
+	cpu.scheduler.append(mw)
+}
+
+func ind_m2(cpu *z80) {
+	hl := cpu.regs.HL.Get()
+	cpu.regs.B--
+	cpu.regs.HL.Set(hl - 1)
+	cpu.regs.F.N = true
+	cpu.regs.F.Z = cpu.regs.B == 0
+	if cpu.fetched.opCode > 0xAF {
+		cpu.scheduler.append(&exec{l: 5, f: ind_m3})
+	}
+}
+
+func ind_m3(cpu *z80) {
+	if cpu.regs.B != 0 {
+		cpu.regs.PC = cpu.regs.PC - 2
+	}
 }
 
 func outi(cpu *z80) { // TODO review tests changes
-	mr := newMR(cpu.regs.HL.Get(), func(cpu *z80, data uint8) {
-		cpu.regs.B--
-		out := &out{addr: cpu.regs.BC.Get(), data: data, f: func(z *z80) {
-			cpu.regs.HL.Set(cpu.regs.HL.Get() + 1)
-			cpu.regs.F.Z = cpu.regs.B == 0
-			cpu.regs.F.S = cpu.regs.B&0x80 != 0
-			cpu.regs.F.N = cpu.regs.B&0x80 == 0
-			cpu.regs.F.H = true
-			cpu.regs.F.P = parityTable[cpu.regs.B]
-		}}
-		cpu.scheduler.append(out)
-		if cpu.fetched.opCode > 0xAF {
-			cpu.scheduler.append(&exec{l: 1, f: func(cpu *z80) {
-				if cpu.regs.B != 0 {
-					cpu.regs.PC = cpu.regs.PC - 2
-				}
-			}})
-		}
-	})
-	cpu.scheduler.append(mr)
+	mr := newMR(cpu.regs.HL.Get(), outi_m2)
+	cpu.scheduler.append(&exec{l: 1}, mr)
+}
+
+func outi_m2(cpu *z80, data uint8) {
+	cpu.regs.B--
+	out := &out{addr: cpu.regs.BC.Get(), data: data, f: outi_m3}
+	cpu.scheduler.append(&exec{l: 1}, out)
+	if cpu.fetched.opCode > 0xAF {
+		cpu.scheduler.append(&exec{l: 5, f: func(cpu *z80) {
+			if cpu.regs.B != 0 {
+				cpu.regs.PC = cpu.regs.PC - 2
+			}
+		}})
+	}
+}
+
+func outi_m3(cpu *z80) {
+	cpu.regs.HL.Set(cpu.regs.HL.Get() + 1)
+	cpu.regs.F.Z = cpu.regs.B == 0
+	cpu.regs.F.S = cpu.regs.B&0x80 != 0
+	cpu.regs.F.N = cpu.regs.B&0x80 == 0
+	cpu.regs.F.H = true
+	cpu.regs.F.P = parityTable[cpu.regs.B]
 }
 
 func outd(cpu *z80) { // TODO review tests changes
-	mr := newMR(cpu.regs.HL.Get(), func(cpu *z80, data uint8) {
-		cpu.regs.B--
-		out := &out{addr: cpu.regs.BC.Get(), data: data, f: outd_m1}
-		cpu.scheduler.append(out)
-		if cpu.fetched.opCode > 0xAF {
-			cpu.scheduler.append(&exec{l: 1, f: outd_m2})
-		}
-	})
-	cpu.scheduler.append(mr)
+	mr := newMR(cpu.regs.HL.Get(), outd_m1)
+	cpu.scheduler.append(&exec{l: 1}, mr)
 }
 
-func outd_m1(cpu *z80) {
+func outd_m1(cpu *z80, data uint8) {
+	cpu.regs.B--
+	out := &out{addr: cpu.regs.BC.Get(), data: data, f: outd_m2}
+	cpu.scheduler.append(&exec{l: 1}, out)
+	if cpu.fetched.opCode > 0xAF {
+		cpu.scheduler.append(&exec{l: 5, f: outd_m3})
+	}
+}
+
+func outd_m2(cpu *z80) {
 	cpu.regs.HL.Set(cpu.regs.HL.Get() - 1)
 	cpu.regs.F.Z = cpu.regs.B == 0
 	cpu.regs.F.S = cpu.regs.B&0x80 != 0
@@ -91,7 +104,7 @@ func outd_m1(cpu *z80) {
 	cpu.regs.F.P = parityTable[cpu.regs.B]
 }
 
-func outd_m2(cpu *z80) {
+func outd_m3(cpu *z80) {
 	if cpu.regs.B != 0 {
 		cpu.regs.PC = cpu.regs.PC - 2
 	}
@@ -105,30 +118,31 @@ func cpi(cpu *z80) {
 var cpi_result uint8
 
 func cpi_m1(cpu *z80, data uint8) {
-	bc := cpu.regs.BC.Get()
-	hl := cpu.regs.HL.Get()
 
 	val := data
 	cpi_result = cpu.regs.A - val
 	lookup := (cpu.regs.A&0x08)>>3 | (val&0x08)>>2 | (cpi_result&0x08)>>1
-
-	bc--
-	hl++
-
-	cpu.regs.BC.Set(bc)
-	cpu.regs.HL.Set(hl)
-
-	cpu.regs.F.S = cpi_result&0x80 != 0
-	cpu.regs.F.Z = cpi_result == 0
 	cpu.regs.F.H = halfcarrySubTable[lookup]
-	cpu.regs.F.P = bc != 0
-	cpu.regs.F.N = true
-	if cpu.fetched.opCode > 0xAF {
-		cpu.scheduler.append(&exec{l: 1, f: cpi_m2})
-	}
+
+	cpu.scheduler.append(&exec{l: 5, f: cpi_m2})
 }
 
 func cpi_m2(cpu *z80) {
+	bc := cpu.regs.BC.Get()
+	bc--
+	cpu.regs.BC.Set(bc)
+	cpu.regs.HL.Set(cpu.regs.HL.Get() + 1)
+
+	cpu.regs.F.S = cpi_result&0x80 != 0
+	cpu.regs.F.Z = cpi_result == 0
+	cpu.regs.F.P = bc != 0
+	cpu.regs.F.N = true
+	if cpu.fetched.opCode > 0xAF {
+		cpu.scheduler.append(&exec{l: 5, f: cpi_m3})
+	}
+}
+
+func cpi_m3(cpu *z80) {
 	if (cpu.regs.BC.Get()) != 0 && (cpi_result != 0) {
 		cpu.regs.PC = cpu.regs.PC - 2
 	}
@@ -141,12 +155,20 @@ func cpd(cpu *z80) {
 }
 
 func cpd_m1(cpu *z80, data uint8) {
-	bc := cpu.regs.BC.Get()
-	hl := cpu.regs.HL.Get()
-
 	val := data
 	result := cpu.regs.A - val
 	lookup := (cpu.regs.A&0x08)>>3 | (val&0x08)>>2 | (result&0x08)>>1
+
+	cpu.regs.F.S = result&0x80 != 0
+	cpu.regs.F.Z = result == 0
+	cpu.regs.F.H = halfcarrySubTable[lookup]
+
+	cpu.scheduler.append(&exec{l: 5, f: cpd_m2})
+}
+
+func cpd_m2(cpu *z80) {
+	bc := cpu.regs.BC.Get()
+	hl := cpu.regs.HL.Get()
 
 	bc--
 	hl--
@@ -154,17 +176,15 @@ func cpd_m1(cpu *z80, data uint8) {
 	cpu.regs.BC.Set(bc)
 	cpu.regs.HL.Set(hl)
 
-	cpu.regs.F.S = result&0x80 != 0
-	cpu.regs.F.Z = result == 0
-	cpu.regs.F.H = halfcarrySubTable[lookup]
 	cpu.regs.F.P = bc != 0
 	cpu.regs.F.N = true
+
 	if cpu.fetched.opCode > 0xAF {
-		cpu.scheduler.append(&exec{l: 1, f: cpd_m2})
+		cpu.scheduler.append(&exec{l: 5, f: cpd_m3})
 	}
 }
 
-func cpd_m2(cpu *z80) {
+func cpd_m3(cpu *z80) {
 	if cpu.regs.BC.Get() != 0 {
 		cpu.regs.PC = cpu.regs.PC - 2
 	}
@@ -180,7 +200,7 @@ func ldi_m1(cpu *z80, data uint8) {
 	v := data
 	de := cpu.regs.DE.Get()
 	mw := newMW(de, v, ldi_m2)
-	cpu.scheduler.append(mw)
+	cpu.scheduler.append(&exec{l: 2}, mw)
 }
 
 func ldi_m2(cpu *z80) {
@@ -200,7 +220,7 @@ func ldi_m2(cpu *z80) {
 	cpu.regs.F.H = false
 	cpu.regs.F.N = false
 	if cpu.fetched.opCode > 0xAF {
-		cpu.scheduler.append(&exec{l: 1, f: ldi_m3})
+		cpu.scheduler.append(&exec{l: 5, f: ldi_m3})
 	}
 }
 
@@ -221,7 +241,7 @@ func ldd_m1(cpu *z80, data uint8) {
 	de := cpu.regs.DE.Get()
 	v := data
 	mw := newMW(de, v, ldd_m2)
-	cpu.scheduler.append(mw)
+	cpu.scheduler.append(&exec{l: 2}, mw)
 }
 
 func ldd_m2(cpu *z80) {
@@ -241,7 +261,7 @@ func ldd_m2(cpu *z80) {
 	cpu.regs.F.H = false
 	cpu.regs.F.N = false
 	if cpu.fetched.opCode > 0xAF {
-		cpu.scheduler.append(&exec{l: 1, f: ldd_m3})
+		cpu.scheduler.append(&exec{l: 5, f: ldd_m3})
 	}
 }
 
@@ -259,7 +279,7 @@ func exSP(cpu *z80) {
 	mr2 := newMR(cpu.regs.SP.Get()+1, exSP_m2)
 	mw1 := newMW(cpu.regs.SP.Get(), *reg.l, nil)
 	mw2 := newMW(cpu.regs.SP.Get()+1, *reg.h, exSP_m3)
-	cpu.scheduler.append(mr1, mr2, mw1, mw2)
+	cpu.scheduler.append(mr1, &exec{l: 1}, mr2, mw1, &exec{l: 2}, mw2)
 }
 
 func exSP_m1(cpu *z80, data uint8) { spv = uint16(data) }
@@ -395,9 +415,11 @@ func callCC(cpu *z80) {
 	ccIdx := cpu.fetched.opCode >> 3 & 0b111
 	branch := cpu.checkCondition(ccIdx)
 	if branch {
-		cpu.pushToStack(cpu.regs.PC, call_m1)
+		cpu.scheduler.append(&exec{l: 1, f: callCC_m2})
 	}
 }
+
+func callCC_m2(cpu *z80) { cpu.pushToStack(cpu.regs.PC, call_m1) }
 
 func call(cpu *z80) {
 	cpu.pushToStack(cpu.regs.PC, call_m1)
@@ -557,7 +579,7 @@ func rrd(cpu *z80) {
 func rrd_m1(cpu *z80, data uint8) {
 	hlv = data
 	mw := newMW(cpu.regs.HL.Get(), (cpu.regs.A<<4 | hlv>>4), rrd_m2)
-	cpu.scheduler.append(mw)
+	cpu.scheduler.append(&exec{l: 4}, mw)
 }
 
 func rrd_m2(cpu *z80) {
@@ -577,7 +599,7 @@ func rld(cpu *z80) {
 func rld_m1(cpu *z80, data uint8) {
 	hlv = data
 	mw := newMW(cpu.regs.HL.Get(), (hlv<<4 | cpu.regs.A&0x0f), rld_m2)
-	cpu.scheduler.append(mw)
+	cpu.scheduler.append(&exec{l: 4}, mw)
 }
 
 func rld_m2(cpu *z80) {
@@ -1300,6 +1322,7 @@ func exx(cpu *z80) {
 
 func halt(cpu *z80) {
 	cpu.halt = true
+	cpu.regs.PC--
 }
 
 func addHLss(cpu *z80) {

@@ -1,6 +1,8 @@
 package z80
 
-import "github.com/pkg/errors"
+import (
+	"github.com/pkg/errors"
+)
 
 type z80op interface {
 	tick(cpu *z80)
@@ -271,7 +273,9 @@ type exec struct {
 func (ops *exec) tick(cpu *z80) {
 	ops.t++
 	if ops.t == ops.l {
-		ops.f(cpu)
+		if ops.f != nil {
+			ops.f(cpu)
+		}
 		ops.done = true
 	}
 }
