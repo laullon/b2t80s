@@ -30,6 +30,7 @@ var palette = []color.RGBA{
 
 type ula struct {
 	memory *memory
+	bus    emulator.Bus
 	cpu    emulator.CPU
 
 	keyboardRow  []byte
@@ -59,9 +60,10 @@ type ula struct {
 	io bool
 }
 
-func NewULA(mem *memory, plus bool) *ula {
+func NewULA(mem *memory, bus emulator.Bus, plus bool) *ula {
 	ula := &ula{
 		memory:          mem,
+		bus:             bus,
 		keyboardRow:     make([]byte, 8),
 		borderColour:    palette[0],
 		scanlinesBorder: make([][]color.RGBA, 313),
@@ -106,16 +108,12 @@ func NewULA(mem *memory, plus bool) *ula {
 }
 
 func (ula *ula) Tick() {
-	// CPU CLOCK
-	ula.cpu.Tick()
-
 	// EAR
 	if ula.cassette != nil {
 		ula.ear = ula.cassette.Ear()
 	}
 
 	// SCREEN
-
 	draw := false
 	if ula.col < 128 && ula.row >= ula.displayStart && ula.row < ula.displayStart+192 {
 		ula.io = (ula.col % 8) < 6
@@ -126,6 +124,15 @@ func (ula *ula) Tick() {
 	}
 
 	ula.scanlinesBorder[ula.row][ula.col] = ula.borderColour
+
+	// CPU CLOCK
+	if draw {
+		if ula.bus.GetAddr()>>14 != 1 {
+			ula.cpu.Tick()
+		}
+	} else {
+		ula.cpu.Tick()
+	}
 
 	if draw {
 		y := uint16(ula.row - ula.displayStart)
@@ -188,7 +195,7 @@ func (ula *ula) WritePort(port uint16, data byte) {
 	if port&0xff == 0xfe {
 		if ula.borderColour != palette[data&0x07] {
 			ula.borderColour = palette[data&0x07]
-			// println("------", ula.col, ula.row)
+			println("------", ula.col, ula.row)
 		}
 		ula.buzzer = ((data & 16) >> 4) != 0
 		ula.earActive = (data & 24) != 0

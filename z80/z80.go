@@ -1,6 +1,8 @@
 package z80
 
 import (
+	"reflect"
+
 	"github.com/laullon/b2t80s/emulator"
 )
 
@@ -68,6 +70,7 @@ type fetchedData struct {
 	n2     uint8
 	nn     uint16
 }
+
 type z80 struct {
 	debugger emulator.Debugger
 
@@ -176,8 +179,8 @@ func (cpu *z80) Halt() {
 }
 
 func (cpu *z80) execInterrupt() {
+	cpu.prepareForNewInstruction()
 	cpu.doInterrupt = false
-	cpu.halt = false
 
 	if cpu.regs.IFF1 {
 		cpu.regs.IFF1 = false
@@ -191,40 +194,30 @@ func (cpu *z80) execInterrupt() {
 			}}
 			cpu.scheduler.append(code)
 		default:
-			panic(cpu.regs.InterruptsMode)
+			code := &exec{l: 7, f: func(cpu *z80) {
+				cpu.pushToStack(cpu.regs.PC, func(cpu *z80) {
+					pos := uint16(cpu.regs.I)<<8 + 0xff
+					mr1 := newMR(pos, func(cpu *z80, data byte) {
+						cpu.regs.PC = uint16(data) << 8
+					})
+					mr2 := newMR(pos, func(cpu *z80, data byte) {
+						cpu.regs.PC = uint16(data)
+					})
+					cpu.scheduler.append(mr1, mr2)
+				})
+			}}
+			cpu.scheduler.append(code)
 		}
 	}
 }
 
-func (cpu *z80) Tick() {
-	if cpu.halt {
-		if cpu.doInterrupt {
-			cpu.execInterrupt()
-		} else {
-			return
+func (cpu *z80) prepareForNewInstruction() {
+	if cpu.debugger != nil { // TODO: add dummy debuger on the test to remove this IF
+		if len(cpu.opBytes) > 0 {
+			cpu.debugger.AddInstruction(cpu.opPC, cpu.opBytes)
 		}
 	}
-	if cpu.scheduler.first().isDone() {
-		cpu.scheduler.next()
-		if cpu.scheduler.isEmpty() {
-			if cpu.debugger != nil { // TODO: add dummy debuger on the test to remove this IF
-				if len(cpu.opBytes) > 0 {
-					cpu.debugger.AddInstruction(cpu.opPC, cpu.opBytes)
-				}
-			}
-			if cpu.doInterrupt {
-				cpu.execInterrupt()
-			}
-			if cpu.halt {
-				return
-			}
-			cpu.newInstruction()
-		}
-	}
-	cpu.scheduler.first().tick(cpu)
-}
 
-func (cpu *z80) newInstruction() {
 	cpu.fetched.n = 0
 	cpu.fetched.nn = 0
 	cpu.fetched.opCode = 0
@@ -232,11 +225,41 @@ func (cpu *z80) newInstruction() {
 	cpu.opBytes = nil
 	cpu.opPC = cpu.regs.PC
 	cpu.indexIdx = 0
+}
 
+func (cpu *z80) Tick() {
+	if cpu.halt {
+		if cpu.doInterrupt {
+			cpu.halt = false
+			cpu.regs.PC++
+			cpu.execInterrupt()
+		} else {
+			return
+		}
+	}
+
+	if cpu.scheduler.first().isDone() {
+		cpu.scheduler.next()
+		if cpu.scheduler.isEmpty() {
+			if cpu.doInterrupt {
+				cpu.execInterrupt()
+			} else {
+				cpu.newInstruction()
+			}
+		}
+	}
+	cpu.scheduler.first().tick(cpu)
+	if cpu.scheduler.first().isDone() {
+		println("[done]", reflect.TypeOf(cpu.scheduler.first()).String())
+	}
+}
+
+func (cpu *z80) newInstruction() {
+	cpu.prepareForNewInstruction()
 	cpu.doTraps()
 
 	if cpu.debugger != nil { // TODO: add dummy debuger on the test to remove this IF
-		cpu.debugger.NextInstruction(cpu.bus.GetBlock(cpu.regs.PC, 4))
+		// cpu.debugger.NextInstruction(cpu.bus.GetBlock(cpu.regs.PC, 4))
 		cpu.debugger.Tick()
 	}
 

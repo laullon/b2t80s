@@ -43,7 +43,7 @@ func NewZX(mem *memory, plus, cas, ay bool) *zx {
 	cpu := z80.NewZ80(bus)
 	clock := emulator.NewCLock(speed)
 
-	ula := NewULA(mem, plus)
+	ula := NewULA(mem, bus, plus)
 	sound := emulator.NewSoundSystem(speed / 80)
 
 	ula.cpu = cpu
@@ -134,7 +134,8 @@ func (zx *zx) loadDataBlock() {
 		regs.F.C = false
 		// log.Print("BAD Block")
 	}
-	return //0x05e2
+	regs.PC = 0x05e2
+	return
 }
 
 type kempston struct {

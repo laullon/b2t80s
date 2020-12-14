@@ -36,6 +36,7 @@ type cpuTestResult struct {
 	otherReg  string
 	memory    []*memoryState
 	endPC     uint16
+	endTS     int
 }
 
 var tests []*cpuTest
@@ -101,20 +102,18 @@ func TestOPCodes(t *testing.T) {
 		log.Printf("ready to test '%v' (%v/%v)", test.name, idx, len(tests))
 		log.Printf("%s", hex.Dump(bus.mem[0:16]))
 		log.Printf("start test '%v' (endPC:%v)", test.name, result.endPC)
+		fmt.Printf("start test '%v' (endPC:%v)\n", test.name, result.endPC)
 
-		cpu.(*z80).halt = false
-
-		for {
-			// fmt.Printf("> [test] m1:%v pc:0x%04X end:0x%04X \n", cpu.(*z80).regs.M1, cpu.(*z80).regs.PC, result.endPC)
-			if cpu.(*z80).regs.M1 {
-				if cpu.(*z80).regs.PC == (result.endPC + 1) {
-					break
-				}
-			}
+		for i := 0; i < result.endTS; i++ {
 			cpu.Tick()
 		}
+		regs := cpu.Registers().(*Z80Registers)
 
-		cpu.Registers().(*Z80Registers).PC-- //???
+		pcOK := assert.Equal(t, result.endPC, regs.PC, "test '%s' cpu.PC fail", test.name)
+		if !pcOK {
+			logger.Dump()
+			return
+		}
 
 		log.Printf("%s", hex.Dump(bus.mem[0:16]))
 		log.Printf("done test '%v'", test.name)
@@ -130,7 +129,6 @@ func TestOPCodes(t *testing.T) {
 			}
 		}
 
-		regs := cpu.Registers().(*Z80Registers)
 		registers := fmt.Sprintf(
 			"%02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %04x %04x",
 			regs.A, regs.F.GetByte()&0b11010111, regs.B, regs.C, regs.D, regs.E, regs.H, regs.L,
@@ -282,6 +280,14 @@ func readTestsResults() {
 			}
 			result.endPC = uint16(pcVal)
 		case 2: // TODO use it
+			regs := strings.Split(str, " ")
+			ts := regs[len(regs)-1]
+			tsVal, err := strconv.ParseInt(ts, 10, 16)
+			if err != nil {
+				panic(fmt.Sprintf("str: '%v'(%v) error: %v", line, str, err))
+			}
+			result.endTS = int(tsVal)
+
 		default:
 			result.memory = append(result.memory, parseMemoryState(str))
 		}
