@@ -195,7 +195,7 @@ func (ula *ula) WritePort(port uint16, data byte) {
 	if port&0xff == 0xfe {
 		if ula.borderColour != palette[data&0x07] {
 			ula.borderColour = palette[data&0x07]
-			println("------", ula.col, ula.row)
+			// println("------", ula.col, ula.row)
 		}
 		ula.buzzer = ((data & 16) >> 4) != 0
 		ula.earActive = (data & 24) != 0

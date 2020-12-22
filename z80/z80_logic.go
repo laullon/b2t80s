@@ -156,7 +156,7 @@ func cpd(cpu *z80) {
 
 func cpd_m1(cpu *z80, data uint8) {
 	val := data
-	result := cpu.regs.A - val
+	result := cpu.regs.A - byte(val)
 	lookup := (cpu.regs.A&0x08)>>3 | (val&0x08)>>2 | (result&0x08)>>1
 
 	cpu.regs.F.S = result&0x80 != 0
@@ -185,7 +185,7 @@ func cpd_m2(cpu *z80) {
 }
 
 func cpd_m3(cpu *z80) {
-	if cpu.regs.BC.Get() != 0 {
+	if (cpu.regs.BC.Get() != 0) && (!cpu.regs.F.Z) {
 		cpu.regs.PC = cpu.regs.PC - 2
 	}
 }

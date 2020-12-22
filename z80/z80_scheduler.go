@@ -41,6 +41,7 @@ func (ops *fetch) tick(cpu *z80) {
 		cpu.regs.M1 = true
 		cpu.bus.SetAddr(cpu.regs.PC)
 		cpu.regs.PC++
+		cpu.regs.R++
 	case 3:
 		cpu.regs.M1 = false
 		cpu.bus.ReadMemory()

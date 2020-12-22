@@ -52,8 +52,7 @@ func NewZX(mem *memory, plus, cas, ay bool) *zx {
 	clock.AddTicker(0, ula)
 	clock.AddTicker(80, sound)
 
-	bus.RegisterPort(emulator.PortMask{Mask: 0x00FF, Value: 0x00FE}, ula)
-	bus.RegisterPort(emulator.PortMask{Mask: 0x00FF, Value: 0x00FF}, ula)
+	bus.RegisterPort(emulator.PortMask{Mask: 0x0001, Value: 0x0000}, ula)
 	bus.RegisterPort(emulator.PortMask{Mask: 0x00e0, Value: 0x0000}, &kempston{})
 
 	zx := &zx{

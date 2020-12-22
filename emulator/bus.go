@@ -80,7 +80,7 @@ func (bus *genericBus) ReadPort() {
 		}
 	}
 	// panic(fmt.Sprintf("[readPort]-(no PM)-> port:0x%04X pc:0x%04X", port, cpu.regs.PC))
-	// fmt.Printf("[readPort]-(no PM)-> port:0x%04X pc:0x%04X \n", port, cpu.regs.PC)
+	fmt.Printf("[readPort]-(no PM)-> port:0x%04X  \n", bus.addr)
 	bus.data = 0xff
 }
 

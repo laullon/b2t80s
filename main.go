@@ -24,11 +24,6 @@ import (
 	_ "net/http/pprof"
 )
 
-func init() {
-	runtime.GOMAXPROCS(4)
-	runtime.LockOSThread()
-}
-
 func main() {
 	machines.TapFile = flag.String("tap", "", "tap file to load")
 	machines.RomFile = flag.String("rom", "", "msx1 rom file to load - format: [mapper::]filename - Mappers:konami")
@@ -179,7 +174,6 @@ func main() {
 	}()
 
 	go func() {
-		runtime.LockOSThread()
 		machine.Clock().Run()
 	}()
 

@@ -2,6 +2,7 @@ package z80
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/laullon/b2t80s/emulator"
 )
@@ -101,4 +102,12 @@ func (regs *Z80Registers) dump() string {
 		uint16(regs.D)<<8|uint16(regs.E),
 		uint16(regs.H)<<8|uint16(regs.L),
 		regs.SP.Get())
+}
+
+func ParseHexInt8(num string) uint8 {
+	r, err := strconv.ParseInt(num, 16, 0)
+	if err != nil {
+		panic(err)
+	}
+	return uint8(r)
 }
