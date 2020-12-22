@@ -35,8 +35,14 @@ type cpuTestResult struct {
 	registers string
 	otherReg  string
 	memory    []*memoryState
-	endPC     uint16
-	endTS     int
+
+	endPC   uint16
+	endTS   int
+	endI    byte
+	endR    byte
+	endIFF1 bool
+	endIFF2 bool
+	endIM   byte
 }
 
 var tests []*cpuTest
@@ -75,9 +81,6 @@ func TestOPCodes(t *testing.T) {
 
 		cpu := NewZ80(bus)
 
-		// debugger := NewDebugger(cpu.(*z80), memory)
-		// cpu.SetDebuger(debugger)
-
 		result, ok := results[test.name]
 		if !ok {
 			panic(fmt.Sprintf("result for test '%s' not found", test.name))
@@ -102,15 +105,21 @@ func TestOPCodes(t *testing.T) {
 		log.Printf("ready to test '%v' (%v/%v)", test.name, idx, len(tests))
 		log.Printf("%s", hex.Dump(bus.mem[0:16]))
 		log.Printf("start test '%v' (endPC:%v)", test.name, result.endPC)
-		fmt.Printf("start test '%v' (endPC:%v)\n", test.name, result.endPC)
+		// fmt.Printf("start test '%v' (endPC:%v)\n", test.name, result.endPC)
 
 		for i := 0; i < result.endTS; i++ {
 			cpu.Tick()
 		}
 		regs := cpu.Registers().(*Z80Registers)
 
-		pcOK := assert.Equal(t, result.endPC, regs.PC, "test '%s' cpu.PC fail", test.name)
-		if !pcOK {
+		ko := false
+		ko = ko || !assert.Equal(t, result.endI, regs.I, "test '%s' cpu.I fail", test.name)
+		ko = ko || !assert.Equal(t, result.endR, regs.R, "test '%s' cpu.R fail", test.name)
+		ko = ko || !assert.Equal(t, result.endIFF1, regs.IFF1, "test '%s' cpu.IFF1 fail", test.name)
+		ko = ko || !assert.Equal(t, result.endIFF2, regs.IFF2, "test '%s' cpu.IFF2 fail", test.name)
+		ko = ko || !assert.Equal(t, result.endIM, regs.InterruptsMode, "test '%s' cpu.IM fail", test.name)
+		ko = ko || !assert.Equal(t, result.endPC, regs.PC, "test '%s' cpu.PC fail", test.name)
+		if ko {
 			logger.Dump()
 			return
 		}
@@ -288,6 +297,12 @@ func readTestsResults() {
 			}
 			result.endTS = int(tsVal)
 
+			result.endI = byte(ParseHexInt8(regs[0]))
+			result.endR = byte(ParseHexInt8(regs[1]))
+			result.endIFF1 = ParseHexInt8(regs[2]) == 1
+			result.endIFF2 = ParseHexInt8(regs[3]) == 1
+			result.endIM = byte(ParseHexInt8(regs[4]))
+
 		default:
 			result.memory = append(result.memory, parseMemoryState(str))
 		}
@@ -352,6 +367,7 @@ func TestZEXDoc(t *testing.T) {
 	mem = append(mem, make([]byte, 0x10000-len(mem))...)
 
 	cpu := NewZ80(&dummyBus{mem: mem})
+	// cpu.SetDebuger(&dumpDebbuger{cpu: cpu.(*z80)})
 	cpu.Registers().(*Z80Registers).PC = uint16(0x100)
 	cpu.RegisterTrap(0x5, func() {
 		printChar(cpu.Registers().(*Z80Registers), mem)

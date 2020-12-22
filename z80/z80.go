@@ -1,8 +1,6 @@
 package z80
 
 import (
-	"reflect"
-
 	"github.com/laullon/b2t80s/emulator"
 )
 
@@ -193,7 +191,7 @@ func (cpu *z80) execInterrupt() {
 				})
 			}}
 			cpu.scheduler.append(code)
-		default:
+		case 2:
 			code := &exec{l: 7, f: func(cpu *z80) {
 				cpu.pushToStack(cpu.regs.PC, func(cpu *z80) {
 					pos := uint16(cpu.regs.I)<<8 + 0xff
@@ -201,7 +199,7 @@ func (cpu *z80) execInterrupt() {
 						cpu.regs.PC = uint16(data) << 8
 					})
 					mr2 := newMR(pos, func(cpu *z80, data byte) {
-						cpu.regs.PC = uint16(data)
+						cpu.regs.PC |= uint16(data)
 					})
 					cpu.scheduler.append(mr1, mr2)
 				})
@@ -249,9 +247,9 @@ func (cpu *z80) Tick() {
 		}
 	}
 	cpu.scheduler.first().tick(cpu)
-	if cpu.scheduler.first().isDone() {
-		println("[done]", reflect.TypeOf(cpu.scheduler.first()).String())
-	}
+	// if cpu.scheduler.first().isDone() {
+	// 	println("[done]", reflect.TypeOf(cpu.scheduler.first()).String())
+	// }
 }
 
 func (cpu *z80) newInstruction() {
