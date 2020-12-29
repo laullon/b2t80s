@@ -104,10 +104,18 @@ func (regs *Z80Registers) dump() string {
 		regs.SP.Get())
 }
 
-func ParseHexInt8(num string) uint8 {
+func parseHexUInt8(num string) uint8 {
 	r, err := strconv.ParseInt(num, 16, 0)
 	if err != nil {
 		panic(err)
 	}
 	return uint8(r)
+}
+
+func parseHexUInt16(num string) uint16 {
+	r, err := strconv.ParseInt(num, 16, 0)
+	if err != nil {
+		panic(err)
+	}
+	return uint16(r)
 }

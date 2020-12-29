@@ -68,8 +68,8 @@ func NewZX(mem *memory, plus, cas, ay bool) *zx {
 	if ay {
 		zx.ay8912 = ay8912.New()
 		sound.AddSource(zx.ay8912)
-		// cpu.RegisterPort(emulator.PortMask{Mask: 0xc002, Value: 0xc000}, zx.ay8912)
-		// cpu.RegisterPort(emulator.PortMask{Mask: 0xc002, Value: 0x8000}, zx.ay8912)
+		bus.RegisterPort(emulator.PortMask{Mask: 0xc002, Value: 0xc000}, zx.ay8912)
+		bus.RegisterPort(emulator.PortMask{Mask: 0xc002, Value: 0x8000}, zx.ay8912)
 		clock.AddTicker(2, zx.ay8912)
 	}
 
