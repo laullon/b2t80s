@@ -41,7 +41,7 @@ func (ops *fetch) tick(cpu *z80) {
 		cpu.regs.M1 = true
 		cpu.bus.SetAddr(cpu.regs.PC)
 		cpu.regs.PC++
-		cpu.regs.R++
+		cpu.regs.R = cpu.regs.R&0x80 | ((cpu.regs.R + 1) & 0x7f)
 	case 3:
 		cpu.regs.M1 = false
 		cpu.bus.ReadMemory()

@@ -359,14 +359,14 @@ var z80OpsCodeTableED = []*opCode{
 	{"IM 0", 0xFF, 0x66, 1, []z80op{}, func(cpu *z80) { cpu.regs.InterruptsMode = 0 }},
 	{"IM 1", 0xFF, 0x56, 1, []z80op{}, func(cpu *z80) { cpu.regs.InterruptsMode = 1 }},
 	{"IM 2", 0xFF, 0xE5, 1, []z80op{}, func(cpu *z80) { cpu.regs.InterruptsMode = 2 }},
-	{"IM 0/1", 0xFF, 0x4E, 1, []z80op{}, func(cpu *z80) { cpu.regs.InterruptsMode = 1 - cpu.regs.InterruptsMode }},
+	{"IM 0/1", 0xFF, 0x4E, 1, []z80op{}, func(cpu *z80) { cpu.regs.InterruptsMode = 0 }},
 	{"IM 2", 0xFF, 0x5E, 1, []z80op{}, func(cpu *z80) { cpu.regs.InterruptsMode = 2 }},
-	{"IM 0/1", 0xFF, 0x6E, 1, []z80op{}, func(cpu *z80) { cpu.regs.InterruptsMode = 1 - cpu.regs.InterruptsMode }},
+	{"IM 0/1", 0xFF, 0x6E, 1, []z80op{}, func(cpu *z80) { cpu.regs.InterruptsMode = 0 }},
 	{"IM 1", 0xFF, 0x76, 1, []z80op{}, func(cpu *z80) { cpu.regs.InterruptsMode = 1 }},
 	{"IM 2", 0xFF, 0x7E, 1, []z80op{}, func(cpu *z80) { cpu.regs.InterruptsMode = 2 }},
 
-	{"LD I, A", 0xFF, 0x47, 1, []z80op{&exec{l: 4, f: func(cpu *z80) { cpu.regs.I = cpu.regs.A }}}, nil},
-	{"LD R, A", 0xFF, 0x4F, 1, []z80op{&exec{l: 4, f: func(cpu *z80) { cpu.regs.R = cpu.regs.A }}}, nil},
+	{"LD I, A", 0xFF, 0x47, 1, []z80op{&exec{l: 1, f: func(cpu *z80) { cpu.regs.I = cpu.regs.A }}}, nil},
+	{"LD R, A", 0xFF, 0x4F, 1, []z80op{&exec{l: 1, f: func(cpu *z80) { cpu.regs.R = cpu.regs.A }}}, nil},
 
 	{"LD A, I", 0xFF, 0x57, 1, []z80op{&exec{l: 1, f: ldAi}}, nil},
 	{"LD A, R", 0xFF, 0x5F, 1, []z80op{&exec{l: 1, f: ldAr}}, nil},

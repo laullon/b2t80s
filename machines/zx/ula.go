@@ -49,7 +49,6 @@ type ula struct {
 	scanlinesBorder [][]color.RGBA
 	pixlesData      [][]byte
 	pixlesAttr      [][]byte
-	floatingBus     byte
 
 	cassette       cassette.Cassette
 	ear, earActive bool
@@ -120,7 +119,6 @@ func (ula *ula) Tick() {
 		draw = ula.col%4 == 0
 	} else {
 		ula.io = false
-		ula.floatingBus = 0xff
 	}
 
 	ula.scanlinesBorder[ula.row][ula.col] = ula.borderColour
@@ -145,7 +143,6 @@ func (ula *ula) Tick() {
 
 		attrAddr := uint16(((y >> 3) * 32) + 0x5800)
 		ula.pixlesAttr[y][x] = ula.memory.GetByte(attrAddr + x)
-		ula.floatingBus = ula.pixlesAttr[y][x]
 	}
 
 	ula.col++
@@ -186,9 +183,8 @@ func (ula *ula) ReadPort(port uint16) (byte, bool) {
 			data |= 0b10100000
 		}
 		return data, false
-	} else {
-		return ula.floatingBus, false
 	}
+	return 0xff, false
 }
 
 func (ula *ula) WritePort(port uint16, data byte) {

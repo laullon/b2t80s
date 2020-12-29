@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -25,7 +26,7 @@ func TestRegPair(t *testing.T) {
 type cpuTest struct {
 	name      string
 	registers string
-	otherReg  []byte
+	otherRegs auxRegs
 	tStates   uint
 	memory    []*memoryState
 }
@@ -33,16 +34,19 @@ type cpuTest struct {
 type cpuTestResult struct {
 	name      string
 	registers string
-	otherReg  string
+	otherRegs auxRegs
 	memory    []*memoryState
+	endPC     uint16
+}
 
-	endPC   uint16
-	endTS   int
-	endI    byte
-	endR    byte
-	endIFF1 bool
-	endIFF2 bool
-	endIM   byte
+type auxRegs struct {
+	I    byte
+	R    byte
+	IFF1 bool
+	IFF2 bool
+	IM   byte
+	HALT bool
+	TS   int
 }
 
 var tests []*cpuTest
@@ -80,6 +84,7 @@ func TestOPCodes(t *testing.T) {
 	for idx, test = range tests {
 
 		cpu := NewZ80(bus)
+		// cpu.SetDebuger(&dumpDebbuger{cpu: cpu.(*z80), log: false})
 
 		result, ok := results[test.name]
 		if !ok {
@@ -93,7 +98,7 @@ func TestOPCodes(t *testing.T) {
 			continue
 		}
 
-		setRegistersStr(cpu.Registers().(*Z80Registers), test.registers, test.otherReg)
+		setRegistersStr(cpu.Registers().(*Z80Registers), test.registers, test.otherRegs)
 
 		for _, mem := range test.memory {
 			for i, b := range mem.bytes {
@@ -104,21 +109,22 @@ func TestOPCodes(t *testing.T) {
 		log.Printf("\n")
 		log.Printf("ready to test '%v' (%v/%v)", test.name, idx, len(tests))
 		log.Printf("%s", hex.Dump(bus.mem[0:16]))
+		log.Printf("regs: %s", test.registers)
 		log.Printf("start test '%v' (endPC:%v)", test.name, result.endPC)
 		// fmt.Printf("start test '%v' (endPC:%v)\n", test.name, result.endPC)
 
-		for i := 0; i < result.endTS; i++ {
+		for i := 0; i < result.otherRegs.TS; i++ {
 			cpu.Tick()
 		}
 		regs := cpu.Registers().(*Z80Registers)
 
 		ko := false
-		ko = ko || !assert.Equal(t, result.endI, regs.I, "test '%s' cpu.I fail", test.name)
-		ko = ko || !assert.Equal(t, result.endR, regs.R, "test '%s' cpu.R fail", test.name)
-		ko = ko || !assert.Equal(t, result.endIFF1, regs.IFF1, "test '%s' cpu.IFF1 fail", test.name)
-		ko = ko || !assert.Equal(t, result.endIFF2, regs.IFF2, "test '%s' cpu.IFF2 fail", test.name)
-		ko = ko || !assert.Equal(t, result.endIM, regs.InterruptsMode, "test '%s' cpu.IM fail", test.name)
 		ko = ko || !assert.Equal(t, result.endPC, regs.PC, "test '%s' cpu.PC fail", test.name)
+		ko = ko || !assert.Equal(t, result.otherRegs.I, regs.I, "test '%s' cpu.I fail", test.name)
+		ko = ko || !assert.Equal(t, result.otherRegs.R, regs.R, "test '%s' cpu.R fail", test.name)
+		ko = ko || !assert.Equal(t, result.otherRegs.IFF1, regs.IFF1, "test '%s' cpu.IFF1 fail", test.name)
+		ko = ko || !assert.Equal(t, result.otherRegs.IFF2, regs.IFF2, "test '%s' cpu.IFF2 fail", test.name)
+		ko = ko || !assert.Equal(t, result.otherRegs.IM, regs.InterruptsMode, "test '%s' cpu.IM fail", test.name)
 		if ko {
 			logger.Dump()
 			return
@@ -154,7 +160,7 @@ func TestOPCodes(t *testing.T) {
 	}
 }
 
-func setRegistersStr(cpu *Z80Registers, line string, otherReg []byte) {
+func setRegistersStr(cpu *Z80Registers, line string, otherReg auxRegs) {
 	regs := strings.Split(line, " ")
 	cpu.A, _ = setRRstr(regs[0])
 	cpu.B, cpu.C = setRRstr(regs[1])
@@ -180,10 +186,11 @@ func setRegistersStr(cpu *Z80Registers, line string, otherReg []byte) {
 	_, _f := setRRstr(regs[4])
 	cpu.Falt.SetByte(_f)
 
-	cpu.I = otherReg[0]
-	cpu.R = otherReg[1]
-	cpu.R7 = otherReg[1]
-	cpu.IFF2 = otherReg[3] != 0
+	cpu.I = otherReg.I
+	cpu.R = otherReg.R
+	cpu.IFF1 = otherReg.IFF1
+	cpu.IFF2 = otherReg.IFF2
+	cpu.InterruptsMode = otherReg.IM
 }
 
 func parseMemory(str string) (pos uint16, b []byte) {
@@ -216,20 +223,20 @@ func readTests() {
 		switch line {
 		case 0:
 			test.name = str
+
 		case 1:
 			test.registers = str
+
 		case 2:
-			vals := strings.Split(str, " ")
-			ts, err := strconv.ParseInt(vals[len(vals)-1], 10, 16)
-			if err != nil {
-				panic(err)
-			}
-			orstr := strings.Join(vals[0:len(vals)-1], "")
-			test.otherReg, err = hex.DecodeString(orstr)
-			if err != nil {
-				panic(err)
-			}
-			test.tStates = uint(ts)
+			regs := strings.Split(regexp.MustCompile(" +").ReplaceAllString(str, " "), " ")
+			test.otherRegs.I = parseHexUInt8(regs[0])
+			test.otherRegs.R = parseHexUInt8(regs[1])
+			test.otherRegs.IFF1 = parseHexUInt8(regs[2]) == 1
+			test.otherRegs.IFF2 = parseHexUInt8(regs[3]) == 1
+			test.otherRegs.IM = parseHexUInt8(regs[4])
+			test.otherRegs.HALT = parseHexUInt8(regs[5]) == 1
+			test.otherRegs.TS, _ = strconv.Atoi(regs[6])
+
 		default:
 			test.memory = append(test.memory, parseMemoryState(str))
 		}
@@ -288,20 +295,16 @@ func readTestsResults() {
 				panic(fmt.Sprintf("str: '%v'(%v) error: %v", line, str, err))
 			}
 			result.endPC = uint16(pcVal)
-		case 2: // TODO use it
-			regs := strings.Split(str, " ")
-			ts := regs[len(regs)-1]
-			tsVal, err := strconv.ParseInt(ts, 10, 16)
-			if err != nil {
-				panic(fmt.Sprintf("str: '%v'(%v) error: %v", line, str, err))
-			}
-			result.endTS = int(tsVal)
 
-			result.endI = byte(ParseHexInt8(regs[0]))
-			result.endR = byte(ParseHexInt8(regs[1]))
-			result.endIFF1 = ParseHexInt8(regs[2]) == 1
-			result.endIFF2 = ParseHexInt8(regs[3]) == 1
-			result.endIM = byte(ParseHexInt8(regs[4]))
+		case 2:
+			regs := strings.Split(regexp.MustCompile(" +").ReplaceAllString(str, " "), " ")
+			result.otherRegs.I = byte(parseHexUInt8(regs[0]))
+			result.otherRegs.R = byte(parseHexUInt8(regs[1]))
+			result.otherRegs.IFF1 = parseHexUInt8(regs[2]) == 1
+			result.otherRegs.IFF2 = parseHexUInt8(regs[3]) == 1
+			result.otherRegs.IM = byte(parseHexUInt8(regs[4]))
+			result.otherRegs.HALT = parseHexUInt8(regs[5]) == 1
+			result.otherRegs.TS, _ = strconv.Atoi(regs[6])
 
 		default:
 			result.memory = append(result.memory, parseMemoryState(str))

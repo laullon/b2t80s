@@ -3,20 +3,18 @@ module github.com/laullon/b2t80s
 go 1.13
 
 require (
-	fyne.io/fyne v1.4.0
-	github.com/aclements/go-gcstats v0.0.0-20160123211809-1a768d77f8ac // indirect
-	github.com/davecheney/gcvis v0.0.0-20190313012026-3e1bb5e04774 // indirect
+	fyne.io/fyne v1.4.2
 	github.com/faiface/beep v1.0.2
-	github.com/go-gl/gl v0.0.0-20190320180904-bf2b1f2f34d7
-	github.com/go-gl/glfw v0.0.0-20201101223321-f087fae2c024
-	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20201101223321-f087fae2c024
-	github.com/gojp/goreportcard v0.0.0-20201106142952-232d912e513e // indirect
-	github.com/pkg/browser v0.0.0-20201112035734-206646e67786 // indirect
+	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20201108214237-06ea97f0c265
+	github.com/hajimehoshi/oto v0.7.0 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/sqs/goreturns v0.0.0-20181028201513-538ac6014518
 	github.com/stretchr/testify v1.6.1
-	golang.org/x/crypto v0.0.0-20201203163018-be400aefbc4c // indirect
-	golang.org/x/image v0.0.0-20200927104501-e162460cd6b5
-	golang.org/x/sys v0.0.0-20201204225414-ed752295db88 // indirect
-	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1 // indirect
+	golang.org/x/exp v0.0.0-20201221025956-e89b829e73ea // indirect
+	golang.org/x/image v0.0.0-20201208152932-35266b937fa6
+	golang.org/x/net v0.0.0-20201216054612-986b41b23924 // indirect
+	golang.org/x/sys v0.0.0-20201223074533-0d417f636930 // indirect
+	golang.org/x/text v0.3.4 // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
+	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 )

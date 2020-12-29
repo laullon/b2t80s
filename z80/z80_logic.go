@@ -646,10 +646,11 @@ func ldAi(cpu *z80) {
 	cpu.regs.F.P = cpu.regs.IFF2
 	cpu.regs.F.N = false
 }
+
 func ldAr(cpu *z80) {
-	cpu.regs.A = (cpu.regs.R & 0x7f) | (cpu.regs.R7 & 0x80)
-	cpu.regs.F.S = cpu.regs.A&0x80 != 0
-	cpu.regs.F.Z = cpu.regs.A == 0
+	cpu.regs.A = cpu.regs.R
+	cpu.regs.F.S = cpu.regs.R&0x80 != 0
+	cpu.regs.F.Z = cpu.regs.R == 0
 	cpu.regs.F.H = false
 	cpu.regs.F.P = cpu.regs.IFF2
 	cpu.regs.F.N = false
@@ -661,6 +662,7 @@ func ldHLnn(cpu *z80) {
 	mr2 := newMR(mm+1, ldHLnn_m2)
 	cpu.scheduler.append(mr1, mr2)
 }
+
 func ldHLnn_m1(cpu *z80, data uint8) { cpu.regs.L = data }
 func ldHLnn_m2(cpu *z80, data uint8) { cpu.regs.H = data }
 
