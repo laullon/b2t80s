@@ -90,6 +90,7 @@ func (ga *gatearray) Tick() {
 		ga.monitor.display.Rect.Max = image.Point{X: (int(ga.crtc.regs[3]&0x0f)*8 + 384) * 2, Y: (34 + 272)}
 		ga.monitor.displayScaled.Rect.Min = image.Point{X: (int(ga.crtc.regs[3]&0x0f) * 8) * 2, Y: 34 * 2}
 		ga.monitor.displayScaled.Rect.Max = image.Point{X: (int(ga.crtc.regs[3]&0x0f)*8 + 384) * 2, Y: (34 + 272) * 2}
+		ga.monitor.FrameDone()
 	}
 
 	pixles := 16
@@ -162,10 +163,6 @@ func (ga *gatearray) Tick() {
 	// 	ga.mem.clock.AddTStates(4)
 	// }
 
-}
-
-func (ga *gatearray) FrameEnded() {
-	ga.monitor.FrameDone()
 }
 
 func bit2value(b, bit, v byte) byte {

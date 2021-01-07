@@ -11,6 +11,8 @@ type Bus interface {
 	SetData(byte)
 	GetData() byte
 
+	Release()
+
 	ReadMemory()
 	WriteMemory()
 
@@ -41,6 +43,8 @@ func (bus *genericBus) GetAddr() uint16     { return bus.addr }
 
 func (bus *genericBus) SetData(data byte) { bus.data = data }
 func (bus *genericBus) GetData() byte     { return bus.data }
+
+func (bus *genericBus) Release() { bus.addr = 0xffff; bus.data = 0xff }
 
 func (bus *genericBus) ReadMemory()  { bus.data = bus.mem.GetByte(bus.addr) }
 func (bus *genericBus) WriteMemory() { bus.mem.PutByte(bus.addr, bus.data) }

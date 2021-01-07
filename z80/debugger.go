@@ -11,6 +11,7 @@ type logEntry struct {
 	pc  uint16
 	mem []byte
 	op  *opCode
+	ts  int
 }
 
 type debugger struct {
@@ -25,6 +26,8 @@ type debugger struct {
 	doStop          bool
 	doStopInterrupt bool
 	dump            bool
+
+	ts int
 }
 
 func NewDebugger(cpu emulator.CPU, mem emulator.Memory, clock emulator.Clock) emulator.Debugger {
@@ -49,15 +52,16 @@ func (debug *debugger) LoadSymbols(fileName string) {
 }
 
 func (debug *debugger) AddInstruction(pc uint16, mem []byte) {
-
 	op := decode(mem)
 	if op == nil {
 		return
 	}
+
 	opMem := make([]byte, op.len)
 	copy(opMem, mem)
-	le := &logEntry{op: op, mem: opMem, pc: pc}
+	le := &logEntry{op: op, mem: opMem, pc: pc, ts: debug.ts}
 	debug.log = append(debug.log, le)
+	debug.ts = 0
 
 	if debug.dump {
 		print(le.String())
@@ -90,6 +94,7 @@ func (debug *debugger) NextFrame() {
 }
 
 func (debug *debugger) Tick() {
+	debug.ts++
 	if debug.doStop {
 		debug.doStop = false
 		debug.clock.Pause()
@@ -163,7 +168,7 @@ func (le *logEntry) String() string {
 	if le == nil {
 		return ""
 	}
-	return fmt.Sprintf("0x%04X %-12s %-20s", le.pc, dump(le.mem), le.op.String())
+	return fmt.Sprintf("0x%04X %-12s %-20s (%3d) ", le.pc, dump(le.mem), le.op.String(), le.ts)
 }
 
 func dump(buff []byte) string {

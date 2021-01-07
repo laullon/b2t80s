@@ -341,7 +341,7 @@ var z80OpsCodeTableFDCB = []*opCode{
 }
 
 var z80OpsCodeTableED = []*opCode{
-	{"IN r, (n)", 0b11000111, 0b01000000, 1, []z80op{}, inRc},
+	{"IN r, (c)", 0b11000111, 0b01000000, 1, []z80op{}, inRc},
 	{"IN (c)", 0xFF, 0x70, 1, []z80op{}, inC},
 	{"OUT (c), r", 0b11000111, 0b01000001, 1, []z80op{&exec{l: 1, f: outCr}}, nil},
 	{"OUT (c), 0", 0xFF, 0x71, 1, []z80op{&exec{l: 1, f: outC0}}, nil},
@@ -468,42 +468,51 @@ func init() {
 	}
 
 	// -----
-
+	for _, op := range z80OpsCodeTableDD {
+		op.len++
+	}
 	for i := 0; i < 256; i++ {
 		code := uint8(i)
 		for _, op := range z80OpsCodeTableDD {
-			op.len += 1
 			if (code & op.mask) == op.code {
 				lookupDD[code] = op
 			}
 		}
 	}
+
 	// -----
+	for _, op := range z80OpsCodeTableED {
+		op.len++
+	}
 	for i := 0; i < 256; i++ {
 		code := uint8(i)
 		for _, op := range z80OpsCodeTableED {
-			op.len += 1
 			if (code & op.mask) == op.code {
 				lookupED[code] = op
 			}
 		}
 	}
+
 	// -----
+	for _, op := range z80OpsCodeTableFD {
+		op.len++
+	}
 	for i := 0; i < 256; i++ {
 		code := uint8(i)
 		for _, op := range z80OpsCodeTableFD {
-			op.len += 1
 			if (code & op.mask) == op.code {
 				lookupFD[code] = op
 			}
 		}
 	}
-	// -----
 
+	// -----
+	for _, op := range z80OpsCodeTableDDCB {
+		op.len += 2
+	}
 	for i := 0; i < 256; i++ {
 		code := uint8(i)
 		for _, op := range z80OpsCodeTableDDCB {
-			op.len += 2
 			if (code & op.mask) == op.code {
 				lookupDDCB[code] = op
 			}
@@ -511,10 +520,12 @@ func init() {
 	}
 
 	// -----
+	for _, op := range z80OpsCodeTableFDCB {
+		op.len += 2
+	}
 	for i := 0; i < 256; i++ {
 		code := uint8(i)
 		for _, op := range z80OpsCodeTableFDCB {
-			op.len += 2
 			if (code & op.mask) == op.code {
 				lookupFDCB[code] = op
 			}

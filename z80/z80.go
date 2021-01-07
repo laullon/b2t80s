@@ -255,12 +255,6 @@ func (cpu *z80) Tick() {
 func (cpu *z80) newInstruction() {
 	cpu.prepareForNewInstruction()
 	cpu.doTraps()
-
-	if cpu.debugger != nil { // TODO: add dummy debuger on the test to remove this IF
-		// cpu.debugger.NextInstruction(cpu.bus.GetBlock(cpu.regs.PC, 4))
-		cpu.debugger.Tick()
-	}
-
 	cpu.scheduler.append(newFetch(lookup))
 }
 
