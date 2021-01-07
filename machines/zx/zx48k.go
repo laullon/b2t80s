@@ -8,6 +8,7 @@ import (
 func NewZX48K() machines.Machine {
 	mem := NewMemory(ZX48K)
 	mem.LoadRom(0, data.MustAsset("data/roms/48.rom"))
+	// mem.LoadRom(0, data.MustAsset("data/roms/zx_testrom.bin"))
 
 	zx := NewZX(mem, false, true, false)
 	if !*machines.LoadSlow {

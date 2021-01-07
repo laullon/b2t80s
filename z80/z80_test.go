@@ -450,6 +450,7 @@ func (bus *dummyBus) GetData() byte     { return bus.data }
 
 func (bus *dummyBus) ReadMemory()  { bus.data = bus.mem[bus.addr] }
 func (bus *dummyBus) WriteMemory() { bus.mem[bus.addr] = bus.data }
+func (bus *dummyBus) Release()     {}
 
 func (bus *dummyBus) ReadPort()                                                         { bus.data = uint8(bus.addr >> 8) }
 func (bus *dummyBus) WritePort()                                                        {}

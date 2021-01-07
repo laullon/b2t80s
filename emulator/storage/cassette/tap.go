@@ -222,6 +222,10 @@ func readTzxBlock(file []byte) (interface{}, uint32) {
 		len := uint32(file[0x00]) | uint32(file[0x01])<<8
 		return nil, 2 + len
 
+	case 0x35: // TODO: Custom info block
+		len := uint32(file[0x10]) | uint32(file[0x11])<<8 | uint32(file[0x12])<<16 | uint32(file[0x13])<<24
+		return nil, 0x14 + len
+
 	default:
 		panic(fmt.Sprintf("id: 0x%02X", id))
 	}

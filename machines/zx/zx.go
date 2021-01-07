@@ -43,6 +43,8 @@ func NewZX(mem *memory, plus, cas, ay bool) *zx {
 	cpu := z80.NewZ80(bus)
 	clock := emulator.NewCLock(speed)
 
+	debugger := z80.NewDebugger(cpu, mem, clock)
+
 	ula := NewULA(mem, bus, plus)
 	sound := emulator.NewSoundSystem(speed / 80)
 
@@ -50,9 +52,11 @@ func NewZX(mem *memory, plus, cas, ay bool) *zx {
 	sound.AddSource(ula)
 
 	clock.AddTicker(0, ula)
+	clock.AddTicker(0, debugger)
 	clock.AddTicker(80, sound)
 
-	bus.RegisterPort(emulator.PortMask{Mask: 0x0001, Value: 0x0000}, ula)
+	bus.RegisterPort(emulator.PortMask{Mask: 0x00FF, Value: 0x00FE}, ula)
+	bus.RegisterPort(emulator.PortMask{Mask: 0x00FF, Value: 0x00FF}, ula)
 	bus.RegisterPort(emulator.PortMask{Mask: 0x00e0, Value: 0x0000}, &kempston{})
 
 	zx := &zx{
@@ -62,7 +66,7 @@ func NewZX(mem *memory, plus, cas, ay bool) *zx {
 		mem:      mem,
 		sound:    sound,
 		clock:    clock,
-		debugger: z80.NewDebugger(cpu, mem, clock),
+		debugger: debugger,
 	}
 
 	if ay {

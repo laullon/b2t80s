@@ -46,6 +46,7 @@ func (ops *fetch) tick(cpu *z80) {
 		cpu.regs.M1 = false
 		cpu.bus.ReadMemory()
 		d := cpu.bus.GetData()
+		cpu.bus.Release()
 		cpu.opBytes = append(cpu.opBytes, d)
 		cpu.fetched.prefix = cpu.fetched.prefix << 8
 		cpu.fetched.prefix |= uint16(cpu.fetched.opCode)
@@ -92,6 +93,7 @@ func (ops *mrNpc) tick(cpu *z80) {
 	case 3:
 		cpu.bus.ReadMemory()
 		d := cpu.bus.GetData()
+		cpu.bus.Release()
 		cpu.opBytes = append(cpu.opBytes, d)
 		cpu.fetched.n = d
 		if ops.f != nil {
@@ -118,6 +120,7 @@ func (ops *mrNNpc) tick(cpu *z80) {
 	case 3:
 		cpu.bus.ReadMemory()
 		d := cpu.bus.GetData()
+		cpu.bus.Release()
 		cpu.opBytes = append(cpu.opBytes, d)
 		cpu.fetched.n = d
 	case 4:
@@ -126,6 +129,7 @@ func (ops *mrNNpc) tick(cpu *z80) {
 	case 6:
 		cpu.bus.ReadMemory()
 		d := cpu.bus.GetData()
+		cpu.bus.Release()
 		cpu.opBytes = append(cpu.opBytes, d)
 		cpu.fetched.n2 = d
 		cpu.fetched.nn = uint16(cpu.fetched.n) | (uint16(cpu.fetched.n2) << 8)
@@ -154,6 +158,7 @@ func (ops *mr) tick(cpu *z80) {
 	case 3:
 		cpu.bus.ReadMemory()
 		d := cpu.bus.GetData()
+		cpu.bus.Release()
 		if ops.f != nil {
 			ops.f(cpu, d)
 		}
@@ -190,6 +195,7 @@ func (ops *in) tick(cpu *z80) {
 	case 4:
 		cpu.bus.ReadPort()
 		data := cpu.bus.GetData()
+		cpu.bus.Release()
 		cpu.regs.F.S = data&0x0080 != 0
 		cpu.regs.F.Z = data == 0
 		cpu.regs.F.H = false
@@ -220,6 +226,7 @@ func (ops *mw) tick(cpu *z80) {
 		cpu.bus.SetData(ops.data)
 	case 3:
 		cpu.bus.WriteMemory()
+		cpu.bus.Release()
 		if ops.f != nil {
 			ops.f(cpu)
 		}
@@ -254,6 +261,7 @@ func (ops *out) tick(cpu *z80) {
 		cpu.bus.SetAddr(ops.addr)
 		cpu.bus.SetData(ops.data)
 		cpu.bus.WritePort()
+		cpu.bus.Release()
 	case 3:
 		if ops.f != nil {
 			ops.f(cpu)
