@@ -9,6 +9,7 @@ type Clock interface {
 	// AddTStates increment the tStates counter and return true if the frame is not done
 	AddTicker(mod uint, t Ticker)
 	Run()
+	RunFor(seconds uint)
 	Stats() string
 	Pause()
 	Resume()
@@ -89,4 +90,10 @@ func (c *clock) Run() {
 			c.lastFrameTime = float64(time.Now().Sub(start).Microseconds()) / 1000.0
 		}
 	}()
+}
+
+func (c *clock) RunFor(seconds uint) {
+	for c.tStates < (c.tStatesPerFrame * 50 * seconds) {
+		c.tick()
+	}
 }
