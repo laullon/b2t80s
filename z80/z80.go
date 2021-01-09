@@ -82,7 +82,7 @@ type z80 struct {
 
 	doInterrupt bool
 
-	opBytes []uint8
+	opBytes []uint8 // TODO: remove these two
 	opPC    uint16
 
 	fetched   *fetchedData

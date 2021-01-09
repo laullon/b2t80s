@@ -83,8 +83,7 @@ func (cb *circularBuffer) append(ops ...z80op) {
 }
 
 func (cb *circularBuffer) first() z80op {
-	res := cb.elemets[cb.i]
-	return res
+	return cb.elemets[cb.i]
 }
 
 func (cb *circularBuffer) next() {
