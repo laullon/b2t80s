@@ -59,14 +59,6 @@ func (c *clock) Resume() {
 	c.pasued = false
 }
 
-func (c *clock) frameDone() bool {
-	if c.tStates >= c.tStatesPerFrame {
-		c.tStates -= c.tStatesPerFrame
-		return true
-	}
-	return false
-}
-
 func (c *clock) AddTicker(mod uint, t Ticker) {
 	if t == nil {
 		panic("NIL Ticker")
@@ -84,10 +76,11 @@ func (c *clock) Run() {
 	go func() {
 		for range ticker.C {
 			start := time.Now()
-			for !c.frameDone() && !c.pasued {
+			for (c.tStates < c.tStatesPerFrame) && !c.pasued {
 				c.tick()
 			}
 			c.lastFrameTime = float64(time.Now().Sub(start).Microseconds()) / 1000.0
+			c.tStates = 0
 		}
 	}()
 }

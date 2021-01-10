@@ -23,12 +23,13 @@ func TestBorderTrix(t *testing.T) {
 	*machines.TapFile = "test/BorderTrix.tap"
 
 	machines.LoadSlow = new(bool)
+	machines.Debug = new(bool)
 
 	zx := NewZX48K().(*zx)
 
 	zx.ula.monitor = &dummyMonitor{}
 
-	zx.Clock().RunFor(10)
+	zx.Clock().RunFor(15)
 
 	f, err := os.Open("test/BorderTrix_result.png")
 	if err != nil {
@@ -62,6 +63,7 @@ type dummyMonitor struct{}
 
 func (m *dummyMonitor) Canvas() *canvas.Image { return nil }
 func (m *dummyMonitor) FrameDone()            {}
+func (m *dummyMonitor) FPS() float64          { return 0 }
 
 func ImgCompare(img1, img2 image.Image) (int64, image.Image, error) {
 	bounds1 := img1.Bounds()

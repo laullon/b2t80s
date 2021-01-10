@@ -165,7 +165,7 @@ func (ula *ula) FrameDone() {
 			ula.display.SetRGBA(x, y, ula.getPixel(x, y))
 		}
 	}
-	ula.monitor.FrameDone()
+	// ula.monitor.FrameDone()
 }
 
 func (ula *ula) ReadPort(port uint16) (byte, bool) {

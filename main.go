@@ -29,7 +29,7 @@ func main() {
 	machines.RomFile = flag.String("rom", "", "msx1 rom file to load - format: [mapper::]filename - Mappers:konami")
 	z80File := flag.String("z80", "", "z80 file to load")
 	mode := flag.String("mode", "48k", "Spectrum model to emulate [48k|128k|plus3|cpc464|cpc6128|msx1]")
-	debug := flag.Bool("debug", false, "shows debugger")
+	machines.Debug = flag.Bool("debug", false, "shows debugger")
 	// turbo := flag.Bool("turbo", false, "run faster")
 
 	// breaks := flag.String("bp", "", "Breakpoints [0xXXXX[,0xXXXX,...]]")
@@ -117,7 +117,7 @@ func main() {
 
 	display := machine.Monitor().Canvas()
 
-	if *debug {
+	if *machines.Debug {
 		debugger := widget.NewVBox(
 			widget.NewLabel("Debugger"),
 			fyne.NewContainerWithLayout(
@@ -168,8 +168,10 @@ func main() {
 	ticker := time.NewTicker(wait)
 	go func() {
 		for range ticker.C {
-			debugger.SetText(machine.Debugger().GetStatus())
-			status.SetText(machine.Clock().Stats())
+			if *machines.Debug {
+				debugger.SetText(machine.Debugger().GetStatus())
+			}
+			status.SetText(fmt.Sprintf("time: %s - FPS: %03.2f", machine.Clock().Stats(), machine.Monitor().FPS()))
 		}
 	}()
 

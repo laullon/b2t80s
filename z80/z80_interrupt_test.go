@@ -68,26 +68,20 @@ type dumpDebbuger struct {
 	cpu *z80
 }
 
-func (d *dumpDebbuger) AddInstruction(pc uint16, mem []byte) {
-	op := decode(mem)
-	if op == nil {
-		return
-	}
-	opMem := make([]byte, op.len)
-	copy(opMem, mem)
-	le := &logEntry{op: op, mem: opMem, pc: pc}
+func (d *dumpDebbuger) AddInstruction(pc uint16, mem, instruction string) {
+	le := &logEntry{ins: instruction, mem: mem, pc: pc}
 	print(le.String())
 	println(d.cpu.regs.dump())
 }
 
-func (d *dumpDebbuger) NextInstruction(mem []byte) {}
-func (d *dumpDebbuger) SetDump(bool)               {}
-func (d *dumpDebbuger) Tick()                      {}
-func (d *dumpDebbuger) Stop()                      {}
-func (d *dumpDebbuger) Continue()                  {}
-func (d *dumpDebbuger) Step()                      {}
-func (d *dumpDebbuger) StopNextFrame()             {}
-func (d *dumpDebbuger) GetStatus() string          { return "nil" }
+// func (d *dumpDebbuger) NextInstruction(mem []byte) {}
+func (d *dumpDebbuger) SetDump(bool)      {}
+func (d *dumpDebbuger) Tick()             {}
+func (d *dumpDebbuger) Stop()             {}
+func (d *dumpDebbuger) Continue()         {}
+func (d *dumpDebbuger) Step()             {}
+func (d *dumpDebbuger) StopNextFrame()    {}
+func (d *dumpDebbuger) GetStatus() string { return "nil" }
 
 //
 // FROM: https://z80project.wordpress.com/2015/04/29/z80-interrupts-and-strings/

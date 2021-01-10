@@ -1,6 +1,9 @@
 package z80
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/laullon/b2t80s/emulator"
 )
 
@@ -62,11 +65,46 @@ type Z80Registers struct {
 }
 
 type fetchedData struct {
+	pc     uint16
 	prefix uint16
 	opCode uint8
 	n      uint8
 	n2     uint8
 	nn     uint16
+	op     *opCode
+}
+
+func (d *fetchedData) getInstruction() string {
+	return d.op.String()
+}
+
+func (d *fetchedData) getMemory() string {
+	var res strings.Builder
+	if d.prefix > 0xff && d.op.len == 4 {
+		res.WriteString(fmt.Sprintf("%02X ", (d.prefix >> 8)))
+		res.WriteString(fmt.Sprintf("%02X ", (d.prefix & 0xff)))
+		res.WriteString(fmt.Sprintf("%02X ", d.n))
+		res.WriteString(fmt.Sprintf("%02X", d.opCode))
+	} else if d.prefix > 0x00 && d.op.len == 4 {
+		res.WriteString(fmt.Sprintf("%02X ", (d.prefix & 0xff)))
+		res.WriteString(fmt.Sprintf("%02X ", d.opCode))
+		res.WriteString(fmt.Sprintf("%02X ", d.n))
+		res.WriteString(fmt.Sprintf("%02X", d.n2))
+	} else if d.prefix > 0x00 && d.op.len == 3 {
+		res.WriteString(fmt.Sprintf("%02X ", (d.prefix & 0xff)))
+		res.WriteString(fmt.Sprintf("%02X ", d.opCode))
+		res.WriteString(fmt.Sprintf("%02X", d.n))
+	} else if d.prefix == 0x00 && d.op.len == 3 {
+		res.WriteString(fmt.Sprintf("%02X ", d.opCode))
+		res.WriteString(fmt.Sprintf("%02X ", d.n))
+		res.WriteString(fmt.Sprintf("%02X", d.n2))
+	} else if d.prefix == 0x00 && d.op.len == 2 {
+		res.WriteString(fmt.Sprintf("%02X ", d.opCode))
+		res.WriteString(fmt.Sprintf("%02X", d.n))
+	} else {
+		res.WriteString(fmt.Sprintf("%02X", d.opCode))
+	}
+	return res.String()
 }
 
 type z80 struct {
@@ -81,9 +119,6 @@ type z80 struct {
 	halt bool
 
 	doInterrupt bool
-
-	opBytes []uint8 // TODO: remove these two
-	opPC    uint16
 
 	fetched   *fetchedData
 	scheduler *circularBuffer
@@ -211,17 +246,14 @@ func (cpu *z80) execInterrupt() {
 
 func (cpu *z80) prepareForNewInstruction() {
 	if cpu.debugger != nil { // TODO: add dummy debuger on the test to remove this IF
-		if len(cpu.opBytes) > 0 {
-			cpu.debugger.AddInstruction(cpu.opPC, cpu.opBytes)
-		}
+		cpu.debugger.AddInstruction(cpu.fetched.pc, cpu.fetched.getMemory(), cpu.fetched.getInstruction())
 	}
 
 	cpu.fetched.n = 0
 	cpu.fetched.nn = 0
 	cpu.fetched.opCode = 0
 	cpu.fetched.prefix = 0
-	cpu.opBytes = nil
-	cpu.opPC = cpu.regs.PC
+	cpu.fetched.pc = cpu.regs.PC
 	cpu.indexIdx = 0
 }
 

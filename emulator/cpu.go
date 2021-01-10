@@ -13,8 +13,8 @@ type CPU interface {
 }
 
 type Debugger interface {
-	AddInstruction(uint16, []byte)
-	NextInstruction([]byte)
+	AddInstruction(pc uint16, mem, instruction string)
+	// NextInstruction([]byte)
 
 	Tick()
 
