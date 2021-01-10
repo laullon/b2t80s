@@ -19,7 +19,7 @@ var z80OpsCodeTable = []*opCode{
 	{"PUSH ss", 0b11001111, 0b11000101, 1, []z80op{&exec{l: 1, f: pushSS}}, nil},
 
 	{"LD r, n", 0b11000111, 0b00000110, 2, []z80op{&mrNpc{f: ldRn}}, nil},
-	{"LD r, r", 0b11000000, 0b01000000, 1, []z80op{}, ldRr},
+	{"LD r, r'", 0b11000000, 0b01000000, 1, []z80op{}, ldRr},
 	{"LD r, (HL)", 0b11000111, 0b01000110, 1, []z80op{}, ldRhl},
 	{"LD (HL), r", 0b11111000, 0b01110000, 1, []z80op{}, ldHLr},
 	{"INC r", 0b11000111, 0b0000100, 1, []z80op{}, incR},
@@ -143,6 +143,7 @@ var z80OpsCodeTableCB = []*opCode{
 }
 
 var z80OpsCodeTableDD = []*opCode{
+	{"LD r, r'", 0b11000000, 0b01000000, 1, []z80op{}, ldRr},
 	{"ADD IX, rr", 0b11001111, 0b00001001, 1, []z80op{&exec{l: 7, f: addIXY}}, nil},
 	{"LD IX, nn", 0xFF, 0x21, 3, []z80op{&mrNNpc{f: func(cpu *z80) { cpu.regs.IXH = cpu.fetched.n2; cpu.regs.IXL = cpu.fetched.n }}}, nil},
 	{"LD (nn), IX", 0xFF, 0x22, 3, []z80op{&mrNNpc{f: ldNNIXY}}, nil},
@@ -211,6 +212,7 @@ var z80OpsCodeTableDD = []*opCode{
 }
 
 var z80OpsCodeTableFD = []*opCode{
+	{"LD r, r'", 0b11000000, 0b01000000, 1, []z80op{}, ldRr},
 	{"ADD IY, rr", 0b11001111, 0b00001001, 1, []z80op{&exec{l: 7, f: addIY}}, nil},
 	{"LD IY, nn", 0xFF, 0x21, 3, []z80op{&mrNNpc{f: func(cpu *z80) { cpu.regs.IYH = cpu.fetched.n2; cpu.regs.IYL = cpu.fetched.n }}}, nil},
 	{"LD (nn), IY", 0xFF, 0x22, 3, []z80op{&mrNNpc{f: ldNNIXY}}, nil},
@@ -460,7 +462,7 @@ func init() {
 	for i := 0; i < 256; i++ {
 		code := uint8(i)
 		for _, op := range z80OpsCodeTableCB {
-			op.len += 1
+			op.len++
 			if (code & op.mask) == op.code {
 				lookupCB[code] = op
 			}
