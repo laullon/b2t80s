@@ -8,7 +8,7 @@ func ini(cpu *z80) { // TODO review tests changes
 func ini_m1(cpu *z80, data uint8) {
 	mw := newMW(cpu.regs.HL.Get(), data, ini_m2)
 	cpu.scheduler.append(&exec{l: 1}, mw)
-	if cpu.opBytes[1] > 0xAF {
+	if cpu.fetched.opCode > 0xAF {
 		cpu.scheduler.append(&exec{l: 5, f: ini_m3})
 	}
 }
@@ -399,7 +399,7 @@ func rstP(cpu *z80) {
 
 func rstP_m1(cpu *z80) {
 	newPCs := []uint16{0x00, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38}
-	pIdx := cpu.opBytes[0] >> 3 & 0b111
+	pIdx := cpu.fetched.opCode >> 3 & 0b111
 	cpu.regs.PC = newPCs[pIdx]
 }
 
@@ -628,12 +628,12 @@ func ldDDnn(cpu *z80) {
 }
 
 func ldDDnn_m1(cpu *z80, data uint8) {
-	rIdx := cpu.opBytes[1] >> 4 & 0b11
+	rIdx := cpu.fetched.opCode >> 4 & 0b11
 	reg := cpu.getRRptr(rIdx)
 	*reg.l = data
 }
 func ldDDnn_m2(cpu *z80, data uint8) {
-	rIdx := cpu.opBytes[1] >> 4 & 0b11
+	rIdx := cpu.fetched.opCode >> 4 & 0b11
 	reg := cpu.getRRptr(rIdx)
 	*reg.h = data
 }

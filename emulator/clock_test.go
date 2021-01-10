@@ -6,18 +6,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestClock(t *testing.T) {
-	c := &clock{
-		tStatesPerFrame: 100,
-	}
-	for {
-		c.tick()
-		if c.frameDone() {
-			break
-		}
-	}
-	assert.Equal(t, 0, int(c.tStates))
-}
+// func TestClock(t *testing.T) {
+// 	c := &clock{
+// 		tStatesPerFrame: 100,
+// 	}
+// 	for {
+// 		c.tick()
+// 		if c.frameDone() {
+// 			break
+// 		}
+// 	}
+// 	assert.Equal(t, 0, int(c.tStates))
+// }
 
 func TestClockMods(t *testing.T) {
 	var mod0, mod1, mod2, mod3, mod4, mod5, mod64 int

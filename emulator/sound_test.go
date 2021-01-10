@@ -6,23 +6,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSound(t *testing.T) {
-	c := &clock{
-		tStatesPerFrame: 100,
-	}
+// func TestSound(t *testing.T) {
+// 	c := &clock{
+// 		tStatesPerFrame: 100,
+// 	}
 
-	ss := &dummySoundSorce{}
-	s := &dummySound{ss: ss, t: t}
-	c.AddTicker(0, ss)
-	c.AddTicker(32, s)
+// 	ss := &dummySoundSorce{}
+// 	s := &dummySound{ss: ss, t: t}
+// 	c.AddTicker(0, ss)
+// 	c.AddTicker(32, s)
 
-	for {
-		c.tick()
-		if c.frameDone() {
-			break
-		}
-	}
-}
+// 	for {
+// 		c.tick()
+// 		if c.frameDone() {
+// 			break
+// 		}
+// 	}
+// }
 
 type dummySound struct {
 	ss *dummySoundSorce

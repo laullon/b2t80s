@@ -47,21 +47,20 @@ func (ops *fetch) tick(cpu *z80) {
 		cpu.bus.ReadMemory()
 		d := cpu.bus.GetData()
 		cpu.bus.Release()
-		cpu.opBytes = append(cpu.opBytes, d)
 		cpu.fetched.prefix = cpu.fetched.prefix << 8
 		cpu.fetched.prefix |= uint16(cpu.fetched.opCode)
 		cpu.fetched.opCode = d
 	case 4:
-		op := ops.table[cpu.fetched.opCode]
-		if op == nil {
-			panic(errors.Errorf("opCode '0x%X' not found", cpu.opBytes))
+		cpu.fetched.op = ops.table[cpu.fetched.opCode]
+		if cpu.fetched.op == nil {
+			panic(errors.Errorf("opCode '%X - %X' not found", cpu.fetched.prefix, cpu.fetched.opCode))
 		}
-		for _, op := range op.ops {
+		for _, op := range cpu.fetched.op.ops {
 			op.reset()
 		}
-		cpu.scheduler.append(op.ops...)
-		if op.onFetch != nil {
-			op.onFetch(cpu)
+		cpu.scheduler.append(cpu.fetched.op.ops...)
+		if cpu.fetched.op.onFetch != nil {
+			cpu.fetched.op.onFetch(cpu)
 		}
 		ops.done = true
 	}
@@ -94,7 +93,6 @@ func (ops *mrNpc) tick(cpu *z80) {
 		cpu.bus.ReadMemory()
 		d := cpu.bus.GetData()
 		cpu.bus.Release()
-		cpu.opBytes = append(cpu.opBytes, d)
 		cpu.fetched.n = d
 		if ops.f != nil {
 			ops.f(cpu)
@@ -121,7 +119,6 @@ func (ops *mrNNpc) tick(cpu *z80) {
 		cpu.bus.ReadMemory()
 		d := cpu.bus.GetData()
 		cpu.bus.Release()
-		cpu.opBytes = append(cpu.opBytes, d)
 		cpu.fetched.n = d
 	case 4:
 		cpu.bus.SetAddr(cpu.regs.PC)
@@ -130,7 +127,6 @@ func (ops *mrNNpc) tick(cpu *z80) {
 		cpu.bus.ReadMemory()
 		d := cpu.bus.GetData()
 		cpu.bus.Release()
-		cpu.opBytes = append(cpu.opBytes, d)
 		cpu.fetched.n2 = d
 		cpu.fetched.nn = uint16(cpu.fetched.n) | (uint16(cpu.fetched.n2) << 8)
 		if ops.f != nil {

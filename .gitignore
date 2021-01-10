@@ -8,3 +8,6 @@ dump.txt
 data.go
 cpu.prof
 trace.out
+*_error.png
+*_diff.png
+*.test

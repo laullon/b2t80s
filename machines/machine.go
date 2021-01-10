@@ -7,6 +7,7 @@ import (
 )
 
 var LoadSlow *bool
+var Debug *bool
 var DskAFile *string
 var TapFile *string
 var RomFile *string

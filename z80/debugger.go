@@ -9,8 +9,8 @@ import (
 
 type logEntry struct {
 	pc  uint16
-	mem []byte
-	op  *opCode
+	mem string
+	ins string
 	ts  int
 }
 
@@ -51,15 +51,8 @@ func (debug *debugger) SetBreakPoint(bp uint16) {
 func (debug *debugger) LoadSymbols(fileName string) {
 }
 
-func (debug *debugger) AddInstruction(pc uint16, mem []byte) {
-	op := decode(mem)
-	if op == nil {
-		return
-	}
-
-	opMem := make([]byte, op.len)
-	copy(opMem, mem)
-	le := &logEntry{op: op, mem: opMem, pc: pc, ts: debug.ts}
+func (debug *debugger) AddInstruction(pc uint16, mem, instruction string) {
+	le := &logEntry{ins: instruction, mem: mem, pc: pc, ts: debug.ts}
 	debug.log = append(debug.log, le)
 	debug.ts = 0
 
@@ -73,15 +66,15 @@ func (debug *debugger) AddInstruction(pc uint16, mem []byte) {
 	}
 }
 
-func (debug *debugger) NextInstruction(mem []byte) {
-	op := decode(mem)
-	if op == nil {
-		return
-	}
-	opMem := make([]byte, op.len)
-	copy(opMem, mem)
-	debug.next = &logEntry{op: op, mem: opMem, pc: debug.cpu.regs.PC}
-}
+// func (debug *debugger) NextInstruction(mem []byte) {
+// 	op := decode(mem)
+// 	if op == nil {
+// 		return
+// 	}
+// 	opMem := make([]byte, op.len)
+// 	copy(opMem, mem)
+// 	debug.next = &logEntry{op: op, mem: opMem, pc: debug.cpu.regs.PC}
+// }
 
 func (debug *debugger) DumpNextFrame() {
 }
@@ -168,7 +161,7 @@ func (le *logEntry) String() string {
 	if le == nil {
 		return ""
 	}
-	return fmt.Sprintf("0x%04X %-12s %-20s (%3d) ", le.pc, dump(le.mem), le.op.String(), le.ts)
+	return fmt.Sprintf("0x%04X %-12s %-20s (%3d) ", le.pc, le.mem, le.ins, le.ts)
 }
 
 func dump(buff []byte) string {
