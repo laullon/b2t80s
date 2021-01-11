@@ -18,20 +18,7 @@ func putWord(mem emulator.Memory, addr, w uint16) {
 	mem.PutByte(addr+1, uint8(w>>8))
 }
 
-// TODO cam it be private ?
-type RegPair struct {
-	h, l *byte
-}
-
-func (reg *RegPair) Get() uint16 {
-	return uint16(*reg.h)<<8 | uint16(*reg.l)
-}
-
-func (reg *RegPair) Set(hl uint16) {
-	*reg.h = byte(hl >> 8)
-	*reg.l = byte(hl & 0x00ff)
-}
-
+// TODO: remove
 func toWord(a, b byte) uint16 {
 	return uint16(a) | uint16(b)<<8
 }

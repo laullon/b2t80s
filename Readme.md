@@ -106,6 +106,6 @@ go test -v -timeout 999m github.com/laullon/b2t80s/emulator -run TestZEXDoc
 ## traces
 
 ```
-/usr/local/bin/go test -trace=trace.out -timeout 15s github.com/laullon/b2t80s/z80 --v
+/usr/local/bin/go test -trace=trace.out -timeout 15s github.com/laullon/b2t80s/cpu/z80 --v
 go tool trace trace.out
 ```

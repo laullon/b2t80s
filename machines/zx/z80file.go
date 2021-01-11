@@ -4,8 +4,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/laullon/b2t80s/cpu/z80"
 	"github.com/laullon/b2t80s/machines"
-	"github.com/laullon/b2t80s/z80"
 )
 
 func LoadZ80File(fileName string) machines.Machine {
