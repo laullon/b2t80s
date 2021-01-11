@@ -117,6 +117,7 @@ type z80 struct {
 	indexIdx  int
 
 	halt bool
+	wait bool
 
 	doInterrupt bool
 
@@ -207,6 +208,10 @@ func (cpu *z80) Interrupt(i bool) {
 	cpu.doInterrupt = i
 }
 
+func (cpu *z80) Wait(w bool) {
+	cpu.wait = w
+}
+
 func (cpu *z80) Halt() {
 	cpu.halt = true
 }
@@ -258,6 +263,10 @@ func (cpu *z80) prepareForNewInstruction() {
 }
 
 func (cpu *z80) Tick() {
+	if cpu.wait {
+		return
+	}
+
 	if cpu.halt {
 		if cpu.doInterrupt {
 			cpu.halt = false

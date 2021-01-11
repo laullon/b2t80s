@@ -4,6 +4,7 @@ type CPUTrap func()
 type CPU interface {
 	Interrupt(bool)
 	Halt()
+	Wait(bool)
 	Tick()
 
 	Registers() interface{}

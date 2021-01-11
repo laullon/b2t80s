@@ -2,6 +2,10 @@ package zx
 
 import (
 	// "fyne.io/fyne"
+
+	"fmt"
+	"time"
+
 	"fyne.io/fyne"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/ay8912"
@@ -121,26 +125,40 @@ func (zx *zx) loadDataBlock() {
 	regs := zx.cpu.Registers().(*z80.Z80Registers)
 	requestedLength := regs.DE.Get()
 	startAddress := regs.IX.Get()
-	// fmt.Printf("Loading block '%s' to 0x%04x (bl:0x%04x, l:0x%04x, bt:%d, a:%d)\n", block.Name(), startAddress, len(block.GetData()), requestedLength, block.Type(), regs._A)
+	fmt.Printf("Loading block to 0x%04x \n", startAddress)
 
-	if regs.Aalt == data[0] {
-		if regs.Falt.C {
-			checksum := data[0]
-			for i := uint16(0); i < requestedLength; i++ {
-				loadedByte := data[i+1]
-				zx.mem.PutByte(startAddress+i, loadedByte)
-				checksum ^= loadedByte
+	zx.cpu.Wait(true)
+	go func() {
+		if regs.Aalt == data[0] {
+			if regs.Falt.C {
+				checksum := data[0]
+				for i := uint16(0); i < requestedLength; i++ {
+					loadedByte := data[i+1]
+					zx.mem.PutByte(startAddress+i, loadedByte)
+					checksum ^= loadedByte
+					if (startAddress == 0x4000) && (i < 0x1b00) {
+						time.Sleep(time.Millisecond / 2)
+					}
+				}
+				regs.F.C = checksum == data[requestedLength+1]
+			} else {
+				regs.F.C = true
 			}
-			regs.F.C = checksum == data[requestedLength+1]
+			// log.Print("done")
 		} else {
-			regs.F.C = true
+			regs.F.C = false
+			// log.Print("BAD Block")
 		}
-		// log.Print("done")
-	} else {
-		regs.F.C = false
-		// log.Print("BAD Block")
-	}
-	regs.PC = 0x05e2
+
+		println("-")
+		if startAddress == 0x4000 {
+			time.Sleep(5 * time.Second)
+		}
+		regs.PC = 0x05e2
+		zx.cpu.Wait(false)
+		println("done")
+	}()
+
 	return
 }
 
