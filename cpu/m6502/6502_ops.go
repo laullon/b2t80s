@@ -1,32 +1,51 @@
 package m6502
 
-var ops []operation
+import (
+	"fmt"
+	"reflect"
+	"runtime"
+	"strings"
+)
 
-func init() {
-	ops = make([]operation, 0x100)
-
-	ops[0x9a] = &implicit{f: tsx}
-	ops[0xa2] = &immediate{f: ldx}
-	ops[0xa9] = &immediate{f: lda}
-	ops[0xd8] = &implicit{f: cld}
-}
+var debugFMT = "0x%04X: %-10s %-20s"
 
 type operation interface {
 	done() bool
 	tick(cpu *m6502)
+	reset()
+	setup(opCode uint8, ins string)
+	setPC(pc uint16)
 }
 
-type bacicop struct {
-	d bool
-	t uint
+type basicop struct {
+	ins    string
+	opCode uint8
+
+	pc uint16
+	d  bool
+	t  uint
 }
 
-func (op *bacicop) done() bool {
+func (op *basicop) reset() {
+	op.d = false
+	op.t = 0
+}
+
+func (op *basicop) done() bool {
 	return op.d
 }
 
+func (op *basicop) setup(opCode uint8, ins string) {
+	op.ins = ins
+	op.opCode = opCode
+}
+
+func (op *basicop) setPC(pc uint16) {
+	op.pc = pc
+}
+
 type reset struct {
-	bacicop
+	basicop
 }
 
 func (op *reset) tick(cpu *m6502) {
@@ -48,24 +67,117 @@ func (op *reset) tick(cpu *m6502) {
 // -----
 
 type implicit struct {
-	bacicop
-	f func(cpu *m6502)
+	basicop
+	F func(cpu *m6502)
 }
 
 func (op *implicit) tick(cpu *m6502) {
-	op.f(cpu)
+	op.F(cpu)
 	op.d = true
+}
+
+func (op *implicit) String() string {
+	return fmt.Sprintf(debugFMT,
+		op.pc,
+		fmt.Sprintf("%02X", op.opCode),
+		fmt.Sprintf("%s", op.ins),
+	)
 }
 
 // -----
 
 type immediate struct {
-	bacicop
-	f func(cpu *m6502, data uint8)
+	basicop
+	F    func(cpu *m6502, data uint8)
+	data uint8
 }
 
 func (op *immediate) tick(cpu *m6502) {
-	op.f(cpu, cpu.mem[int(cpu.regs.PC)])
+	op.data = cpu.mem[int(cpu.regs.PC)]
+	op.F(cpu, op.data)
 	cpu.regs.PC++
 	op.d = true
+}
+
+func (op *immediate) String() string {
+	return fmt.Sprintf(debugFMT,
+		op.pc,
+		fmt.Sprintf("%02X %02X", op.opCode, op.data),
+		fmt.Sprintf("%s 0x%02X", op.ins, op.data),
+	)
+}
+
+// -----
+
+type relative struct {
+	basicop
+	F    func(cpu *m6502, data int8)
+	data int8
+}
+
+func (op *relative) tick(cpu *m6502) {
+	op.data = int8(cpu.mem[cpu.regs.PC])
+	cpu.regs.PC++
+	op.F(cpu, op.data)
+	op.d = true
+}
+
+func (op *relative) String() string {
+	return fmt.Sprintf(debugFMT,
+		op.pc,
+		fmt.Sprintf("%02X %02X", op.opCode, uint8(op.data)),
+		fmt.Sprintf("%s %d", op.ins, op.data),
+	)
+}
+
+// -----
+
+type absolute struct {
+	basicop
+	x    bool
+	F    func(cpu *m6502, addr uint16)
+	addr uint16
+}
+
+func (op *absolute) tick(cpu *m6502) {
+	switch op.t {
+	case 0:
+		*cpu.AB.L = cpu.mem[cpu.regs.PC]
+		cpu.regs.PC++
+	case 1:
+		*cpu.AB.H = cpu.mem[cpu.regs.PC]
+		cpu.regs.PC++
+	case 2:
+		addr := cpu.AB.Get()
+		op.addr = addr
+		if op.x {
+			addr += uint16(cpu.regs.X)
+		}
+		op.F(cpu, addr)
+		op.d = true
+	}
+	op.t++
+}
+
+func (op *absolute) String() string {
+	mod := ""
+	if op.x {
+		mod = ", X"
+	}
+	return fmt.Sprintf(debugFMT,
+		op.pc,
+		fmt.Sprintf("%02X %02X %02X", op.opCode, op.addr&0x0ff, op.addr>>8),
+		fmt.Sprintf("%s 0x%04X%s", op.ins, op.addr, mod),
+	)
+}
+
+func getFunctionName(op interface{}) string {
+	r := reflect.ValueOf(op)
+	f := reflect.Indirect(r).FieldByName("F")
+	if !f.IsValid() {
+		return "Error"
+	}
+	name := runtime.FuncForPC(f.Pointer()).Name()
+	idx := strings.LastIndex(name, ".") + 1
+	return strings.ToUpper(name[idx : idx+3])
 }
