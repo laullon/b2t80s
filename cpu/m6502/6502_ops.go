@@ -65,7 +65,89 @@ func (op *reset) tick(cpu *m6502) {
 }
 
 // -----
+type indirect struct {
+	basicop
+	F    func(cpu *m6502, addr uint16)
+	addr uint16
+}
 
+func (op *indirect) tick(cpu *m6502) {
+	switch op.t {
+	case 0:
+		*cpu.AB.L = cpu.mem[cpu.regs.PC]
+		cpu.regs.PC++
+	case 1:
+		*cpu.AB.H = cpu.mem[cpu.regs.PC]
+		cpu.regs.PC++
+	case 2:
+		op.addr = uint16(cpu.mem[cpu.AB.Get()])
+	case 3:
+		op.addr |= uint16(cpu.mem[cpu.AB.Get()+1]) << 8
+	case 4:
+		op.F(cpu, op.addr)
+		op.addr = cpu.AB.Get()
+		op.d = true
+	}
+	op.t++
+}
+
+func (op *indirect) String() string {
+	mod := ""
+	return fmt.Sprintf(debugFMT,
+		op.pc,
+		fmt.Sprintf("%02X %02X %02X", op.opCode, op.addr&0x0ff, op.addr>>8),
+		fmt.Sprintf("%s (0x%04X)%s", op.ins, op.addr, mod),
+	)
+}
+
+// -----
+type indirectXY struct {
+	basicop
+	x, y  bool
+	F     func(cpu *m6502, addr uint16)
+	addr  uint16
+	addrZ uint8
+}
+
+func (op *indirectXY) tick(cpu *m6502) {
+	switch op.t {
+	case 0:
+		op.addrZ = cpu.mem[cpu.regs.PC]
+		if op.x {
+			op.addrZ += cpu.regs.X
+		}
+		cpu.regs.PC++
+	case 1:
+		*cpu.AB.L = cpu.mem[op.addrZ]
+	case 2:
+		*cpu.AB.H = cpu.mem[op.addrZ+1]
+	case 3:
+		op.addr = cpu.AB.Get()
+		if op.y {
+			op.addr += uint16(cpu.regs.Y)
+		}
+	case 4:
+		op.F(cpu, op.addr)
+		op.d = true
+	}
+	op.t++
+}
+
+func (op *indirectXY) String() string {
+	mod := ""
+	if op.x {
+		mod = "X"
+	} else if op.y {
+		mod = "Y"
+	}
+	return fmt.Sprintf(debugFMT,
+		op.pc,
+		fmt.Sprintf("%02X %02X", op.opCode, op.addrZ),
+		fmt.Sprintf("%s (0x%02X), %s", op.ins, op.addrZ, mod),
+	)
+}
+
+// -----
 type implicit struct {
 	basicop
 	F func(cpu *m6502)
@@ -134,7 +216,7 @@ func (op *relative) String() string {
 
 type absolute struct {
 	basicop
-	x    bool
+	x, y bool
 	F    func(cpu *m6502, addr uint16)
 	addr uint16
 }
@@ -152,6 +234,8 @@ func (op *absolute) tick(cpu *m6502) {
 		op.addr = addr
 		if op.x {
 			addr += uint16(cpu.regs.X)
+		} else if op.y {
+			addr += uint16(cpu.regs.Y)
 		}
 		op.F(cpu, addr)
 		op.d = true
@@ -163,11 +247,53 @@ func (op *absolute) String() string {
 	mod := ""
 	if op.x {
 		mod = ", X"
+	} else if op.y {
+		mod = ", Y"
 	}
 	return fmt.Sprintf(debugFMT,
 		op.pc,
 		fmt.Sprintf("%02X %02X %02X", op.opCode, op.addr&0x0ff, op.addr>>8),
 		fmt.Sprintf("%s 0x%04X%s", op.ins, op.addr, mod),
+	)
+}
+
+// -----
+
+type zeropage struct {
+	basicop
+	x, y bool
+	F    func(cpu *m6502, addr uint16)
+	addr uint8
+}
+
+func (op *zeropage) tick(cpu *m6502) {
+	switch op.t {
+	case 0:
+		op.addr = cpu.mem[cpu.regs.PC]
+		cpu.regs.PC++
+	case 1:
+		if op.x {
+			op.addr += cpu.regs.X
+		} else if op.y {
+			op.addr += cpu.regs.Y
+		}
+		op.F(cpu, uint16(op.addr))
+		op.d = true
+	}
+	op.t++
+}
+
+func (op *zeropage) String() string {
+	mod := ""
+	if op.x {
+		mod = ", X"
+	} else if op.y {
+		mod = ", Y"
+	}
+	return fmt.Sprintf(debugFMT,
+		op.pc,
+		fmt.Sprintf("%02X %02X", op.opCode, op.addr),
+		fmt.Sprintf("%s 0x%02X%s", op.ins, op.addr, mod),
 	)
 }
 

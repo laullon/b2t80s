@@ -11,7 +11,7 @@ type Registers struct {
 	A, X, Y uint8
 	SP      uint8
 	PC      uint16
-	P       Flags
+	PS      Flags
 }
 
 type Flags struct {
@@ -23,6 +23,46 @@ type Flags struct {
 	X bool
 	V bool
 	N bool
+}
+
+func (f *Flags) set(v uint8) {
+	f.C = v&0b00000001 != 0
+	f.Z = v&0b00000010 != 0
+	f.I = v&0b00000100 != 0
+	f.D = v&0b00001000 != 0
+	f.B = v&0b00010000 != 0
+	f.X = v&0b00100000 != 0
+	f.V = v&0b01000000 != 0
+	f.N = v&0b10000000 != 0
+}
+
+func (f *Flags) get() uint8 {
+	var res uint8
+	if f.C {
+		res |= 0b00000001
+	}
+	if f.Z {
+		res |= 0b00000010
+	}
+	if f.I {
+		res |= 0b00000100
+	}
+	if f.D {
+		res |= 0b00001000
+	}
+	if f.B {
+		res |= 0b00010000
+	}
+	if f.X {
+		res |= 0b00100000
+	}
+	if f.V {
+		res |= 0b01000000
+	}
+	if f.N {
+		res |= 0b10000000
+	}
+	return res
 }
 
 func (f Flags) String() string {
@@ -71,7 +111,7 @@ func (f Flags) String() string {
 }
 
 func (r Registers) String() string {
-	return fmt.Sprintf("A:0x%02X X:0x%02X Y:0x%02X SP:0x%02X PC:0x%04X P:%v", r.A, r.X, r.Y, r.SP, r.PC, r.P)
+	return fmt.Sprintf("A:0x%02X X:0x%02X Y:0x%02X SP:0x%02X PC:0x%04X PS:(0x%02X)%v", r.A, r.X, r.Y, r.SP, r.PC, r.PS.get(), r.PS)
 }
 
 type m6502 struct {
@@ -112,6 +152,7 @@ func (cpu *m6502) Tick() {
 }
 
 func (cpu *m6502) push(data uint8) {
+	// fmt.Printf("[PUSH] 0x%04X - 0x%02X \n", 0x0100+uint16(cpu.regs.SP), data)
 	cpu.mem[0x0100+uint16(cpu.regs.SP)] = data
 	cpu.regs.SP--
 }

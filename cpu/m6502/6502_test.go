@@ -74,11 +74,15 @@ func TestFunctionalTests(t *testing.T) { // TODO: review
 	cpu.op = nil
 	for i := 0; ; i++ {
 		cpu.Tick()
-		for _, trap := range traps {
-			if cpu.regs.PC == trap {
-				assert.FailNowf(t, "error on trap", "0x%04X", trap)
-				return
-			}
+		if cpu.regs.PC > 0xfff0 {
+			assert.NotEqual(t, uint16(0xffff), cpu.regs.PC, "ERROR !!!")
+			return
 		}
+		// for _, trap := range traps {
+		// 	if cpu.regs.PC == trap {
+		// 		assert.FailNowf(t, "error on trap", "0x%04X", trap)
+		// 		return
+		// 	}
+		// }
 	}
 }

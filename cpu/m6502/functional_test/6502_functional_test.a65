@@ -131,7 +131,7 @@ disable_selfmod = 1
 
 ;report errors through I/O channel (0=use standard self trap loops, 1=include
 ;report.i65 as I/O channel, add 3.5 kB)
-report = 0
+report = 1
 
 ;RAM integrity test option. Checks for undesired RAM writes.
 ;set lowest non RAM or RAM mirror address page (-1=disable, 0=64k, $40=16k)
@@ -192,7 +192,7 @@ disable_decimal = 0
     .endif
     .if report = 1
         .macro  trap
-        jsr report_error
+        jsr $ffff
         .endmacro
         .macro  trap_eq
         bne :+
@@ -237,7 +237,7 @@ disable_decimal = 0
 ; please observe that during the test the stack gets invalidated
 ; therefore a RTS inside the success macro is not possible
         .macro  success
-        jsr report_success
+        jsr $fffe
         .endmacro
     .endif
 
@@ -758,9 +758,9 @@ test_num .set 0
     .endif
 
 ;initialize I/O for report channel
-    .if report = 1
-        jsr report_init
-    .endif
+;     .if report = 1
+;         jsr report_init
+;     .endif
 
 ;pretest small branch offset
         ldx #5
@@ -6009,9 +6009,9 @@ break2:                 ;BRK pass 2
         trap            ;runover protection
         jmp start       ;catastrophic error - cannot continue
 
-    .if report = 1
-        include "report.i65"
-    .endif
+;     .if report = 1
+;         .include "report.i65"
+;     .endif
 
 ;copy of data to initialize BSS segment
     .if load_data_direct <> 1
