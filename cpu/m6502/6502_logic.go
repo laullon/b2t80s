@@ -6,27 +6,45 @@ func init() {
 	ops = make([]operation, 0x100)
 
 	ops[0x00] = &implicit{F: brk}
+	ops[0x06] = &zeropage{F: aslM}
 	ops[0x08] = &implicit{F: php}
-	ops[0x09] = &immediate{F: ora}
+	ops[0x0a] = &implicit{F: asl}
+	ops[0x0e] = &absolute{F: aslM}
 	ops[0x10] = &relative{F: bpl}
-	ops[0x20] = &absolute{F: jsr}
-	ops[0x28] = &implicit{F: plp}
+	ops[0x16] = &zeropage{F: aslM, x: true}
 	ops[0x18] = &implicit{F: clc}
+	ops[0x1e] = &absolute{F: aslM, x: true}
+	ops[0x20] = &absolute{F: jsr}
+	ops[0x24] = &zeropage{F: bitM}
+	ops[0x26] = &zeropage{F: rolM}
+	ops[0x28] = &implicit{F: plp}
+	ops[0x2a] = &implicit{F: rol}
+	ops[0x2c] = &absolute{F: bitM}
+	ops[0x2e] = &absolute{F: rolM}
 	ops[0x30] = &relative{F: bmi}
+	ops[0x36] = &zeropage{F: rolM, x: true}
 	ops[0x38] = &implicit{F: sec}
+	ops[0x3e] = &absolute{F: rolM, x: true}
 	ops[0x40] = &implicit{F: rti}
 	ops[0x46] = &zeropage{F: lsrM}
 	ops[0x48] = &implicit{F: pha}
-	ops[0x49] = &immediate{F: eor}
+	ops[0x4a] = &implicit{F: asr}
 	ops[0x4c] = &absolute{F: jmp}
+	ops[0x4e] = &absolute{F: lsrM}
 	ops[0x50] = &relative{F: bvc}
+	ops[0x56] = &zeropage{F: lsrM, x: true}
 	ops[0x58] = &implicit{F: cli}
+	ops[0x5e] = &absolute{F: lsrM, x: true}
 	ops[0x60] = &implicit{F: rts}
+	ops[0x66] = &zeropage{F: rorM}
 	ops[0x68] = &implicit{F: pla}
-	ops[0x69] = &immediate{F: adc}
+	ops[0x6a] = &implicit{F: ror}
 	ops[0x6c] = &indirect{F: jmp}
+	ops[0x6e] = &absolute{F: rorM}
 	ops[0x70] = &relative{F: bvs}
+	ops[0x76] = &zeropage{F: rorM, x: true}
 	ops[0x78] = &implicit{F: sei}
+	ops[0x7e] = &absolute{F: rorM, x: true}
 	ops[0x81] = &indirectXY{F: staM, x: true}
 	ops[0x84] = &zeropage{F: styM}
 	ops[0x85] = &zeropage{F: staM}
@@ -69,26 +87,80 @@ func init() {
 	ops[0xbe] = &absolute{F: ldxM, y: true}
 	ops[0xbd] = &absolute{F: ldaM, x: true}
 	ops[0xc0] = &immediate{F: cpy}
+	ops[0xc1] = &indirectXY{F: cmpM, x: true}
 	ops[0xc4] = &zeropage{F: cpyM}
 	ops[0xc5] = &zeropage{F: cmpM}
+	ops[0xc6] = &zeropage{F: decM}
 	ops[0xc8] = &implicit{F: iny}
 	ops[0xc9] = &immediate{F: cmp}
+	ops[0xce] = &absolute{F: decM}
 	ops[0xca] = &implicit{F: dex}
 	ops[0xcc] = &absolute{F: cpyM}
 	ops[0xcd] = &absolute{F: cmpM}
 	ops[0xd0] = &relative{F: bne}
 	ops[0xd1] = &indirectXY{F: cmpM, y: true}
 	ops[0xd5] = &zeropage{F: cmpM, x: true}
+	ops[0xd6] = &zeropage{F: decM, x: true}
 	ops[0xd8] = &implicit{F: cld}
 	ops[0xd9] = &absolute{F: cmpM, y: true}
 	ops[0xdd] = &absolute{F: cmpM, x: true}
+	ops[0xde] = &absolute{F: decM, x: true}
 	ops[0xe0] = &immediate{F: cpx}
 	ops[0xe4] = &zeropage{F: cpxM}
+	ops[0xe6] = &zeropage{F: incM}
 	ops[0xe8] = &implicit{F: inx}
 	ops[0xea] = &implicit{F: nop}
 	ops[0xec] = &absolute{F: cpxM}
+	ops[0xee] = &absolute{F: incM}
 	ops[0xf0] = &relative{F: beq}
+	ops[0xf6] = &zeropage{F: incM, x: true}
 	ops[0xf8] = &implicit{F: sed}
+	ops[0xfe] = &absolute{F: incM, x: true}
+
+	ops[0x29] = &immediate{F: and}
+	ops[0x25] = &zeropage{F: andM}
+	ops[0x35] = &zeropage{F: andM, x: true}
+	ops[0x2d] = &absolute{F: andM}
+	ops[0x3d] = &absolute{F: andM, x: true}
+	ops[0x39] = &absolute{F: andM, y: true}
+	ops[0x21] = &indirectXY{F: andM, x: true}
+	ops[0x31] = &indirectXY{F: andM, y: true}
+
+	ops[0x49] = &immediate{F: eor}
+	ops[0x45] = &zeropage{F: eorM}
+	ops[0x55] = &zeropage{F: eorM, x: true}
+	ops[0x4d] = &absolute{F: eorM}
+	ops[0x5d] = &absolute{F: eorM, x: true}
+	ops[0x59] = &absolute{F: eorM, y: true}
+	ops[0x41] = &indirectXY{F: eorM, x: true}
+	ops[0x51] = &indirectXY{F: eorM, y: true}
+
+	ops[0x09] = &immediate{F: ora}
+	ops[0x05] = &zeropage{F: oraM}
+	ops[0x15] = &zeropage{F: oraM, x: true}
+	ops[0x0d] = &absolute{F: oraM}
+	ops[0x1d] = &absolute{F: oraM, x: true}
+	ops[0x19] = &absolute{F: oraM, y: true}
+	ops[0x01] = &indirectXY{F: oraM, x: true}
+	ops[0x11] = &indirectXY{F: oraM, y: true}
+
+	ops[0x69] = &immediate{F: adc}
+	ops[0x65] = &zeropage{F: adcM}
+	ops[0x75] = &zeropage{F: adcM, x: true}
+	ops[0x6d] = &absolute{F: adcM}
+	ops[0x7d] = &absolute{F: adcM, x: true}
+	ops[0x79] = &absolute{F: adcM, y: true}
+	ops[0x61] = &indirectXY{F: adcM, x: true}
+	ops[0x71] = &indirectXY{F: adcM, y: true}
+
+	ops[0xe9] = &immediate{F: sbc}
+	ops[0xe5] = &zeropage{F: sbcM}
+	ops[0xf5] = &zeropage{F: sbcM, x: true}
+	ops[0xed] = &absolute{F: sbcM}
+	ops[0xfd] = &absolute{F: sbcM, x: true}
+	ops[0xf9] = &absolute{F: sbcM, y: true}
+	ops[0xe1] = &indirectXY{F: sbcM, x: true}
+	ops[0xf1] = &indirectXY{F: sbcM, y: true}
 
 	for opCode, op := range ops {
 		if op != nil {
@@ -270,6 +342,16 @@ func iny(cpu *m6502) {
 	ldzn(cpu, cpu.regs.Y)
 }
 
+func incM(cpu *m6502, addr uint16) {
+	cpu.mem[addr]++
+	ldzn(cpu, cpu.mem[addr])
+}
+
+func decM(cpu *m6502, addr uint16) {
+	cpu.mem[addr]--
+	ldzn(cpu, cpu.mem[addr])
+}
+
 func dey(cpu *m6502) {
 	cpu.regs.Y--
 	ldzn(cpu, cpu.regs.Y)
@@ -330,8 +412,28 @@ func eor(cpu *m6502, data uint8) {
 	ldzn(cpu, cpu.regs.A)
 }
 
+func eorM(cpu *m6502, addr uint16) {
+	cpu.regs.A = cpu.regs.A ^ cpu.mem[addr]
+	ldzn(cpu, cpu.regs.A)
+}
+
+func and(cpu *m6502, data uint8) {
+	cpu.regs.A = cpu.regs.A & data
+	ldzn(cpu, cpu.regs.A)
+}
+
+func andM(cpu *m6502, addr uint16) {
+	cpu.regs.A = cpu.regs.A & cpu.mem[addr]
+	ldzn(cpu, cpu.regs.A)
+}
+
 func ora(cpu *m6502, data uint8) {
 	cpu.regs.A = cpu.regs.A | data
+	ldzn(cpu, cpu.regs.A)
+}
+
+func oraM(cpu *m6502, addr uint16) {
+	cpu.regs.A = cpu.regs.A | cpu.mem[addr]
 	ldzn(cpu, cpu.regs.A)
 }
 
@@ -340,9 +442,29 @@ func adc(cpu *m6502, data uint8) {
 	if cpu.regs.PS.C {
 		r++
 	}
+	cpu.regs.PS.C = r > 0xff
+	cpu.regs.PS.V = (((uint16(cpu.regs.A) ^ r) & 0x80) != 0) && (((cpu.regs.A ^ data) & 0x80) == 0)
 	cpu.regs.A = uint8(r)
 	ldzn(cpu, cpu.regs.A)
-	cpu.regs.PS.C = r > 0xff
+}
+
+func adcM(cpu *m6502, addr uint16) {
+	adc(cpu, cpu.mem[addr])
+}
+
+func sbc(cpu *m6502, data uint8) {
+	r := uint16(cpu.regs.A) - uint16(data)
+	if !cpu.regs.PS.C {
+		r--
+	}
+	cpu.regs.PS.C = int16(r) >= 0
+	cpu.regs.PS.V = (((uint16(cpu.regs.A) ^ r) & 0x80) != 0) && (((cpu.regs.A ^ data) & 0x80) != 0)
+	cpu.regs.A = uint8(r)
+	ldzn(cpu, cpu.regs.A)
+}
+
+func sbcM(cpu *m6502, addr uint16) {
+	sbc(cpu, cpu.mem[addr])
 }
 
 func pha(cpu *m6502) {
@@ -370,4 +492,75 @@ func lsrM(cpu *m6502, addr uint16) {
 	d >>= 1
 	ldzn(cpu, d)
 	cpu.mem[int(addr)] = d
+}
+
+func asl(cpu *m6502) {
+	cpu.regs.PS.C = cpu.regs.A&0x80 == 0x80
+	cpu.regs.A <<= 1
+	ldzn(cpu, cpu.regs.A)
+}
+
+func aslM(cpu *m6502, addr uint16) {
+	v := cpu.mem[addr]
+	cpu.regs.PS.C = v&0x80 == 0x80
+	v <<= 1
+	ldzn(cpu, v)
+	cpu.mem[addr] = v
+}
+
+func rol(cpu *m6502) {
+	c := cpu.regs.PS.C
+	cpu.regs.PS.C = cpu.regs.A&0x80 == 0x80
+	cpu.regs.A <<= 1
+	if c {
+		cpu.regs.A |= 1
+	}
+	ldzn(cpu, cpu.regs.A)
+}
+
+func rolM(cpu *m6502, addr uint16) {
+	v := cpu.mem[addr]
+	c := cpu.regs.PS.C
+	cpu.regs.PS.C = v&0x80 == 0x80
+	v <<= 1
+	if c {
+		v |= 1
+	}
+	ldzn(cpu, v)
+	cpu.mem[addr] = v
+}
+
+func rorM(cpu *m6502, addr uint16) {
+	v := cpu.mem[addr]
+	c := cpu.regs.PS.C
+	cpu.regs.PS.C = v&0x01 == 0x01
+	v >>= 1
+	if c {
+		v |= 0x80
+	}
+	ldzn(cpu, v)
+	cpu.mem[addr] = v
+}
+
+func ror(cpu *m6502) {
+	c := cpu.regs.PS.C
+	cpu.regs.PS.C = cpu.regs.A&0x01 == 0x01
+	cpu.regs.A >>= 1
+	if c {
+		cpu.regs.A |= 0x80
+	}
+	ldzn(cpu, cpu.regs.A)
+}
+
+func asr(cpu *m6502) {
+	cpu.regs.PS.C = cpu.regs.A&0x01 == 0x01
+	cpu.regs.A >>= 1
+	ldzn(cpu, cpu.regs.A)
+}
+
+func bitM(cpu *m6502, addr uint16) {
+	v := cpu.mem[addr]
+	cpu.regs.PS.Z = (cpu.regs.A & v) == 0
+	cpu.regs.PS.V = v&0x40 != 0
+	cpu.regs.PS.N = v&0x80 != 0
 }

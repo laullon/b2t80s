@@ -92,13 +92,13 @@ func (f Flags) String() string {
 	} else {
 		sb.WriteString("-")
 	}
-	if f.V {
-		sb.WriteString("V")
+	if f.X {
+		sb.WriteString("X")
 	} else {
 		sb.WriteString("-")
 	}
-	if f.X {
-		sb.WriteString("X")
+	if f.V {
+		sb.WriteString("V")
 	} else {
 		sb.WriteString("-")
 	}
@@ -119,6 +119,7 @@ type m6502 struct {
 	AB   *cpuUtils.RegPair
 
 	mem []uint8
+	log cpuUtils.Log
 
 	op operation
 }
@@ -146,8 +147,8 @@ func (cpu *m6502) Tick() {
 		cpu.op.tick(cpu)
 	}
 
-	if cpu.op.done() {
-		fmt.Printf("%-30v%v\n", cpu.op, cpu.regs)
+	if cpu.op.done() && (cpu.log != nil) {
+		cpu.log.AddEntry(fmt.Sprintf("%-30v%v", cpu.op, cpu.regs))
 	}
 }
 

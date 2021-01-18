@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	cpuUtils "github.com/laullon/b2t80s/cpu"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -68,21 +69,25 @@ func _TestBEQ(t *testing.T) {
 }
 
 func TestFunctionalTests(t *testing.T) { // TODO: review
+
 	cpu := newM6502(mem)
+	if testing.Short() {
+		println("skipping logs in short mode.")
+	} else {
+		cpu.log = cpuUtils.NewLogTail()
+	}
 
 	cpu.regs.PC = 0x0400
 	cpu.op = nil
 	for i := 0; ; i++ {
 		cpu.Tick()
 		if cpu.regs.PC > 0xfff0 {
-			assert.NotEqual(t, uint16(0xffff), cpu.regs.PC, "ERROR !!!")
+			if !assert.NotEqual(t, uint16(0xffff), cpu.regs.PC, "ERROR !!!") {
+				if cpu.log != nil {
+					println(cpu.log.Print())
+				}
+			}
 			return
 		}
-		// for _, trap := range traps {
-		// 	if cpu.regs.PC == trap {
-		// 		assert.FailNowf(t, "error on trap", "0x%04X", trap)
-		// 		return
-		// 	}
-		// }
 	}
 }
