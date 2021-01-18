@@ -67,25 +67,25 @@ func (op *reset) tick(cpu *m6502) {
 // -----
 type indirect struct {
 	basicop
-	F    func(cpu *m6502, addr uint16)
-	addr uint16
+	F      func(cpu *m6502, addr uint16)
+	addr   uint16
+	target uint16
 }
 
 func (op *indirect) tick(cpu *m6502) {
 	switch op.t {
 	case 0:
-		*cpu.AB.L = cpu.mem[cpu.regs.PC]
+		op.addr = uint16(cpu.mem[cpu.regs.PC])
 		cpu.regs.PC++
 	case 1:
-		*cpu.AB.H = cpu.mem[cpu.regs.PC]
+		op.addr |= uint16(cpu.mem[cpu.regs.PC]) << 8
 		cpu.regs.PC++
 	case 2:
-		op.addr = uint16(cpu.mem[cpu.AB.Get()])
+		op.target = uint16(cpu.mem[op.addr])
 	case 3:
-		op.addr |= uint16(cpu.mem[cpu.AB.Get()+1]) << 8
+		op.target |= uint16(cpu.mem[op.addr+1]) << 8
 	case 4:
-		op.F(cpu, op.addr)
-		op.addr = cpu.AB.Get()
+		op.F(cpu, op.target)
 		op.d = true
 	}
 	op.t++
@@ -118,11 +118,10 @@ func (op *indirectXY) tick(cpu *m6502) {
 		}
 		cpu.regs.PC++
 	case 1:
-		*cpu.AB.L = cpu.mem[op.addrZ]
+		op.addr = uint16(cpu.mem[op.addrZ])
 	case 2:
-		*cpu.AB.H = cpu.mem[op.addrZ+1]
+		op.addr |= uint16(cpu.mem[op.addrZ+1]) << 8
 	case 3:
-		op.addr = cpu.AB.Get()
 		if op.y {
 			op.addr += uint16(cpu.regs.Y)
 		}
@@ -216,28 +215,34 @@ func (op *relative) String() string {
 
 type absolute struct {
 	basicop
-	x, y bool
-	F    func(cpu *m6502, addr uint16)
-	addr uint16
+	x, y       bool
+	F          func(cpu *m6502, addr uint16)
+	readAddr   uint16
+	targetAddr uint16
 }
 
 func (op *absolute) tick(cpu *m6502) {
 	switch op.t {
 	case 0:
-		*cpu.AB.L = cpu.mem[cpu.regs.PC]
+		op.readAddr = uint16(cpu.mem[cpu.regs.PC])
 		cpu.regs.PC++
 	case 1:
-		*cpu.AB.H = cpu.mem[cpu.regs.PC]
+		op.readAddr |= uint16(cpu.mem[cpu.regs.PC]) << 8
 		cpu.regs.PC++
 	case 2:
-		addr := cpu.AB.Get()
-		op.addr = addr
 		if op.x {
-			addr += uint16(cpu.regs.X)
+			op.targetAddr = op.readAddr + uint16(cpu.regs.X)
 		} else if op.y {
-			addr += uint16(cpu.regs.Y)
+			op.targetAddr = op.readAddr + uint16(cpu.regs.Y)
+		} else {
+			op.targetAddr = op.readAddr
 		}
-		op.F(cpu, addr)
+		if (op.targetAddr & 0xff00) == (op.readAddr & 0xff00) { // page change ?
+			op.F(cpu, op.targetAddr)
+			op.d = true
+		}
+	case 3:
+		op.F(cpu, op.targetAddr)
 		op.d = true
 	}
 	op.t++
@@ -252,8 +257,8 @@ func (op *absolute) String() string {
 	}
 	return fmt.Sprintf(debugFMT,
 		op.pc,
-		fmt.Sprintf("%02X %02X %02X", op.opCode, op.addr&0x0ff, op.addr>>8),
-		fmt.Sprintf("%s 0x%04X%s", op.ins, op.addr, mod),
+		fmt.Sprintf("%02X %02X %02X", op.opCode, op.readAddr&0x0ff, op.readAddr>>8),
+		fmt.Sprintf("%s 0x%04X%s", op.ins, op.readAddr, mod),
 	)
 }
 

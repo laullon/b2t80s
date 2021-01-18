@@ -116,7 +116,6 @@ func (r Registers) String() string {
 
 type m6502 struct {
 	regs Registers
-	AB   *cpuUtils.RegPair
 
 	mem []uint8
 	log cpuUtils.Log
@@ -128,7 +127,7 @@ func newM6502(mem []byte) *m6502 {
 	return &m6502{
 		mem: mem,
 		// op:  &reset{},
-		AB: &cpuUtils.RegPair{L: new(uint8), H: new(uint8)},
+		// AB: &cpuUtils.RegPair{L: new(uint8), H: new(uint8)},
 	}
 }
 
