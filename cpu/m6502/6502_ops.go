@@ -15,6 +15,7 @@ type operation interface {
 	reset()
 	setup(opCode uint8, ins string)
 	setPC(pc uint16)
+	getPC() uint16
 }
 
 type basicop struct {
@@ -44,6 +45,10 @@ func (op *basicop) setPC(pc uint16) {
 	op.pc = pc
 }
 
+func (op *basicop) getPC() uint16 {
+	return op.pc
+}
+
 type reset struct {
 	basicop
 }
@@ -62,6 +67,14 @@ func (op *reset) tick(cpu *m6502) {
 		op.d = true
 	}
 	op.t++
+}
+
+func (op *reset) String() string {
+	return fmt.Sprintf(debugFMT,
+		op.pc,
+		"",
+		"RESET",
+	)
 }
 
 // -----
