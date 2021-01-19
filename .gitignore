@@ -11,3 +11,5 @@ trace.out
 *_error.png
 *_diff.png
 *.test
+*.map
+cpu/m6502/**/*.o

@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"fyne.io/fyne"
+	"github.com/laullon/b2t80s/cpu/z80"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/ay8912"
 	"github.com/laullon/b2t80s/emulator/storage/cassette"
 	"github.com/laullon/b2t80s/machines"
-	"github.com/laullon/b2t80s/z80"
 )
 
 const (

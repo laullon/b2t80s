@@ -1,5 +1,9 @@
 package z80
 
+import (
+	cpuUtils "github.com/laullon/b2t80s/cpu"
+)
+
 func ini(cpu *z80) { // TODO review tests changes
 	in := &in{from: cpu.regs.BC.Get(), f: ini_m1}
 	cpu.scheduler.append(in)
@@ -277,8 +281,8 @@ func exSP(cpu *z80) {
 	reg := cpu.indexRegs[cpu.indexIdx]
 	mr1 := newMR(cpu.regs.SP.Get(), exSP_m1)
 	mr2 := newMR(cpu.regs.SP.Get()+1, exSP_m2)
-	mw1 := newMW(cpu.regs.SP.Get(), *reg.l, nil)
-	mw2 := newMW(cpu.regs.SP.Get()+1, *reg.h, exSP_m3)
+	mw1 := newMW(cpu.regs.SP.Get(), *reg.L, nil)
+	mw2 := newMW(cpu.regs.SP.Get()+1, *reg.H, exSP_m3)
 	cpu.scheduler.append(mr1, &exec{l: 1}, mr2, mw1, &exec{l: 2}, mw2)
 }
 
@@ -287,7 +291,7 @@ func exSP_m2(cpu *z80, data uint8) { spv |= uint16(data) << 8 }
 func exSP_m3(cpu *z80)             { reg := cpu.indexRegs[cpu.indexIdx]; reg.Set(spv) }
 
 func addIXY(cpu *z80) {
-	var reg *RegPair
+	var reg *cpuUtils.RegPair
 	regI := cpu.indexRegs[cpu.indexIdx]
 	rIdx := cpu.fetched.opCode >> 4 & 0b11
 	switch rIdx {
@@ -312,7 +316,7 @@ func addIXY(cpu *z80) {
 }
 
 func addIY(cpu *z80) {
-	var reg *RegPair
+	var reg *cpuUtils.RegPair
 	rIdx := cpu.fetched.opCode >> 4 & 0b11
 	switch rIdx {
 	case 0b00:
@@ -558,8 +562,8 @@ func ldNNhl(cpu *z80) {
 func ldNNIXY(cpu *z80) {
 	reg := cpu.indexRegs[cpu.indexIdx]
 	mm := cpu.fetched.nn
-	mw1 := newMW(mm, *reg.l, nil)
-	mw2 := newMW(mm+1, *reg.h, nil)
+	mw1 := newMW(mm, *reg.L, nil)
+	mw2 := newMW(mm+1, *reg.H, nil)
 	cpu.scheduler.append(mw1, mw2)
 }
 
@@ -615,8 +619,8 @@ func ldNNdd(cpu *z80) {
 	rIdx := cpu.fetched.opCode >> 4 & 0b11
 	reg := cpu.getRRptr(rIdx)
 	mm := cpu.fetched.nn
-	mw1 := newMW(mm, *reg.l, nil)
-	mw2 := newMW(mm+1, *reg.h, nil)
+	mw1 := newMW(mm, *reg.L, nil)
+	mw2 := newMW(mm+1, *reg.H, nil)
 	cpu.scheduler.append(mw1, mw2)
 }
 
@@ -630,12 +634,12 @@ func ldDDnn(cpu *z80) {
 func ldDDnn_m1(cpu *z80, data uint8) {
 	rIdx := cpu.fetched.opCode >> 4 & 0b11
 	reg := cpu.getRRptr(rIdx)
-	*reg.l = data
+	*reg.L = data
 }
 func ldDDnn_m2(cpu *z80, data uint8) {
 	rIdx := cpu.fetched.opCode >> 4 & 0b11
 	reg := cpu.getRRptr(rIdx)
-	*reg.h = data
+	*reg.H = data
 }
 
 func ldAi(cpu *z80) {
@@ -675,12 +679,12 @@ func ldIXYnn(cpu *z80) {
 
 func ldIXYnn_m1(cpu *z80, data uint8) {
 	reg := cpu.indexRegs[cpu.indexIdx]
-	*reg.l = data
+	*reg.L = data
 }
 
 func ldIXYnn_m2(cpu *z80, data uint8) {
 	reg := cpu.indexRegs[cpu.indexIdx]
-	*reg.h = data
+	*reg.H = data
 }
 
 func ldAnn(cpu *z80) {
@@ -1043,15 +1047,15 @@ func ldIXYHr(cpu *z80) {
 	case 0b011:
 		r = &cpu.regs.E
 	case 0b100:
-		r = reg.h
+		r = reg.H
 	case 0b101:
-		r = reg.l
+		r = reg.L
 	case 0b110:
 		panic(-1)
 	case 0b111:
 		r = &cpu.regs.A
 	}
-	*reg.h = *r
+	*reg.H = *r
 }
 
 func ldIXYLr(cpu *z80) {
@@ -1068,15 +1072,15 @@ func ldIXYLr(cpu *z80) {
 	case 0b011:
 		r = &cpu.regs.E
 	case 0b100:
-		r = reg.h
+		r = reg.H
 	case 0b101:
-		r = reg.l
+		r = reg.L
 	case 0b110:
 		panic(-1)
 	case 0b111:
 		r = &cpu.regs.A
 	}
-	*reg.l = *r
+	*reg.L = *r
 }
 
 func ldRr(cpu *z80) {
@@ -1458,8 +1462,8 @@ func (cpu *z80) getRptr(rIdx byte) *byte {
 	return r
 }
 
-func (cpu *z80) getRRptr(rIdx byte) *RegPair {
-	var reg *RegPair
+func (cpu *z80) getRRptr(rIdx byte) *cpuUtils.RegPair {
+	var reg *cpuUtils.RegPair
 	switch rIdx {
 	case 0b00:
 		reg = cpu.regs.BC

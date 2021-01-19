@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	cpuUtils "github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/emulator"
 )
 
@@ -23,19 +24,19 @@ type Z80Registers struct {
 
 	B  byte
 	C  byte
-	BC *RegPair
+	BC *cpuUtils.RegPair
 
 	D  byte
 	E  byte
-	DE *RegPair
+	DE *cpuUtils.RegPair
 
 	H  byte
 	L  byte
-	HL *RegPair
+	HL *cpuUtils.RegPair
 
 	S  byte
 	P  byte
-	SP *RegPair
+	SP *cpuUtils.RegPair
 
 	I  byte
 	R  byte
@@ -46,11 +47,11 @@ type Z80Registers struct {
 
 	IXH byte
 	IXL byte
-	IX  *RegPair
+	IX  *cpuUtils.RegPair
 
 	IYH byte
 	IYL byte
-	IY  *RegPair
+	IY  *cpuUtils.RegPair
 
 	Aalt byte
 	Falt *flags
@@ -113,7 +114,7 @@ type z80 struct {
 	bus emulator.Bus
 
 	regs      *Z80Registers
-	indexRegs []*RegPair
+	indexRegs []*cpuUtils.RegPair
 	indexIdx  int
 
 	halt bool
@@ -180,13 +181,13 @@ func NewZ80(bus emulator.Bus) emulator.CPU {
 		},
 	}
 
-	cpu.regs.BC = &RegPair{&cpu.regs.B, &cpu.regs.C}
-	cpu.regs.DE = &RegPair{&cpu.regs.D, &cpu.regs.E}
-	cpu.regs.HL = &RegPair{&cpu.regs.H, &cpu.regs.L}
-	cpu.regs.SP = &RegPair{&cpu.regs.S, &cpu.regs.P}
-	cpu.regs.IX = &RegPair{&cpu.regs.IXH, &cpu.regs.IXL}
-	cpu.regs.IY = &RegPair{&cpu.regs.IYH, &cpu.regs.IYL}
-	cpu.indexRegs = []*RegPair{cpu.regs.HL, cpu.regs.IX, cpu.regs.IY}
+	cpu.regs.BC = &cpuUtils.RegPair{&cpu.regs.B, &cpu.regs.C}
+	cpu.regs.DE = &cpuUtils.RegPair{&cpu.regs.D, &cpu.regs.E}
+	cpu.regs.HL = &cpuUtils.RegPair{&cpu.regs.H, &cpu.regs.L}
+	cpu.regs.SP = &cpuUtils.RegPair{&cpu.regs.S, &cpu.regs.P}
+	cpu.regs.IX = &cpuUtils.RegPair{&cpu.regs.IXH, &cpu.regs.IXL}
+	cpu.regs.IY = &cpuUtils.RegPair{&cpu.regs.IYH, &cpu.regs.IYL}
+	cpu.indexRegs = []*cpuUtils.RegPair{cpu.regs.HL, cpu.regs.IX, cpu.regs.IY}
 
 	cpu.scheduler.append(newFetch(lookup))
 	return cpu
