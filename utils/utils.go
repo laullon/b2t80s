@@ -1,9 +1,11 @@
 package utils
 
 import (
+	"archive/zip"
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io/ioutil"
 	"os"
 	"regexp"
 	"strconv"
@@ -84,4 +86,23 @@ func ReadFile(path string) []byte {
 		panic(err)
 	}
 	return file[:l]
+}
+
+func ReadZipFile(file *zip.File) []byte {
+	fc, err := file.Open()
+	if err != nil {
+		panic(err)
+	}
+
+	content, err := ioutil.ReadAll(fc)
+	if err != nil {
+		panic(err)
+	}
+
+	err = fc.Close()
+	if err != nil {
+		panic(err)
+	}
+
+	return content
 }

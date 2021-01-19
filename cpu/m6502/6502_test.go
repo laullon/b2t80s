@@ -12,7 +12,7 @@ import (
 )
 
 // func TestReset(t *testing.T) { // TODO: review
-// 	cpu := newM6502(mem)
+// 	cpu := MewM6502(mem)
 
 // 	for i := 0; i < 8; i++ {
 // 		cpu.Tick()
@@ -34,7 +34,7 @@ func TestFunctionalTests(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	cpu := newM6502(mem)
+	cpu := MewM6502(mem).(*m6502)
 	if testing.Short() {
 		println("skipping logs in short mode.")
 	} else {
@@ -69,7 +69,7 @@ func TestTiming(t *testing.T) {
 	mem = append(make([]byte, 0x1000), mem...)
 	mem = append(mem, make([]byte, 0x1000)...)
 
-	cpu := newM6502(mem)
+	cpu := MewM6502(mem).(*m6502)
 
 	cpu.regs.PC = 0x1000
 	cpu.op = nil

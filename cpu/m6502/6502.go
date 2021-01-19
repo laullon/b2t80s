@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	cpuUtils "github.com/laullon/b2t80s/cpu"
+	"github.com/laullon/b2t80s/emulator"
 )
 
 type Registers struct {
@@ -121,15 +122,23 @@ type m6502 struct {
 	log cpuUtils.Log
 
 	op operation
+
+	debugger emulator.Debugger
 }
 
-func newM6502(mem []byte) *m6502 {
+func MewM6502(mem []byte) emulator.CPU {
 	return &m6502{
 		mem: mem,
-		// op:  &reset{},
-		// AB: &cpuUtils.RegPair{L: new(uint8), H: new(uint8)},
+		op:  &reset{},
 	}
 }
+
+func (cpu *m6502) Interrupt(bool)                                {}
+func (cpu *m6502) Halt()                                         {}
+func (cpu *m6502) Wait(bool)                                     {}
+func (cpu *m6502) Registers() interface{}                        { return cpu.regs }
+func (cpu *m6502) SetDebuger(debugger emulator.Debugger)         { cpu.debugger = debugger }
+func (cpu *m6502) RegisterTrap(pc uint16, trap emulator.CPUTrap) {}
 
 func (cpu *m6502) Tick() {
 	if (cpu.op == nil) || cpu.op.done() {
@@ -148,6 +157,10 @@ func (cpu *m6502) Tick() {
 
 	if cpu.op.done() && (cpu.log != nil) {
 		cpu.log.AddEntry(fmt.Sprintf("%-30v%v", cpu.op, cpu.regs))
+	}
+
+	if cpu.op.done() && (cpu.debugger != nil) {
+		cpu.debugger.AddInstruction(cpu.op.getPC(), "", fmt.Sprintf("%-30v", cpu.op))
 	}
 }
 
