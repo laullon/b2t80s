@@ -118,7 +118,7 @@ func (r Registers) String() string {
 type m6502 struct {
 	regs Registers
 
-	mem []uint8
+	bus Bus
 	log cpuUtils.Log
 
 	op operation
@@ -126,9 +126,9 @@ type m6502 struct {
 	debugger emulator.Debugger
 }
 
-func MewM6502(mem []byte) emulator.CPU {
+func MewM6502(bus Bus) emulator.CPU {
 	return &m6502{
-		mem: mem,
+		bus: bus,
 		op:  &reset{},
 	}
 }
@@ -142,7 +142,7 @@ func (cpu *m6502) RegisterTrap(pc uint16, trap emulator.CPUTrap) {}
 
 func (cpu *m6502) Tick() {
 	if (cpu.op == nil) || cpu.op.done() {
-		opCode := cpu.mem[int(cpu.regs.PC)]
+		opCode := cpu.bus.Read(cpu.regs.PC)
 		cpu.op = ops[opCode]
 		if cpu.op == nil {
 			fmt.Printf("opCode: 0x%X NOT FOUND !!!\n", opCode)
@@ -166,11 +166,11 @@ func (cpu *m6502) Tick() {
 
 func (cpu *m6502) push(data uint8) {
 	// fmt.Printf("[PUSH] 0x%04X - 0x%02X \n", 0x0100+uint16(cpu.regs.SP), data)
-	cpu.mem[0x0100+uint16(cpu.regs.SP)] = data
+	cpu.bus.Write(0x0100+uint16(cpu.regs.SP), data)
 	cpu.regs.SP--
 }
 
 func (cpu *m6502) pop() uint8 {
 	cpu.regs.SP++
-	return cpu.mem[0x0100+uint16(cpu.regs.SP)]
+	return cpu.bus.Read(0x0100 + uint16(cpu.regs.SP))
 }

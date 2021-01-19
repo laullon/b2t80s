@@ -1,7 +1,6 @@
 package atetris
 
 import (
-	"archive/zip"
 	"image"
 
 	"fyne.io/fyne"
@@ -9,7 +8,6 @@ import (
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/machines"
 	"github.com/laullon/b2t80s/ui"
-	"github.com/laullon/b2t80s/utils"
 )
 
 type atetris struct {
@@ -18,27 +16,9 @@ type atetris struct {
 }
 
 func NewATetris() machines.Machine {
-	zipFile := "../../games/atetris.zip"
-	var mem []byte
-	zf, err := zip.OpenReader(zipFile)
-	if err != nil {
-		panic(err)
-	}
-
-	for _, file := range zf.File {
-		println(file.Name)
-		if file.Name == "136066-1100.45f" {
-			mem = utils.ReadZipFile(file)
-		}
-	}
-
-	err = zf.Close()
-	if err != nil {
-		panic(err)
-	}
 
 	m := &atetris{
-		cpu:   m6502.MewM6502(mem),
+		cpu:   m6502.MewM6502(newBus()),
 		clock: emulator.NewCLock(14318181 / 8),
 	}
 

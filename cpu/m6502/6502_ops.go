@@ -60,10 +60,10 @@ func (op *reset) tick(cpu *m6502) {
 	case 3, 4, 5:
 		cpu.regs.SP--
 	case 6:
-		cpu.regs.PC = uint16(cpu.mem[0xff00+uint16(cpu.regs.SP)])<<8 | (cpu.regs.PC & 0x00ff)
+		cpu.regs.PC = uint16(cpu.bus.Read(0xff00+uint16(cpu.regs.SP)))<<8 | (cpu.regs.PC & 0x00ff)
 		cpu.regs.SP--
 	case 7:
-		cpu.regs.PC = (cpu.regs.PC & 0xff00) | uint16(cpu.mem[0xff00+uint16(cpu.regs.SP)])
+		cpu.regs.PC = (cpu.regs.PC & 0xff00) | uint16(cpu.bus.Read(0xff00+uint16(cpu.regs.SP)))
 		op.d = true
 	}
 	op.t++
@@ -88,15 +88,15 @@ type indirect struct {
 func (op *indirect) tick(cpu *m6502) {
 	switch op.t {
 	case 0:
-		op.addr = uint16(cpu.mem[cpu.regs.PC])
+		op.addr = uint16(cpu.bus.Read(cpu.regs.PC))
 		cpu.regs.PC++
 	case 1:
-		op.addr |= uint16(cpu.mem[cpu.regs.PC]) << 8
+		op.addr |= uint16(cpu.bus.Read(cpu.regs.PC)) << 8
 		cpu.regs.PC++
 	case 2:
-		op.target = uint16(cpu.mem[op.addr])
+		op.target = uint16(cpu.bus.Read(op.addr))
 	case 3:
-		op.target |= uint16(cpu.mem[op.addr+1]) << 8
+		op.target |= uint16(cpu.bus.Read(op.addr+1)) << 8
 	case 4:
 		op.F(cpu, op.target)
 		op.d = true
@@ -125,23 +125,23 @@ type indirectXY struct {
 func (op *indirectXY) tick(cpu *m6502) {
 	switch op.t {
 	case 0:
-		op.addrZ = cpu.mem[cpu.regs.PC]
+		op.addrZ = cpu.bus.Read(cpu.regs.PC)
 		if op.x {
 			op.addrZ += cpu.regs.X
 		}
 		cpu.regs.PC++
 	case 1:
-		op.addr = uint16(cpu.mem[op.addrZ])
+		op.addr = uint16(cpu.bus.Read(uint16(op.addrZ)))
 	case 2:
-		op.addr |= uint16(cpu.mem[op.addrZ+1]) << 8
+		op.addr |= uint16(cpu.bus.Read(uint16(op.addrZ+1))) << 8
 	case 3:
 		if op.y {
 			op.addr += uint16(cpu.regs.Y)
 		}
 	case 4:
-		discard, v := op.F(cpu, cpu.mem[op.addr])
+		discard, v := op.F(cpu, cpu.bus.Read(op.addr))
 		if !discard {
-			cpu.mem[op.addr] = v
+			cpu.bus.Write(op.addr, v)
 		}
 		op.d = true
 	}
@@ -190,7 +190,7 @@ type immediate struct {
 }
 
 func (op *immediate) tick(cpu *m6502) {
-	op.data = cpu.mem[int(cpu.regs.PC)]
+	op.data = cpu.bus.Read(cpu.regs.PC)
 	op.F(cpu, op.data)
 	cpu.regs.PC++
 	op.d = true
@@ -217,7 +217,7 @@ func (op *relative) tick(cpu *m6502) {
 	switch op.t {
 	case 0:
 		op.d = !op.F(cpu)
-		op.off = int8(cpu.mem[cpu.regs.PC])
+		op.off = int8(cpu.bus.Read(cpu.regs.PC))
 		cpu.regs.PC++
 	case 1:
 		op.target = cpu.regs.PC + uint16(op.off)
@@ -250,10 +250,10 @@ type absoluteJMP struct {
 func (op *absoluteJMP) tick(cpu *m6502) {
 	switch op.t {
 	case 0:
-		op.readAddr = uint16(cpu.mem[cpu.regs.PC])
+		op.readAddr = uint16(cpu.bus.Read(cpu.regs.PC))
 		cpu.regs.PC++
 	case 1:
-		op.readAddr |= uint16(cpu.mem[cpu.regs.PC]) << 8
+		op.readAddr |= uint16(cpu.bus.Read(cpu.regs.PC)) << 8
 		cpu.regs.PC = op.readAddr
 		op.d = true
 	}
@@ -278,10 +278,10 @@ type absoluteJSR struct {
 func (op *absoluteJSR) tick(cpu *m6502) {
 	switch op.t {
 	case 0:
-		op.readAddr = uint16(cpu.mem[cpu.regs.PC])
+		op.readAddr = uint16(cpu.bus.Read(cpu.regs.PC))
 		cpu.regs.PC++
 	case 1:
-		op.readAddr |= uint16(cpu.mem[cpu.regs.PC]) << 8
+		op.readAddr |= uint16(cpu.bus.Read(cpu.regs.PC)) << 8
 		cpu.regs.PC++
 	case 2:
 		cpu.push(uint8((cpu.regs.PC - 1) >> 8))
@@ -311,14 +311,14 @@ type indirectJMP struct {
 func (op *indirectJMP) tick(cpu *m6502) {
 	switch op.t {
 	case 0:
-		op.readAddr = uint16(cpu.mem[cpu.regs.PC])
+		op.readAddr = uint16(cpu.bus.Read(cpu.regs.PC))
 		cpu.regs.PC++
 	case 1:
-		op.readAddr |= uint16(cpu.mem[cpu.regs.PC]) << 8
+		op.readAddr |= uint16(cpu.bus.Read(cpu.regs.PC)) << 8
 	case 2:
-		cpu.regs.PC = uint16(cpu.mem[op.readAddr])
+		cpu.regs.PC = uint16(cpu.bus.Read(op.readAddr))
 	case 3:
-		cpu.regs.PC |= uint16(cpu.mem[op.readAddr+1]) << 8
+		cpu.regs.PC |= uint16(cpu.bus.Read(op.readAddr+1)) << 8
 		op.d = true
 	}
 	op.t++
@@ -345,10 +345,10 @@ type absolute struct {
 func (op *absolute) tick(cpu *m6502) {
 	switch op.t {
 	case 0:
-		op.readAddr = uint16(cpu.mem[cpu.regs.PC])
+		op.readAddr = uint16(cpu.bus.Read(cpu.regs.PC))
 		cpu.regs.PC++
 	case 1:
-		op.readAddr |= uint16(cpu.mem[cpu.regs.PC]) << 8
+		op.readAddr |= uint16(cpu.bus.Read(cpu.regs.PC)) << 8
 		cpu.regs.PC++
 	case 2:
 		if op.x {
@@ -368,9 +368,9 @@ func (op *absolute) tick(cpu *m6502) {
 }
 
 func (op *absolute) exec(cpu *m6502) {
-	discard, v := op.F(cpu, cpu.mem[op.targetAddr])
+	discard, v := op.F(cpu, cpu.bus.Read(op.targetAddr))
 	if !discard {
-		cpu.mem[op.targetAddr] = v
+		cpu.bus.Write(op.targetAddr, v)
 	}
 	op.d = true
 }
@@ -401,7 +401,7 @@ type zeropage struct {
 func (op *zeropage) tick(cpu *m6502) {
 	switch op.t {
 	case 0:
-		op.addr = cpu.mem[cpu.regs.PC]
+		op.addr = cpu.bus.Read(cpu.regs.PC)
 		cpu.regs.PC++
 	case 1:
 		if op.x {
@@ -410,9 +410,9 @@ func (op *zeropage) tick(cpu *m6502) {
 			op.addr += cpu.regs.Y
 		}
 	case 2:
-		discard, v := op.F(cpu, cpu.mem[op.addr])
+		discard, v := op.F(cpu, cpu.bus.Read(uint16(op.addr)))
 		if !discard {
-			cpu.mem[op.addr] = v
+			cpu.bus.Write(uint16(op.addr), v)
 		}
 		op.d = true
 	}

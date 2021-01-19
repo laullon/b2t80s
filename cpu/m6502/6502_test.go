@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	cpuUtils "github.com/laullon/b2t80s/cpu"
+	"github.com/laullon/b2t80s/emulator"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,7 +35,7 @@ func TestFunctionalTests(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	cpu := MewM6502(mem).(*m6502)
+	cpu := MewM6502(&simpleBus{mem: mem}).(*m6502)
 	if testing.Short() {
 		println("skipping logs in short mode.")
 	} else {
@@ -69,7 +70,7 @@ func TestTiming(t *testing.T) {
 	mem = append(make([]byte, 0x1000), mem...)
 	mem = append(mem, make([]byte, 0x1000)...)
 
-	cpu := MewM6502(mem).(*m6502)
+	cpu := MewM6502(&simpleBus{mem: mem}).(*m6502)
 
 	cpu.regs.PC = 0x1000
 	cpu.op = nil
@@ -95,3 +96,11 @@ func (log *logPrinter) AddEntry(entry string) {
 	log.prevTicks = *log.ticks
 }
 func (log *logPrinter) Print() string { return "" }
+
+type simpleBus struct {
+	mem []byte
+}
+
+func (bus *simpleBus) Write(addr uint16, data uint8)                                     { bus.mem[addr] = data }
+func (bus *simpleBus) Read(addr uint16) uint8                                            { return bus.mem[addr] }
+func (bus *simpleBus) RegisterPort(mask emulator.PortMask, manager emulator.PortManager) {}
