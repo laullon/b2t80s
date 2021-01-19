@@ -24,7 +24,7 @@ func NewATetris() machines.Machine {
 
 	m.clock.AddTicker(0, m.cpu)
 
-	m.cpu.SetDebuger(m6502.NewDebugger(m.cpu, nil, m.clock))
+	// m.cpu.SetDebuger(m6502.NewDebugger(m.cpu, nil, m.clock))
 
 	return m
 }

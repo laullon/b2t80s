@@ -6,6 +6,7 @@ import (
 
 	"github.com/laullon/b2t80s/cpu/m6502"
 	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/emulator/pokey"
 	"github.com/laullon/b2t80s/utils"
 )
 
@@ -24,9 +25,10 @@ import (
 // 3000          W   --------    Watchdog
 // 3400          W   --------    EEPROM write enable
 // 3800          W   --------    IRQ acknowledge
-// 3C00          W   --xx----    Coin counters
+// 3C00          W   --xx-xxx    System status
 //               W   --x-----       (right coin counter)
 //               W   ---x----       (left coin counter)
+//               W   -----xxx       (page rom bank)
 // 4000-7FFF   R     xxxxxxxx    Banked program ROM
 // 8000-FFFF   R     xxxxxxxx    Program ROM
 
@@ -36,8 +38,26 @@ func newBus() m6502.Bus {
 	}
 
 	rom := loadRom()
+	status := &status{}
 
+	//RAM
+	bus.RegisterPort(emulator.PortMask{Mask: 0b1111000000000000, Value: 0b0000000000000000}, &ram{mem: make([]byte, 0x1000), mask: 0x0fff})
+	bus.RegisterPort(emulator.PortMask{Mask: 0b1111000000000000, Value: 0b0001000000000000}, &ram{mem: make([]byte, 0x1000), mask: 0x0fff})
+	bus.RegisterPort(emulator.PortMask{Mask: 0b1111000000000000, Value: 0b0010000000000000}, &ram{mem: make([]byte, 0x0100), mask: 0x00ff})
+
+	// ROM
 	bus.RegisterPort(emulator.PortMask{Mask: 0x8000, Value: 0x8000}, &fixedROM{rom: rom})
+	bus.RegisterPort(emulator.PortMask{Mask: 0xc000, Value: 0x4000}, &pageROM{rom: rom, status: status})
+
+	// EEPROM
+	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0011010000000000}, &eepromStatus{})
+
+	// Watchdog
+	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0011000000000000}, &ram{mem: make([]byte, 0x0100), mask: 0x00ff})
+
+	//POKEY
+	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000110000, Value: 0b0010100000000000}, pokey.NewPokey())
+	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000110000, Value: 0b0010100000010000}, pokey.NewPokey())
 	return bus
 }
 
@@ -86,12 +106,67 @@ func (bus *bus) RegisterPort(mask emulator.PortMask, manager emulator.PortManage
 }
 
 // ----------------------------
+type eepromStatus struct {
+	lock bool
+}
+
+// TODO: this should panic, but STA instruction read the byte but not use it
+//       STA should not read teh byte.
+func (s *eepromStatus) ReadPort(addr uint16) (byte, bool) {
+	return 0x00, false
+}
+
+func (s *eepromStatus) WritePort(addr uint16, data byte) {
+	s.lock = !s.lock
+}
+
+// ----------------------------
+type status struct {
+	romPage byte
+}
+
+func (s *status) ReadPort(addr uint16) (byte, bool) { panic(-1) }
+func (s *status) WritePort(addr uint16, data byte) {
+	s.romPage = data & 0b00000111
+}
+
+// ----------------------------
+type watchdog struct {
+}
+
+func (wd *watchdog) ReadPort(addr uint16) (byte, bool) { panic(-1) }
+func (wd *watchdog) WritePort(addr uint16, data byte)  {}
+
+// ----------------------------
+type ram struct {
+	mem  []byte
+	mask uint16
+}
+
+func (ram *ram) ReadPort(addr uint16) (byte, bool) { return ram.mem[addr&ram.mask], false }
+func (ram *ram) WritePort(addr uint16, data byte)  { ram.mem[addr&ram.mask] = data }
+
+// ----------------------------
 type fixedROM struct {
 	rom []byte
 }
 
 func (rom *fixedROM) ReadPort(addr uint16) (byte, bool) { return rom.rom[addr], false }
-func (rom *fixedROM) WritePort(port uint16, data byte)  { panic(-1) }
+func (rom *fixedROM) WritePort(addr uint16, data byte)  { panic(-1) }
+
+// ----------------------------
+type pageROM struct {
+	rom    []byte
+	status *status
+}
+
+func (rom *pageROM) ReadPort(addr uint16) (byte, bool) {
+	pagedAddr := uint32(rom.status.romPage) << 15
+	pagedAddr |= uint32(addr & 0x3fff)
+	return rom.rom[addr], false
+}
+
+func (rom *pageROM) WritePort(addr uint16, data byte) { panic(-1) }
 
 func loadRom() []byte {
 	zipFile := "../../games/atetris.zip"
