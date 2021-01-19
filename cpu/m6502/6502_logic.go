@@ -14,7 +14,7 @@ func init() {
 	ops[0x16] = &zeropage{F: aslM, x: true}
 	ops[0x18] = &implicit{F: clc}
 	ops[0x1e] = &absolute{F: aslM, x: true}
-	ops[0x20] = &absolute{F: jsr}
+	ops[0x20] = &absoluteJSR{}
 	ops[0x24] = &zeropage{F: bitM}
 	ops[0x26] = &zeropage{F: rolM}
 	ops[0x28] = &implicit{F: plp}
@@ -29,7 +29,7 @@ func init() {
 	ops[0x46] = &zeropage{F: lsrM}
 	ops[0x48] = &implicit{F: pha}
 	ops[0x4a] = &implicit{F: asr}
-	ops[0x4c] = &absolute{F: jmp}
+	ops[0x4c] = &absoluteJMP{}
 	ops[0x4e] = &absolute{F: lsrM}
 	ops[0x50] = &relative{F: bvc}
 	ops[0x56] = &zeropage{F: lsrM, x: true}
@@ -39,7 +39,7 @@ func init() {
 	ops[0x66] = &zeropage{F: rorM}
 	ops[0x68] = &implicit{F: pla}
 	ops[0x6a] = &implicit{F: ror}
-	ops[0x6c] = &indirect{F: jmp}
+	ops[0x6c] = &indirectJMP{}
 	ops[0x6e] = &absolute{F: rorM}
 	ops[0x70] = &relative{F: bvs}
 	ops[0x76] = &zeropage{F: rorM, x: true}
@@ -188,71 +188,34 @@ func brk(cpu *m6502) {
 	cpu.regs.PS.I = true
 }
 
-// TODO: review extra cycles
-func bne(cpu *m6502, data int8) {
-	if !cpu.regs.PS.Z {
-		jmpr(cpu, data)
-	}
+func bne(cpu *m6502) bool {
+	return !cpu.regs.PS.Z
 }
 
-// TODO: review extra cycles
-func bcc(cpu *m6502, data int8) {
-	if !cpu.regs.PS.C {
-		jmpr(cpu, data)
-	}
+func bcc(cpu *m6502) bool {
+	return !cpu.regs.PS.C
 }
 
-// TODO: review extra cycles
-func beq(cpu *m6502, data int8) {
-	if cpu.regs.PS.Z {
-		jmpr(cpu, data)
-	}
+func beq(cpu *m6502) bool {
+	return cpu.regs.PS.Z
 }
 
-// TODO: review extra cycles
-func bpl(cpu *m6502, data int8) {
-	if !cpu.regs.PS.N {
-		jmpr(cpu, data)
-	}
+func bpl(cpu *m6502) bool {
+	return !cpu.regs.PS.N
 }
 
-// TODO: review extra cycles
-func bmi(cpu *m6502, data int8) {
-	if cpu.regs.PS.N {
-		jmpr(cpu, data)
-	}
+func bmi(cpu *m6502) bool {
+	return cpu.regs.PS.N
+}
+func bvc(cpu *m6502) bool {
+	return !cpu.regs.PS.V
+}
+func bvs(cpu *m6502) bool {
+	return cpu.regs.PS.V
 }
 
-func bvc(cpu *m6502, data int8) {
-	if !cpu.regs.PS.V {
-		jmpr(cpu, data)
-	}
-}
-
-func bvs(cpu *m6502, data int8) {
-	if cpu.regs.PS.V {
-		jmpr(cpu, data)
-	}
-}
-
-// TODO: review extra cycles
-func bcs(cpu *m6502, data int8) {
-	if cpu.regs.PS.C {
-		jmpr(cpu, data)
-	}
-}
-
-func jmpr(cpu *m6502, data int8) {
-	pc := cpu.regs.PC + uint16(data)
-	jmp(cpu, pc)
-}
-
-func jmp(cpu *m6502, addr uint16) { cpu.regs.PC = addr }
-
-func jsr(cpu *m6502, addr uint16) {
-	cpu.push(uint8((cpu.regs.PC - 1) >> 8))
-	cpu.push(uint8((cpu.regs.PC - 1)))
-	cpu.regs.PC = addr
+func bcs(cpu *m6502) bool {
+	return cpu.regs.PS.C
 }
 
 func rts(cpu *m6502) {
@@ -261,25 +224,28 @@ func rts(cpu *m6502) {
 	cpu.regs.PC = addr + 1
 }
 
-func staM(cpu *m6502, addr uint16) { cpu.mem[addr] = cpu.regs.A }
+func staM(cpu *m6502, data uint8) (discard bool, v uint8) { return false, cpu.regs.A }
 
-func stxM(cpu *m6502, addr uint16) { cpu.mem[addr] = cpu.regs.X }
+func stxM(cpu *m6502, data uint8) (discard bool, v uint8) { return false, cpu.regs.X }
 
-func styM(cpu *m6502, addr uint16) { cpu.mem[addr] = cpu.regs.Y }
+func styM(cpu *m6502, data uint8) (discard bool, v uint8) { return false, cpu.regs.Y }
 
-func ldaM(cpu *m6502, addr uint16) {
-	cpu.regs.A = cpu.mem[addr]
+func ldaM(cpu *m6502, data uint8) (discard bool, v uint8) {
+	cpu.regs.A = data
 	ldzn(cpu, cpu.regs.A)
+	return true, 0
 }
 
-func ldxM(cpu *m6502, addr uint16) {
-	cpu.regs.X = cpu.mem[addr]
+func ldxM(cpu *m6502, data uint8) (discard bool, v uint8) {
+	cpu.regs.X = data
 	ldzn(cpu, cpu.regs.X)
+	return true, 0
 }
 
-func ldyM(cpu *m6502, addr uint16) {
-	cpu.regs.Y = cpu.mem[addr]
+func ldyM(cpu *m6502, data uint8) (discard bool, v uint8) {
+	cpu.regs.Y = data
 	ldzn(cpu, cpu.regs.Y)
+	return true, 0
 }
 
 func nop(cpu *m6502) {}
@@ -342,14 +308,16 @@ func iny(cpu *m6502) {
 	ldzn(cpu, cpu.regs.Y)
 }
 
-func incM(cpu *m6502, addr uint16) {
-	cpu.mem[addr]++
-	ldzn(cpu, cpu.mem[addr])
+func incM(cpu *m6502, data uint8) (discard bool, v uint8) {
+	data++
+	ldzn(cpu, data)
+	return false, data
 }
 
-func decM(cpu *m6502, addr uint16) {
-	cpu.mem[addr]--
-	ldzn(cpu, cpu.mem[addr])
+func decM(cpu *m6502, data uint8) (discard bool, v uint8) {
+	data--
+	ldzn(cpu, data)
+	return false, data
 }
 
 func dey(cpu *m6502) {
@@ -383,8 +351,9 @@ func cmp(cpu *m6502, data uint8) {
 	cpu.regs.PS.C = (cpu.regs.A >= data)
 }
 
-func cmpM(cpu *m6502, addr uint16) {
-	cmp(cpu, cpu.mem[addr])
+func cmpM(cpu *m6502, data uint8) (discard bool, v uint8) {
+	cmp(cpu, data)
+	return true, 0
 }
 
 func cpy(cpu *m6502, data uint8) {
@@ -399,12 +368,14 @@ func cpx(cpu *m6502, data uint8) {
 	cpu.regs.PS.C = (cpu.regs.X >= data)
 }
 
-func cpxM(cpu *m6502, addr uint16) {
-	cpx(cpu, cpu.mem[addr])
+func cpxM(cpu *m6502, data uint8) (discard bool, v uint8) {
+	cpx(cpu, data)
+	return true, 0
 }
 
-func cpyM(cpu *m6502, addr uint16) {
-	cpy(cpu, cpu.mem[addr])
+func cpyM(cpu *m6502, data uint8) (discard bool, v uint8) {
+	cpy(cpu, data)
+	return true, 0
 }
 
 func eor(cpu *m6502, data uint8) {
@@ -412,9 +383,10 @@ func eor(cpu *m6502, data uint8) {
 	ldzn(cpu, cpu.regs.A)
 }
 
-func eorM(cpu *m6502, addr uint16) {
-	cpu.regs.A = cpu.regs.A ^ cpu.mem[addr]
+func eorM(cpu *m6502, data uint8) (discard bool, v uint8) {
+	cpu.regs.A = cpu.regs.A ^ data
 	ldzn(cpu, cpu.regs.A)
+	return true, 0
 }
 
 func and(cpu *m6502, data uint8) {
@@ -422,9 +394,10 @@ func and(cpu *m6502, data uint8) {
 	ldzn(cpu, cpu.regs.A)
 }
 
-func andM(cpu *m6502, addr uint16) {
-	cpu.regs.A = cpu.regs.A & cpu.mem[addr]
+func andM(cpu *m6502, data uint8) (discard bool, v uint8) {
+	cpu.regs.A = cpu.regs.A & data
 	ldzn(cpu, cpu.regs.A)
+	return true, 0
 }
 
 func ora(cpu *m6502, data uint8) {
@@ -432,9 +405,10 @@ func ora(cpu *m6502, data uint8) {
 	ldzn(cpu, cpu.regs.A)
 }
 
-func oraM(cpu *m6502, addr uint16) {
-	cpu.regs.A = cpu.regs.A | cpu.mem[addr]
+func oraM(cpu *m6502, data uint8) (discard bool, v uint8) {
+	cpu.regs.A = cpu.regs.A | data
 	ldzn(cpu, cpu.regs.A)
+	return true, 0
 }
 
 func adc(cpu *m6502, data uint8) {
@@ -448,8 +422,9 @@ func adc(cpu *m6502, data uint8) {
 	ldzn(cpu, cpu.regs.A)
 }
 
-func adcM(cpu *m6502, addr uint16) {
-	adc(cpu, cpu.mem[addr])
+func adcM(cpu *m6502, data uint8) (discard bool, v uint8) {
+	adc(cpu, data)
+	return true, 0
 }
 
 func sbc(cpu *m6502, data uint8) {
@@ -463,8 +438,9 @@ func sbc(cpu *m6502, data uint8) {
 	ldzn(cpu, cpu.regs.A)
 }
 
-func sbcM(cpu *m6502, addr uint16) {
-	sbc(cpu, cpu.mem[addr])
+func sbcM(cpu *m6502, data uint8) (discard bool, v uint8) {
+	sbc(cpu, data)
+	return true, 0
 }
 
 func pha(cpu *m6502) {
@@ -486,12 +462,11 @@ func plp(cpu *m6502) {
 	cpu.regs.PS.set(cpu.pop())
 }
 
-func lsrM(cpu *m6502, addr uint16) {
-	d := cpu.mem[int(addr)]
-	cpu.regs.PS.C = d&1 == 1
-	d >>= 1
-	ldzn(cpu, d)
-	cpu.mem[int(addr)] = d
+func lsrM(cpu *m6502, data uint8) (discard bool, v uint8) {
+	cpu.regs.PS.C = data&1 == 1
+	data >>= 1
+	ldzn(cpu, data)
+	return false, data
 }
 
 func asl(cpu *m6502) {
@@ -500,12 +475,11 @@ func asl(cpu *m6502) {
 	ldzn(cpu, cpu.regs.A)
 }
 
-func aslM(cpu *m6502, addr uint16) {
-	v := cpu.mem[addr]
-	cpu.regs.PS.C = v&0x80 == 0x80
-	v <<= 1
-	ldzn(cpu, v)
-	cpu.mem[addr] = v
+func aslM(cpu *m6502, data uint8) (discard bool, v uint8) {
+	cpu.regs.PS.C = data&0x80 == 0x80
+	data <<= 1
+	ldzn(cpu, data)
+	return false, data
 }
 
 func rol(cpu *m6502) {
@@ -518,28 +492,26 @@ func rol(cpu *m6502) {
 	ldzn(cpu, cpu.regs.A)
 }
 
-func rolM(cpu *m6502, addr uint16) {
-	v := cpu.mem[addr]
+func rolM(cpu *m6502, data uint8) (discard bool, v uint8) {
 	c := cpu.regs.PS.C
-	cpu.regs.PS.C = v&0x80 == 0x80
-	v <<= 1
+	cpu.regs.PS.C = data&0x80 == 0x80
+	data <<= 1
 	if c {
-		v |= 1
+		data |= 1
 	}
-	ldzn(cpu, v)
-	cpu.mem[addr] = v
+	ldzn(cpu, data)
+	return false, data
 }
 
-func rorM(cpu *m6502, addr uint16) {
-	v := cpu.mem[addr]
+func rorM(cpu *m6502, data uint8) (discard bool, v uint8) {
 	c := cpu.regs.PS.C
-	cpu.regs.PS.C = v&0x01 == 0x01
-	v >>= 1
+	cpu.regs.PS.C = data&0x01 == 0x01
+	data >>= 1
 	if c {
-		v |= 0x80
+		data |= 0x80
 	}
-	ldzn(cpu, v)
-	cpu.mem[addr] = v
+	ldzn(cpu, data)
+	return false, data
 }
 
 func ror(cpu *m6502) {
@@ -558,9 +530,9 @@ func asr(cpu *m6502) {
 	ldzn(cpu, cpu.regs.A)
 }
 
-func bitM(cpu *m6502, addr uint16) {
-	v := cpu.mem[addr]
-	cpu.regs.PS.Z = (cpu.regs.A & v) == 0
-	cpu.regs.PS.V = v&0x40 != 0
-	cpu.regs.PS.N = v&0x80 != 0
+func bitM(cpu *m6502, data uint8) (discard bool, v uint8) {
+	cpu.regs.PS.Z = (cpu.regs.A & data) == 0
+	cpu.regs.PS.V = data&0x40 != 0
+	cpu.regs.PS.N = data&0x80 != 0
+	return true, 0
 }

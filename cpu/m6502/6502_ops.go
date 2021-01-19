@@ -104,7 +104,7 @@ func (op *indirect) String() string {
 type indirectXY struct {
 	basicop
 	x, y  bool
-	F     func(cpu *m6502, addr uint16)
+	F     func(cpu *m6502, data uint8) (discard bool, v uint8)
 	addr  uint16
 	addrZ uint8
 }
@@ -126,7 +126,10 @@ func (op *indirectXY) tick(cpu *m6502) {
 			op.addr += uint16(cpu.regs.Y)
 		}
 	case 4:
-		op.F(cpu, op.addr)
+		discard, v := op.F(cpu, cpu.mem[op.addr])
+		if !discard {
+			cpu.mem[op.addr] = v
+		}
 		op.d = true
 	}
 	op.t++
@@ -192,22 +195,127 @@ func (op *immediate) String() string {
 
 type relative struct {
 	basicop
-	F    func(cpu *m6502, data int8)
-	data int8
+	F      func(cpu *m6502) bool
+	off    int8
+	target uint16
 }
 
 func (op *relative) tick(cpu *m6502) {
-	op.data = int8(cpu.mem[cpu.regs.PC])
-	cpu.regs.PC++
-	op.F(cpu, op.data)
-	op.d = true
+	switch op.t {
+	case 0:
+		op.d = !op.F(cpu)
+		op.off = int8(cpu.mem[cpu.regs.PC])
+		cpu.regs.PC++
+	case 1:
+		op.target = cpu.regs.PC + uint16(op.off)
+		if (cpu.regs.PC & 0xff00) == (op.target & 0xff00) { // no page change
+			cpu.regs.PC = op.target
+			op.d = true
+		}
+	case 2:
+		cpu.regs.PC = op.target
+		op.d = true
+	}
+	op.t++
 }
 
 func (op *relative) String() string {
 	return fmt.Sprintf(debugFMT,
 		op.pc,
-		fmt.Sprintf("%02X %02X", op.opCode, uint8(op.data)),
-		fmt.Sprintf("%s %d", op.ins, op.data),
+		fmt.Sprintf("%02X %02X", op.opCode, uint8(op.off)),
+		fmt.Sprintf("%s %d", op.ins, op.off),
+	)
+}
+
+// -----
+
+type absoluteJMP struct {
+	basicop
+	readAddr uint16
+}
+
+func (op *absoluteJMP) tick(cpu *m6502) {
+	switch op.t {
+	case 0:
+		op.readAddr = uint16(cpu.mem[cpu.regs.PC])
+		cpu.regs.PC++
+	case 1:
+		op.readAddr |= uint16(cpu.mem[cpu.regs.PC]) << 8
+		cpu.regs.PC = op.readAddr
+		op.d = true
+	}
+	op.t++
+}
+
+func (op *absoluteJMP) String() string {
+	return fmt.Sprintf(debugFMT,
+		op.pc,
+		fmt.Sprintf("%02X %02X %02X", op.opCode, op.readAddr&0x0ff, op.readAddr>>8),
+		fmt.Sprintf("jmp 0x%04X", op.readAddr),
+	)
+}
+
+// -----
+
+type absoluteJSR struct {
+	basicop
+	readAddr uint16
+}
+
+func (op *absoluteJSR) tick(cpu *m6502) {
+	switch op.t {
+	case 0:
+		op.readAddr = uint16(cpu.mem[cpu.regs.PC])
+		cpu.regs.PC++
+	case 1:
+		op.readAddr |= uint16(cpu.mem[cpu.regs.PC]) << 8
+		cpu.regs.PC++
+	case 2:
+		cpu.push(uint8((cpu.regs.PC - 1) >> 8))
+	case 3:
+		cpu.push(uint8((cpu.regs.PC - 1)))
+		cpu.regs.PC = op.readAddr
+		op.d = true
+	}
+	op.t++
+}
+
+func (op *absoluteJSR) String() string {
+	return fmt.Sprintf(debugFMT,
+		op.pc,
+		fmt.Sprintf("%02X %02X %02X", op.opCode, op.readAddr&0x0ff, op.readAddr>>8),
+		fmt.Sprintf("jsr 0x%04X", op.readAddr),
+	)
+}
+
+// -----
+
+type indirectJMP struct {
+	basicop
+	readAddr uint16
+}
+
+func (op *indirectJMP) tick(cpu *m6502) {
+	switch op.t {
+	case 0:
+		op.readAddr = uint16(cpu.mem[cpu.regs.PC])
+		cpu.regs.PC++
+	case 1:
+		op.readAddr |= uint16(cpu.mem[cpu.regs.PC]) << 8
+	case 2:
+		cpu.regs.PC = uint16(cpu.mem[op.readAddr])
+	case 3:
+		cpu.regs.PC |= uint16(cpu.mem[op.readAddr+1]) << 8
+		op.d = true
+	}
+	op.t++
+}
+
+func (op *indirectJMP) String() string {
+	return fmt.Sprintf(debugFMT,
+		op.pc,
+		fmt.Sprintf("%02X %02X %02X", op.opCode, op.readAddr&0x0ff, op.readAddr>>8),
+		fmt.Sprintf("jmp 0x%04X", op.readAddr),
 	)
 }
 
@@ -216,7 +324,7 @@ func (op *relative) String() string {
 type absolute struct {
 	basicop
 	x, y       bool
-	F          func(cpu *m6502, addr uint16)
+	F          func(cpu *m6502, data uint8) (discard bool, v uint8)
 	readAddr   uint16
 	targetAddr uint16
 }
@@ -238,14 +346,20 @@ func (op *absolute) tick(cpu *m6502) {
 			op.targetAddr = op.readAddr
 		}
 		if (op.targetAddr & 0xff00) == (op.readAddr & 0xff00) { // page change ?
-			op.F(cpu, op.targetAddr)
-			op.d = true
+			op.exec(cpu)
 		}
 	case 3:
-		op.F(cpu, op.targetAddr)
-		op.d = true
+		op.exec(cpu)
 	}
 	op.t++
+}
+
+func (op *absolute) exec(cpu *m6502) {
+	discard, v := op.F(cpu, cpu.mem[op.targetAddr])
+	if !discard {
+		cpu.mem[op.targetAddr] = v
+	}
+	op.d = true
 }
 
 func (op *absolute) String() string {
@@ -267,7 +381,7 @@ func (op *absolute) String() string {
 type zeropage struct {
 	basicop
 	x, y bool
-	F    func(cpu *m6502, addr uint16)
+	F    func(cpu *m6502, data uint8) (discard bool, v uint8)
 	addr uint8
 }
 
@@ -282,7 +396,11 @@ func (op *zeropage) tick(cpu *m6502) {
 		} else if op.y {
 			op.addr += cpu.regs.Y
 		}
-		op.F(cpu, uint16(op.addr))
+	case 2:
+		discard, v := op.F(cpu, cpu.mem[op.addr])
+		if !discard {
+			cpu.mem[op.addr] = v
+		}
 		op.d = true
 	}
 	op.t++

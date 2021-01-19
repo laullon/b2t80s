@@ -57,7 +57,6 @@ func TestFunctionalTests(t *testing.T) {
 }
 
 func TestTiming(t *testing.T) {
-
 	f, err := os.Open("timingtest/timingtest-1.bin")
 	if err != nil {
 		log.Fatal(err)
@@ -86,7 +85,13 @@ func TestTiming(t *testing.T) {
 	}
 }
 
-type logPrinter struct{ ticks *int }
+type logPrinter struct {
+	ticks     *int
+	prevTicks int
+}
 
-func (log *logPrinter) AddEntry(entry string) { fmt.Printf("%5d - %s\n", *log.ticks, entry) }
-func (log *logPrinter) Print() string         { return "" }
+func (log *logPrinter) AddEntry(entry string) {
+	fmt.Printf("%5d (%d) - %s\n", *log.ticks, *log.ticks-log.prevTicks, entry)
+	log.prevTicks = *log.ticks
+}
+func (log *logPrinter) Print() string { return "" }
