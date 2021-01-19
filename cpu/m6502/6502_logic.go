@@ -182,8 +182,8 @@ func brk(cpu *m6502) {
 	cpu.regs.PS.B = true
 	cpu.regs.PS.X = true
 	cpu.push(cpu.regs.PS.get())
-	addr := uint16(cpu.mem[0xfffe])
-	addr |= uint16(cpu.mem[0xffff]) << 8
+	addr := uint16(cpu.bus.Read(0xfffe))
+	addr |= uint16(cpu.bus.Read(0xffff)) << 8
 	cpu.regs.PC = addr
 	cpu.regs.PS.I = true
 }

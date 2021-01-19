@@ -8,7 +8,7 @@ import (
 
 func TestInit(t *testing.T) {
 	tetris := NewATetris()
-	for i := 0; i < 20; i++ {
+	for i := 0; i < 50; i++ {
 		tetris.(*atetris).cpu.Tick()
 	}
 	assert.FailNow(t, "xxx")
