@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"fyne.io/fyne"
+	"github.com/laullon/b2t80s/cpu/z80"
 	"github.com/laullon/b2t80s/data"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/ay8912"
@@ -13,7 +14,6 @@ import (
 	"github.com/laullon/b2t80s/machines/msx/cartridge"
 	"github.com/laullon/b2t80s/ui"
 	"github.com/laullon/b2t80s/utils"
-	"github.com/laullon/b2t80s/z80"
 )
 
 const (
