@@ -37,7 +37,7 @@ type channel struct {
 	source SoundChannel
 }
 
-func NewSoundSystem(sampleRate int) SoundSystem {
+func NewSoundSystem(sampleRate uint) SoundSystem {
 	ss := &soundSystem{}
 
 	sr := beep.SampleRate(sampleRate)
