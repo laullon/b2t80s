@@ -5,7 +5,7 @@ var ops []operation
 func init() {
 	ops = make([]operation, 0x100)
 
-	ops[0x00] = &implicit{F: brk}
+	ops[0x00] = &brk{}
 	ops[0x06] = &zeropage{F: aslM}
 	ops[0x08] = &implicit{F: php}
 	ops[0x0a] = &implicit{F: asl}
@@ -174,18 +174,6 @@ func rti(cpu *m6502) {
 	addr := uint16(cpu.pop())
 	addr |= uint16(cpu.pop()) << 8
 	cpu.regs.PC = addr
-}
-
-func brk(cpu *m6502) {
-	cpu.push(uint8((cpu.regs.PC + 1) >> 8))
-	cpu.push(uint8((cpu.regs.PC + 1)))
-	cpu.regs.PS.B = true
-	cpu.regs.PS.X = true
-	cpu.push(cpu.regs.PS.get())
-	addr := uint16(cpu.bus.Read(0xfffe))
-	addr |= uint16(cpu.bus.Read(0xffff)) << 8
-	cpu.regs.PC = addr
-	cpu.regs.PS.I = true
 }
 
 func bne(cpu *m6502) bool {

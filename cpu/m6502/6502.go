@@ -118,6 +118,9 @@ func (r Registers) String() string {
 type m6502 struct {
 	regs Registers
 
+	doIRQ bool
+	doIMM bool
+
 	bus Bus
 	log cpuUtils.Log
 
@@ -133,7 +136,7 @@ func MewM6502(bus Bus) emulator.CPU {
 	}
 }
 
-func (cpu *m6502) Interrupt(bool)                                {}
+func (cpu *m6502) Interrupt(i bool)                              { cpu.doIRQ = i }
 func (cpu *m6502) Halt()                                         {}
 func (cpu *m6502) Wait(bool)                                     {}
 func (cpu *m6502) Registers() interface{}                        { return cpu.regs }
@@ -142,21 +145,27 @@ func (cpu *m6502) RegisterTrap(pc uint16, trap emulator.CPUTrap) {}
 
 func (cpu *m6502) Tick() {
 	if (cpu.op == nil) || cpu.op.done() {
-		opCode := cpu.bus.Read(cpu.regs.PC)
-		cpu.op = ops[opCode]
-		if cpu.op == nil {
-			fmt.Printf("opCode: 0x%X NOT FOUND !!!\n", opCode)
-			panic(-1)
+		if (cpu.doIRQ || cpu.doIMM) && !cpu.regs.PS.I {
+			cpu.op = ops[0x00]
+			cpu.op.reset()
+			cpu.op.setPC(cpu.regs.PC)
+		} else {
+			opCode := cpu.bus.Read(cpu.regs.PC)
+			cpu.op = ops[opCode]
+			if cpu.op == nil {
+				fmt.Printf("opCode: 0x%X NOT FOUND !!! pc:0x%04X\n", opCode, cpu.regs.PC)
+				panic(-1)
+			}
+			cpu.op.reset()
+			cpu.op.setPC(cpu.regs.PC)
+			cpu.regs.PC++
 		}
-		cpu.op.reset()
-		cpu.op.setPC(cpu.regs.PC)
-		cpu.regs.PC++
 	} else {
 		cpu.op.tick(cpu)
 	}
 
 	if cpu.op.done() && (cpu.log != nil) {
-		cpu.log.AddEntry(fmt.Sprintf("%-30v%v", cpu.op, cpu.regs))
+		cpu.log.AddEntry(fmt.Sprintf("%-30v%v irq:%v imm:%v", cpu.op, cpu.regs, cpu.doIRQ, cpu.doIMM))
 	}
 
 	if cpu.op.done() && (cpu.debugger != nil) {

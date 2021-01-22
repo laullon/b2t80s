@@ -78,6 +78,61 @@ func (op *reset) String() string {
 }
 
 // -----
+type brk struct {
+	basicop
+	vector uint16
+}
+
+// func brk(cpu *m6502) {
+// 	cpu.push(uint8((cpu.regs.PC + 1) >> 8))
+// 	cpu.push(uint8((cpu.regs.PC + 1)))
+// 	cpu.regs.PS.B = true
+// 	cpu.regs.PS.X = true
+// 	cpu.push(cpu.regs.PS.get())
+// 	addr := uint16(cpu.bus.Read(0xfffe))
+// 	addr |= uint16(cpu.bus.Read(0xffff)) << 8
+// 	cpu.regs.PC = addr
+// 	cpu.regs.PS.I = true
+// }
+
+func (op *brk) tick(cpu *m6502) {
+	switch op.t {
+	case 0:
+		if !cpu.doIMM && !cpu.doIRQ {
+			cpu.regs.PC++
+		}
+	case 1:
+		cpu.push(uint8(cpu.regs.PC >> 8))
+	case 2:
+		cpu.push(uint8(cpu.regs.PC))
+		if cpu.doIMM {
+			op.vector = 0xFFFA
+		} else {
+			op.vector = 0xFFFE
+		}
+	case 3:
+		cpu.regs.PS.B = true
+		cpu.regs.PS.X = true
+		cpu.push(cpu.regs.PS.get())
+	case 4:
+		cpu.regs.PC = uint16(cpu.bus.Read(op.vector))
+		cpu.regs.PS.I = true
+	case 5:
+		cpu.regs.PC |= uint16(cpu.bus.Read(op.vector+1)) << 8
+		op.d = true
+	}
+	op.t++
+}
+
+func (op *brk) String() string {
+	return fmt.Sprintf(debugFMT,
+		op.pc,
+		"",
+		"BRK",
+	)
+}
+
+// -----
 type indirect struct {
 	basicop
 	F      func(cpu *m6502, addr uint16)

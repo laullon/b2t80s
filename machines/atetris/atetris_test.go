@@ -16,6 +16,6 @@ func TestInit(t *testing.T) {
 		tetris.(*atetris).cpu.SetDebuger(m6502.NewDebugger(tetris.(*atetris).cpu, nil, tetris.(*atetris).clock))
 	}
 
-	tetris.Clock().RunFor(20)
+	tetris.Clock().RunFor(60)
 	assert.FailNow(t, "xxx")
 }

@@ -65,7 +65,7 @@ func NewMSX() machines.Machine {
 		}
 	}
 
-	clock := emulator.NewCLock(speed)
+	clock := emulator.NewCLock(speed, 50)
 
 	bus := emulator.NewBus(mem)
 
