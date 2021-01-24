@@ -11,6 +11,8 @@ type CPU interface {
 
 	SetDebuger(debugger Debugger)
 	RegisterTrap(pc uint16, trap CPUTrap)
+
+	CurrentOP() string
 }
 
 type Debugger interface {

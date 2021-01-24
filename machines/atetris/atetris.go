@@ -44,7 +44,7 @@ func NewATetris() machines.Machine {
 	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000110000, Value: 0b0010100000000000}, m.pokey1)
 	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000110000, Value: 0b0010100000010000}, m.pokey2)
 
-	m.pokey1.P7 = false
+	m.pokey1.P7 = true
 
 	m.sos2.hBlank = &m.pokey1.P6
 
@@ -76,6 +76,5 @@ type clearIRQ struct {
 	cpu emulator.CPU
 }
 
-// TODO LDA
-func (s *clearIRQ) ReadPort(addr uint16) (byte, bool) { return 0x00, false }
+func (s *clearIRQ) ReadPort(addr uint16) (byte, bool) { panic(-1) }
 func (s *clearIRQ) WritePort(addr uint16, data byte)  { s.cpu.Interrupt(false) }

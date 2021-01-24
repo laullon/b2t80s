@@ -117,11 +117,11 @@ func TestIRQTests(t *testing.T) {
 	cpu := MewM6502(&simpleBus{mem: mem}).(*m6502)
 
 	ticks := 0
-	// if testing.Short() {
-	// 	println("skipping logs in short mode.")
-	// } else {
-	cpu.log = &logPrinter{ticks: &ticks}
-	// }
+	if testing.Short() {
+		println("skipping logs in short mode.")
+	} else {
+		cpu.log = &logPrinter{ticks: &ticks}
+	}
 
 	for i := 0; i < 100; i++ {
 		cpu.Interrupt((i > 50) && (i < 60))
