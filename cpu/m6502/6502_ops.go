@@ -80,24 +80,15 @@ func (op *reset) String() string {
 // -----
 type brk struct {
 	basicop
-	vector uint16
+	vector   uint16
+	irq, imm bool
 }
-
-// func brk(cpu *m6502) {
-// 	cpu.push(uint8((cpu.regs.PC + 1) >> 8))
-// 	cpu.push(uint8((cpu.regs.PC + 1)))
-// 	cpu.regs.PS.B = true
-// 	cpu.regs.PS.X = true
-// 	cpu.push(cpu.regs.PS.get())
-// 	addr := uint16(cpu.bus.Read(0xfffe))
-// 	addr |= uint16(cpu.bus.Read(0xffff)) << 8
-// 	cpu.regs.PC = addr
-// 	cpu.regs.PS.I = true
-// }
 
 func (op *brk) tick(cpu *m6502) {
 	switch op.t {
 	case 0:
+		op.imm = cpu.doIMM
+		op.irq = cpu.doIRQ
 		if !cpu.doIMM && !cpu.doIRQ {
 			cpu.regs.PC++
 		}
@@ -125,10 +116,16 @@ func (op *brk) tick(cpu *m6502) {
 }
 
 func (op *brk) String() string {
+	mod := ""
+	if op.irq {
+		mod = "-IRQ-"
+	} else if op.imm {
+		mod = "-IMM-"
+	}
 	return fmt.Sprintf(debugFMT,
 		op.pc,
-		"",
-		"BRK",
+		fmt.Sprintf("%02X", op.opCode),
+		fmt.Sprintf("BRK %5s", mod),
 	)
 }
 

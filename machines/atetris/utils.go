@@ -15,7 +15,6 @@ func loadRom(fileName string) []byte {
 	}
 
 	for _, file := range zf.File {
-		println(file.Name)
 		if file.Name == fileName {
 			mem = utils.ReadZipFile(file)
 		}

@@ -28,7 +28,7 @@ func init() {
 	ops[0x40] = &implicit{F: rti}
 	ops[0x46] = &zeropage{F: lsrM}
 	ops[0x48] = &implicit{F: pha}
-	ops[0x4a] = &implicit{F: asr}
+	ops[0x4a] = &implicit{F: lsr}
 	ops[0x4c] = &absoluteJMP{}
 	ops[0x4e] = &absolute{F: lsrM}
 	ops[0x50] = &relative{F: bvc}
@@ -512,7 +512,7 @@ func ror(cpu *m6502) {
 	ldzn(cpu, cpu.regs.A)
 }
 
-func asr(cpu *m6502) {
+func lsr(cpu *m6502) {
 	cpu.regs.PS.C = cpu.regs.A&0x01 == 0x01
 	cpu.regs.A >>= 1
 	ldzn(cpu, cpu.regs.A)

@@ -1,7 +1,5 @@
 package atetris
 
-import "fmt"
-
 const (
 	DISABLED = iota
 	ENABLED
@@ -89,13 +87,10 @@ func (slapstic *slapstic) ReadPort(addr uint16) (byte, bool) {
 	pagedAddr := uint16(slapstic.current_bank&1) * 0x4000
 	pagedAddr |= uint16(addr & 0x3fff)
 
-	fmt.Printf("addr:0x%04x (0x%04x) pagedAddr:0x%04x \n", addr, addr&0x3fff, pagedAddr)
-
 	if (addr & 0x3fff) >= 0x2000 {
 		slapstic.tweak(addr & 0x1fff)
 	}
 	return slapstic.rom[pagedAddr], false
-	// return 0xff, false
 }
 
 func (slapstic *slapstic) WritePort(addr uint16, data byte) { panic(-1) }
@@ -231,5 +226,4 @@ func (slapstic *slapstic) tweak(offset uint16) {
 
 		}
 	}
-	fmt.Printf("0x%04X b:%d \n", offset, slapstic.current_bank)
 }

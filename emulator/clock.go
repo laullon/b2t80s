@@ -73,8 +73,8 @@ func (c *clock) Stats() string {
 }
 
 func (c *clock) Run() {
-	// d := time.Duration(1.0 / float32(c.fps) * 1000)
-	wait := time.Duration(100 * time.Millisecond)
+	d := time.Second / time.Duration(c.fps)
+	wait := time.Duration(d)
 	ticker := time.NewTicker(wait)
 	go func() {
 		for range ticker.C {
