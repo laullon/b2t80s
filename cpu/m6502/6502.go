@@ -142,6 +142,7 @@ func (cpu *m6502) Wait(bool)                                     {}
 func (cpu *m6502) Registers() interface{}                        { return cpu.regs }
 func (cpu *m6502) SetDebuger(debugger emulator.Debugger)         { cpu.debugger = debugger }
 func (cpu *m6502) RegisterTrap(pc uint16, trap emulator.CPUTrap) {}
+func (cpu *m6502) CurrentOP() string                             { return fmt.Sprintf("%v", cpu.op) }
 
 func (cpu *m6502) Tick() {
 	if (cpu.op == nil) || cpu.op.done() {

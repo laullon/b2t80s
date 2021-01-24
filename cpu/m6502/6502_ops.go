@@ -13,7 +13,7 @@ type operation interface {
 	done() bool
 	tick(cpu *m6502)
 	reset()
-	setup(opCode uint8, ins string)
+	setup(opCode uint8)
 	setPC(pc uint16)
 	getPC() uint16
 }
@@ -34,11 +34,6 @@ func (op *basicop) reset() {
 
 func (op *basicop) done() bool {
 	return op.d
-}
-
-func (op *basicop) setup(opCode uint8, ins string) {
-	op.ins = ins
-	op.opCode = opCode
 }
 
 func (op *basicop) setPC(pc uint16) {
@@ -67,6 +62,10 @@ func (op *reset) tick(cpu *m6502) {
 		op.d = true
 	}
 	op.t++
+}
+
+func (op *reset) setup(opCode uint8) {
+	op.opCode = opCode
 }
 
 func (op *reset) String() string {
@@ -113,6 +112,10 @@ func (op *brk) tick(cpu *m6502) {
 		op.d = true
 	}
 	op.t++
+}
+
+func (op *brk) setup(opCode uint8) {
+	op.opCode = opCode
 }
 
 func (op *brk) String() string {
@@ -168,10 +171,11 @@ func (op *indirect) String() string {
 // -----
 type indirectXY struct {
 	basicop
-	x, y  bool
-	F     func(cpu *m6502, data uint8) (discard bool, v uint8)
-	addr  uint16
-	addrZ uint8
+	x, y     bool
+	r, w, rw bool
+	f        interface{}
+	addr     uint16
+	addrZ    uint8
 }
 
 func (op *indirectXY) tick(cpu *m6502) {
@@ -191,13 +195,16 @@ func (op *indirectXY) tick(cpu *m6502) {
 			op.addr += uint16(cpu.regs.Y)
 		}
 	case 4:
-		discard, v := op.F(cpu, cpu.bus.Read(op.addr))
-		if !discard {
-			cpu.bus.Write(op.addr, v)
-		}
+		exec(cpu, op.f, op.addr, op.r, op.w, op.rw)
 		op.d = true
 	}
 	op.t++
+}
+
+func (op *indirectXY) setup(opCode uint8) {
+	op.opCode = opCode
+	op.ins = getFunctionName(op.f)
+	op.r, op.w, op.rw = getRWRW(op.f)
 }
 
 func (op *indirectXY) String() string {
@@ -217,12 +224,17 @@ func (op *indirectXY) String() string {
 // -----
 type implicit struct {
 	basicop
-	F func(cpu *m6502)
+	f func(cpu *m6502)
 }
 
 func (op *implicit) tick(cpu *m6502) {
-	op.F(cpu)
+	op.f(cpu)
 	op.d = true
+}
+
+func (op *implicit) setup(opCode uint8) {
+	op.opCode = opCode
+	op.ins = getFunctionName(op.f)
 }
 
 func (op *implicit) String() string {
@@ -237,15 +249,20 @@ func (op *implicit) String() string {
 
 type immediate struct {
 	basicop
-	F    func(cpu *m6502, data uint8)
+	f    func(cpu *m6502, data uint8)
 	data uint8
 }
 
 func (op *immediate) tick(cpu *m6502) {
 	op.data = cpu.bus.Read(cpu.regs.PC)
-	op.F(cpu, op.data)
+	op.f(cpu, op.data)
 	cpu.regs.PC++
 	op.d = true
+}
+
+func (op *immediate) setup(opCode uint8) {
+	op.opCode = opCode
+	op.ins = getFunctionName(op.f)
 }
 
 func (op *immediate) String() string {
@@ -260,7 +277,7 @@ func (op *immediate) String() string {
 
 type relative struct {
 	basicop
-	F      func(cpu *m6502) bool
+	f      func(cpu *m6502) bool
 	off    int8
 	target uint16
 }
@@ -268,7 +285,7 @@ type relative struct {
 func (op *relative) tick(cpu *m6502) {
 	switch op.t {
 	case 0:
-		op.d = !op.F(cpu)
+		op.d = !op.f(cpu)
 		op.off = int8(cpu.bus.Read(cpu.regs.PC))
 		cpu.regs.PC++
 	case 1:
@@ -282,6 +299,11 @@ func (op *relative) tick(cpu *m6502) {
 		op.d = true
 	}
 	op.t++
+}
+
+func (op *relative) setup(opCode uint8) {
+	op.opCode = opCode
+	op.ins = getFunctionName(op.f)
 }
 
 func (op *relative) String() string {
@@ -310,6 +332,10 @@ func (op *absoluteJMP) tick(cpu *m6502) {
 		op.d = true
 	}
 	op.t++
+}
+
+func (op *absoluteJMP) setup(opCode uint8) {
+	op.opCode = opCode
 }
 
 func (op *absoluteJMP) String() string {
@@ -345,6 +371,10 @@ func (op *absoluteJSR) tick(cpu *m6502) {
 	op.t++
 }
 
+func (op *absoluteJSR) setup(opCode uint8) {
+	op.opCode = opCode
+}
+
 func (op *absoluteJSR) String() string {
 	return fmt.Sprintf(debugFMT,
 		op.pc,
@@ -376,6 +406,10 @@ func (op *indirectJMP) tick(cpu *m6502) {
 	op.t++
 }
 
+func (op *indirectJMP) setup(opCode uint8) {
+	op.opCode = opCode
+}
+
 func (op *indirectJMP) String() string {
 	return fmt.Sprintf(debugFMT,
 		op.pc,
@@ -389,7 +423,8 @@ func (op *indirectJMP) String() string {
 type absolute struct {
 	basicop
 	x, y       bool
-	F          func(cpu *m6502, data uint8) (discard bool, v uint8)
+	r, w, rw   bool
+	f          interface{}
 	readAddr   uint16
 	targetAddr uint16
 }
@@ -411,20 +446,20 @@ func (op *absolute) tick(cpu *m6502) {
 			op.targetAddr = op.readAddr
 		}
 		if (op.targetAddr & 0xff00) == (op.readAddr & 0xff00) { // page change ?
-			op.exec(cpu)
+			exec(cpu, op.f, op.targetAddr, op.r, op.w, op.rw)
+			op.d = true
 		}
 	case 3:
-		op.exec(cpu)
+		exec(cpu, op.f, op.targetAddr, op.r, op.w, op.rw)
+		op.d = true
 	}
 	op.t++
 }
 
-func (op *absolute) exec(cpu *m6502) {
-	discard, v := op.F(cpu, cpu.bus.Read(op.targetAddr))
-	if !discard {
-		cpu.bus.Write(op.targetAddr, v)
-	}
-	op.d = true
+func (op *absolute) setup(opCode uint8) {
+	op.opCode = opCode
+	op.ins = getFunctionName(op.f)
+	op.r, op.w, op.rw = getRWRW(op.f)
 }
 
 func (op *absolute) String() string {
@@ -445,9 +480,10 @@ func (op *absolute) String() string {
 
 type zeropage struct {
 	basicop
-	x, y bool
-	F    func(cpu *m6502, data uint8) (discard bool, v uint8)
-	addr uint8
+	x, y     bool
+	r, w, rw bool
+	f        interface{}
+	addr     uint8
 }
 
 func (op *zeropage) tick(cpu *m6502) {
@@ -462,13 +498,16 @@ func (op *zeropage) tick(cpu *m6502) {
 			op.addr += cpu.regs.Y
 		}
 	case 2:
-		discard, v := op.F(cpu, cpu.bus.Read(uint16(op.addr)))
-		if !discard {
-			cpu.bus.Write(uint16(op.addr), v)
-		}
+		exec(cpu, op.f, uint16(op.addr), op.r, op.w, op.rw)
 		op.d = true
 	}
 	op.t++
+}
+
+func (op *zeropage) setup(opCode uint8) {
+	op.opCode = opCode
+	op.ins = getFunctionName(op.f)
+	op.r, op.w, op.rw = getRWRW(op.f)
 }
 
 func (op *zeropage) String() string {
@@ -485,13 +524,37 @@ func (op *zeropage) String() string {
 	)
 }
 
-func getFunctionName(op interface{}) string {
-	r := reflect.ValueOf(op)
-	f := reflect.Indirect(r).FieldByName("F")
-	if !f.IsValid() {
-		return "Error"
+func getRWRW(f interface{}) (r, w, rw bool) {
+	switch f.(type) {
+	case func(*m6502, uint8):
+		r = true
+	case func(*m6502) uint8:
+		w = true
+	case func(*m6502, uint8) uint8:
+		rw = true
+	default:
+		panic(-1)
 	}
-	name := runtime.FuncForPC(f.Pointer()).Name()
+	return
+}
+
+func getFunctionName(f interface{}) string {
+	name := runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
 	idx := strings.LastIndex(name, ".") + 1
 	return strings.ToUpper(name[idx : idx+3])
+}
+
+func exec(cpu *m6502, f interface{}, addr uint16, r, w, rw bool) {
+	if r {
+		ff := f.(func(*m6502, uint8))
+		ff(cpu, cpu.bus.Read(addr))
+	} else if w {
+		ff := f.(func(*m6502) uint8)
+		cpu.bus.Write(addr, ff(cpu))
+	} else if rw {
+		ff := f.(func(*m6502, uint8) uint8)
+		cpu.bus.Write(addr, ff(cpu, cpu.bus.Read(addr)))
+	} else {
+		panic((-1))
+	}
 }

@@ -52,7 +52,7 @@ func newBus() m6502.Bus {
 	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0011110000000000}, status)
 
 	// Unused
-	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0010110000000000}, &ram{mem: make([]byte, 0x01fff), mask: 0x00ff, debug: true})
+	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0010110000000000}, &ram{mem: make([]byte, 0x01fff), mask: 0x00ff})
 
 	// Watchdog
 	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0011000000000000}, &ram{mem: make([]byte, 0x0100), mask: 0x00ff})
@@ -109,27 +109,16 @@ type eepromStatus struct {
 	lock bool
 }
 
-// TODO: this should panic, but STA instruction read the byte but not use it
-//       STA should not read teh byte.
-func (s *eepromStatus) ReadPort(addr uint16) (byte, bool) {
-	return 0x00, false
-}
-
-func (s *eepromStatus) WritePort(addr uint16, data byte) {
-	s.lock = !s.lock
-}
+func (s *eepromStatus) ReadPort(addr uint16) (byte, bool) { panic(-1) }
+func (s *eepromStatus) WritePort(addr uint16, data byte)  { s.lock = !s.lock }
 
 // ----------------------------
 type status struct {
 	romPage byte
 }
 
-// TODO: See STA comment above
-func (s *status) ReadPort(addr uint16) (byte, bool) { return 0x00, false }
-func (s *status) WritePort(addr uint16, data byte) {
-	s.romPage = data & 0b00000111
-	println("romPage:", s.romPage)
-}
+func (s *status) ReadPort(addr uint16) (byte, bool) { panic(-1) }
+func (s *status) WritePort(addr uint16, data byte)  { s.romPage = data & 0b00000111 }
 
 // ----------------------------
 type watchdog struct {
@@ -140,44 +129,26 @@ func (wd *watchdog) WritePort(addr uint16, data byte)  {}
 
 // ----------------------------
 type ram struct {
-	mem   []byte
-	mask  uint16
-	debug bool
+	mem  []byte
+	mask uint16
 }
 
 func (ram *ram) ReadPort(addr uint16) (byte, bool) { return ram.mem[addr&ram.mask], false }
-func (ram *ram) WritePort(addr uint16, data byte) {
-	ram.mem[addr&ram.mask] = data
-	if ram.debug {
-		fmt.Printf("W (0x%04X)0x%04X -> 0x%02x \n", addr, addr&ram.mask, data)
-	}
-}
+func (ram *ram) WritePort(addr uint16, data byte)  { ram.mem[addr&ram.mask] = data }
 
 // ----------------------------
 type eeprom struct {
-	mem   []byte
-	mask  uint16
-	debug bool
+	mem  []byte
+	mask uint16
 }
 
 func (eeprom *eeprom) ReadPort(addr uint16) (byte, bool) { return eeprom.mem[addr&eeprom.mask], false }
-func (eeprom *eeprom) WritePort(addr uint16, data byte) {
-	eeprom.mem[addr&eeprom.mask] = data
-	if eeprom.debug {
-		fmt.Printf("W (0x%04X)0x%04X -> 0x%02x \n", addr, addr&eeprom.mask, data)
-	}
-}
+func (eeprom *eeprom) WritePort(addr uint16, data byte)  { eeprom.mem[addr&eeprom.mask] = data }
 
 // ----------------------------
 type fixedROM struct {
-	rom   []byte
-	debug bool
+	rom []byte
 }
 
-func (rom *fixedROM) ReadPort(addr uint16) (byte, bool) {
-	if rom.debug {
-		fmt.Printf("R 0x%04X \n", addr)
-	}
-	return rom.rom[addr], false
-}
-func (rom *fixedROM) WritePort(addr uint16, data byte) { fmt.Printf("0x%04x\n", addr); panic(-1) }
+func (rom *fixedROM) ReadPort(addr uint16) (byte, bool) { return rom.rom[addr], false }
+func (rom *fixedROM) WritePort(addr uint16, data byte)  { panic(-1) }

@@ -193,6 +193,8 @@ func NewZ80(bus emulator.Bus) emulator.CPU {
 	return cpu
 }
 
+func (cpu *z80) CurrentOP() string { panic(-2) }
+
 func (cpu *z80) SetDebuger(debugger emulator.Debugger) {
 	cpu.debugger = debugger
 }
