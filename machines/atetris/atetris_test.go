@@ -27,7 +27,7 @@ func TestInit(t *testing.T) {
 		}
 	}()
 
-	tetris.Clock().RunFor(10)
+	tetris.Clock().RunFor(1)
 	assert.FailNow(t, "xxx")
 }
 

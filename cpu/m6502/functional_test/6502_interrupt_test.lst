@@ -1,0 +1,1386 @@
+AS65 Assembler for R6502 [1.42].  Copyright 1994-2007, Frank A. Kingswood                                                Page    1
+---------------------------------------------------- 6502_interrupt_test.a65 -----------------------------------------------------
+
+768 lines read, no errors in pass 1.
+                        ;
+                        ; 6 5 0 2   I N T E R R U P T   T E S T
+                        ;
+                        ; Copyright (C) 2013  Klaus Dormann
+                        ;
+                        ; This program is free software: you can redistribute it and/or modify
+                        ; it under the terms of the GNU General Public License as published by
+                        ; the Free Software Foundation, either version 3 of the License, or
+                        ; (at your option) any later version.
+                        ;
+                        ; This program is distributed in the hope that it will be useful,
+                        ; but WITHOUT ANY WARRANTY; without even the implied warranty of
+                        ; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+                        ; GNU General Public License for more details.
+                        ;
+                        ; You should have received a copy of the GNU General Public License
+                        ; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+                        
+                        
+                        ; This program is designed to test IRQ and NMI of a 6502 emulator. It requires
+                        ; an internal or external feedback register to the IRQ & NMI inputs
+                        ; 
+                        ; version 15-aug-2014
+                        ; contact info at http://2m5.de or email K@2m5.de
+                        ;
+                        ; assembled with AS65 from http://www.kingswood-consulting.co.uk/assemblers/
+                        ; command line switches: -l -m -s2 -w -h0
+                        ;                         |  |  |   |  no page headers in listing
+                        ;                         |  |  |   wide listing (133 char/col)
+                        ;                         |  |  write intel hex file instead of binary
+                        ;                         |  expand macros in listing
+                        ;                         generate pass2 listing
+                        ;
+                        ; No IO - should be run from a monitor with access to registers.
+                        ; To run load intel hex image with a load command, than alter PC to 400 hex and
+                        ; enter a go command.
+                        ; Loop on program counter determines error or successful completion of test.
+                        ; Check listing for relevant traps (jump/branch *).
+                        ;
+                        ; Debugging hints:
+                        ;     Most of the code is written sequentially. if you hit a trap, check the
+                        ;   immediately preceeding code for the instruction to be tested. Results are
+                        ;   tested first, flags are checked second by pushing them onto the stack and
+                        ;   pulling them to the accumulator after the result was checked. The "real"
+                        ;   flags are no longer valid for the tested instruction at this time!
+                        ;     If the tested instruction was indexed, the relevant index (X or Y) must
+                        ;   also be checked. Opposed to the flags, X and Y registers are still valid.
+                        ;
+                        ; versions:
+                        ;   19-jul-2013  1st version distributed for testing
+                        ;   16-aug-2013  added error report to standard output option
+                        ;   15-aug-2014  added filter to feedback (bit 7 will cause diag stop in emu)
+                        
+                        
+                        ; C O N F I G U R A T I O N
+                        ;
+                        ;ROM_vectors MUST be writable & the I_flag MUST be alterable
+                        
+                        ;load_data_direct (0=move from code segment, 1=load directly)
+                        ;loading directly is preferred but may not be supported by your platform
+                        ;0 produces only consecutive object code, 1 is not suitable for a binary image
+0000 =                  load_data_direct = 0
+                        
+                        ;NMI & IRQ are tested with a feedback register
+                        ;emulators diag register - set i_drive = 0 for a latch (74HC573)
+bffc =                  I_port      = $bffc     ;feedback port address
+0001 =                  I_drive     = 1         ;0 = totem pole, 1 = open collector
+0000 =                  IRQ_bit     = 0         ;bit number of feedback to IRQ
+0001 =                  NMI_bit     = 1         ;bit number of feedback to NMI, -1 if not available
+007f =                  I_filter    = $7f       ;filtering bit 7 = diag stop
+                        
+                        ;typical IO chip port B - set i_drive = 0 to avoid pullup resistors
+                        ;I_port      = $bfb2     ;feedback port address
+                        ;I_ddr       = $bfb3     ;feedback DDR address, 0 = no DDR
+                        ;I_drive     = 1         ;0 = totem pole, 1 = open collector
+                        ;IRQ_bit     = 0         ;bit number of feedback to IRQ
+                        ;NMI_bit     = 1         ;bit number of feedback to NMI, -1 if not available
+                        ;I_filter    = $ff       ;no bits filtered
+                        
+                        ;configure memory - try to stay away from memory used by the system
+                        ;zero_page memory start address, 6 consecutive Bytes required
+000a =                  zero_page = $a  
+                        
+                        ;data_segment memory start address, 4 consecutive Bytes required
+0200 =                  data_segment = $200  
+                        
+                        ;code_segment memory start address
+0400 =                  code_segment = $400
+                        
+                        ;report errors through I/O channel (0=use standard self trap loops, 1=include
+                        ;report.i65 as I/O channel)
+0001 =                  report = 1
+                        
+                                noopt       ;do not take shortcuts
+                        
+                        ;macros for error & success traps to allow user modification
+                        ;example:
+                        ;trap    macro
+                        ;        jsr my_error_handler
+                        ;        endm
+                        ;trap_eq macro
+                        ;        bne skip\?
+                        ;        trap           ;failed equal (zero)
+                        ;skip\?
+                        ;        endm
+                        ;
+                        ; my_error_handler should pop the calling address from the stack and report it.
+                        ; putting larger portions of code (more than 3 bytes) inside the trap macro
+                        ; may lead to branch range problems for some tests.
+                        trap    macro
+                                jsr $ffff
+                                endm
+                        trap_eq macro
+                                bne skip\?
+                                trap           ;failed equal (zero)
+                        skip\?
+                                endm
+                        trap_ne macro
+                                beq skip\?
+                                trap            ;failed not equal (non zero)
+                        skip\?
+                                endm
+                        ; please observe that during the test the stack gets invalidated
+                        ; therefore a RTS inside the success macro is not possible
+                        success macro
+                                jsr $fffa
+                                endm
+                        
+                        
+0001 =                  carry   equ %00000001   ;flag bits in status
+0002 =                  zero    equ %00000010
+0004 =                  intdis  equ %00000100
+0008 =                  decmode equ %00001000
+0010 =                  break   equ %00010000
+0020 =                  reserv  equ %00100000
+0040 =                  overfl  equ %01000000
+0080 =                  minus   equ %10000000
+                        
+0001 =                  fc      equ carry
+0002 =                  fz      equ zero
+0003 =                  fzc     equ carry+zero
+0040 =                  fv      equ overfl
+0042 =                  fvz     equ overfl+zero
+0080 =                  fn      equ minus
+0081 =                  fnc     equ minus+carry
+0082 =                  fnz     equ minus+zero
+0083 =                  fnzc    equ minus+zero+carry
+00c0 =                  fnv     equ minus+overfl
+                        
+0030 =                  fao     equ break+reserv    ;bits always on after PHP, BRK
+0034 =                  fai     equ fao+intdis      ;+ forced interrupt disable
+00ff =                  m8      equ $ff             ;8 bit mask
+00fb =                  m8i     equ $ff&~intdis     ;8 bit mask - interrupt disable
+                        
+                        ;macros to set status
+                        push_stat   macro       ;setting flags in the processor status register
+                                    lda #\1
+                                    pha         ;use stack to load status
+                                    endm
+                        
+                        set_stat    macro       ;setting flags in the processor status register
+                                    lda #\1
+                                    pha         ;use stack to load status
+                                    plp
+                                    endm
+                        
+                                bss                 ;uninitialized segment, copy of data at end of code!
+                        
+000a =                          org zero_page
+                        ;BRK, IRQ, NMI test interrupt save
+000a =                  zpt
+000a =                  irq_a   ds  1               ;a register
+000b =                  irq_x   ds  1               ;x register
+000c =                  irq_f   ds  1               ;flags
+000d =                  nmi_a   ds  1               ;a register
+000e =                  nmi_x   ds  1               ;x register
+000f =                  nmi_f   ds  1               ;flags
+0010 =                  zp_bss
+                        
+                        ;fixed stack locations
+01fe =                  lst_f   equ $1fe            ;last flags before interrupt
+01ff =                  lst_a   equ $1ff            ;last accumulator before interrupt
+                            
+0200 =                          org data_segment
+                        ;concurrent NMI, IRQ & BRK test result
+0200 =                  nmi_count   ds  1           ;lowest number handled first, $ff = never
+0201 =                  irq_count   ds  1           ;separation-1 = instructions between interrupts
+0202 =                  brk_count   ds  1
+                        ;expected interrupt mask
+0203 =                  I_src       ds  1           ;bit: 0=BRK, 1=IRQ, 2=NMI
+0204 =                  data_bss
+                        
+                                code
+0400 =                          org code_segment
+0400 : d8               start   cld
+0401 : a900                     lda #0           ;clear expected interrupts for 2nd run
+0403 : 8d0302                   sta I_src
+0406 : a2ff                     ldx #$ff
+0408 : 9a                       txs
+                            
+                        ; load system vectors
+0409 : a205                     ldx #5
+040b : bdb208           ld_vect lda vec_init,x
+040e : 9dfaff                   sta vec_bss,x
+0411 : ca                       dex
+0412 : 10f7                     bpl ld_vect
+                        
+                        ; IRQ & NMI test - requires a feedback register
+                        I_set   macro  ibit     ;ibit = interrupt bit
+                                lda I_port      ;turn on interrupt by bit
+                                and #I_filter
+                                if ibit > 7     ;set both NMI & IRQ
+                                  ora #(1<<IRQ_bit|1<<NMI_bit)
+                                else
+                                  ora #(1<<\1)
+                                endif
+                                plp             ;set flags
+                                pha             ;save to verify
+                                php
+                                sta I_port      ;interrupt next instruction plus outbound delay
+                                endm
+                        I_clr   macro  ibit     ;ibit = interrupt bit
+                                lda I_port      ;turn off interrupt by bit
+                                and #I_filter-(1<<ibit)
+                                sta I_port
+                                endm
+                                I_clr   IRQ_bit ;turn off IRQ & NMI
+0414 : adfcbf          >        lda I_port      ;turn off interrupt by bit
+0417 : 297e            >        and #I_filter-(1<<IRQ_bit )
+0419 : 8dfcbf          >        sta I_port
+                        
+                                I_clr   NMI_bit
+041c : adfcbf          >        lda I_port      ;turn off interrupt by bit
+041f : 297d            >        and #I_filter-(1<<NMI_bit)
+0421 : 8dfcbf          >        sta I_port
+                        
+                          
+                        ; IRQ integrity test
+                        ; test for clear flags seen in IRQ vector
+0424 : a902                     lda #2          ;set expected interrupt source IRQ
+0426 : 8d0302                   sta I_src
+                                push_stat 0
+0429 : a900            >            lda #0
+042b : 48              >            pha         ;use stack to load status
+                        
+                                I_set IRQ_bit
+042c : adfcbf          >        lda I_port      ;turn on interrupt by bit
+042f : 297f            >        and #I_filter
+                       >        if IRQ_bit > 7     ;set both NMI & IRQ
+                       >          ora #(1<<IRQ_bit|1<<NMI_bit)
+                       >        else
+0431 : 0901            >          ora #(1<<IRQ_bit)
+                       >        endif
+0433 : 28              >        plp             ;set flags
+0434 : 48              >        pha             ;save to verify
+0435 : 08              >        php
+0436 : 8dfcbf          >        sta I_port      ;interrupt next instruction plus outbound delay
+                        
+0439 : ea                       nop             ;allow 6 cycles for interrupt to trip
+043a : ea                       nop
+043b : ea                       nop
+043c : ad0302                   lda I_src
+                                trap_ne         ;IRQ timeout
+043f : f003            >        beq skip0005
+                       >        trap            ;failed not equal (non zero)
+0441 : 20ffff          >        jsr $ffff
+                       >
+0444 :                 >skip0005
+                        
+0444 : ba                       tsx
+0445 : e0fd                     cpx #$ff-2      ;original accu & flags remain on stack
+                                trap_ne         ;returned SP
+0447 : f003            >        beq skip0007
+                       >        trap            ;failed not equal (non zero)
+0449 : 20ffff          >        jsr $ffff
+                       >
+044c :                 >skip0007
+                        
+044c : a50c                     lda irq_f       ;flags seen in IRQ vector
+044e : 4dfe01                   eor lst_f       ;turn off unchanged bits
+0451 : 29cb                     and #m8-fai     ;mask untested other flags
+                                trap_ne         ;other flags (N,V,Z,C,D) changed
+0453 : f003            >        beq skip0009
+                       >        trap            ;failed not equal (non zero)
+0455 : 20ffff          >        jsr $ffff
+                       >
+0458 :                 >skip0009
+                        
+0458 : a2ff                     ldx #$ff        ;reset stack pointer
+045a : 9a                       txs
+                        ; test all other registers
+045b : a249                     ldx #'I'
+045d : a052                     ldy #'R'
+045f : a902                     lda #2          ;set expected interrupt source IRQ
+0461 : 8d0302                   sta I_src
+                                push_stat 0
+0464 : a900            >            lda #0
+0466 : 48              >            pha         ;use stack to load status
+                        
+                                I_set IRQ_bit
+0467 : adfcbf          >        lda I_port      ;turn on interrupt by bit
+046a : 297f            >        and #I_filter
+                       >        if IRQ_bit > 7     ;set both NMI & IRQ
+                       >          ora #(1<<IRQ_bit|1<<NMI_bit)
+                       >        else
+046c : 0901            >          ora #(1<<IRQ_bit)
+                       >        endif
+046e : 28              >        plp             ;set flags
+046f : 48              >        pha             ;save to verify
+0470 : 08              >        php
+0471 : 8dfcbf          >        sta I_port      ;interrupt next instruction plus outbound delay
+                        
+0474 : 88                       dey             ;Y count will fail, if instructions are skipped
+0475 : 88                       dey
+0476 : 88                       dey
+0477 : 88                       dey
+0478 : 08                       php             ;check processor status later
+0479 : e04a                     cpx #('I'+1)    ;returned registers OK?
+                                trap_ne         ;returned X
+047b : f003            >        beq skip0013
+                       >        trap            ;failed not equal (non zero)
+047d : 20ffff          >        jsr $ffff
+                       >
+0480 :                 >skip0013
+                        
+0480 : c04b                     cpy #('R'-7)
+                                trap_ne         ;returned Y
+0482 : f003            >        beq skip0015
+                       >        trap            ;failed not equal (non zero)
+0484 : 20ffff          >        jsr $ffff
+                       >
+0487 :                 >skip0015
+                        
+0487 : c951                     cmp #'Q'
+                                trap_ne         ;returned A
+0489 : f003            >        beq skip0017
+                       >        trap            ;failed not equal (non zero)
+048b : 20ffff          >        jsr $ffff
+                       >
+048e :                 >skip0017
+                        
+048e : ba                       tsx
+048f : e0fc                     cpx #$ff-3
+                                trap_ne         ;returned SP
+0491 : f003            >        beq skip0019
+                       >        trap            ;failed not equal (non zero)
+0493 : 20ffff          >        jsr $ffff
+                       >
+0496 :                 >skip0019
+                        
+0496 : 68                       pla             ;flags
+0497 : 4dfe01                   eor lst_f
+049a : 297d                     and #$ff-fnz    ;ignore flags changed by dey
+                                trap_ne         ;returned flags
+049c : f003            >        beq skip0021
+                       >        trap            ;failed not equal (non zero)
+049e : 20ffff          >        jsr $ffff
+                       >
+04a1 :                 >skip0021
+                        
+04a1 : a50a                     lda irq_a       ;accu seen in IRQ vector
+04a3 : cdff01                   cmp lst_a
+                                trap_ne         ;IRQ A received
+04a6 : f003            >        beq skip0023
+                       >        trap            ;failed not equal (non zero)
+04a8 : 20ffff          >        jsr $ffff
+                       >
+04ab :                 >skip0023
+                        
+04ab : a2ff                     ldx #$ff        ;reset stack pointer
+04ad : 9a                       txs
+                        ; repeat with reversed registers
+04ae : a2b6                     ldx #$ff-'I'
+04b0 : a0ad                     ldy #$ff-'R'
+04b2 : a902                     lda #2          ;set expected interrupt source IRQ
+04b4 : 8d0302                   sta I_src
+                                push_stat $ff-intdis
+04b7 : a9fb            >            lda #$ff-intdis
+04b9 : 48              >            pha         ;use stack to load status
+                        
+                                I_set IRQ_bit
+04ba : adfcbf          >        lda I_port      ;turn on interrupt by bit
+04bd : 297f            >        and #I_filter
+                       >        if IRQ_bit > 7     ;set both NMI & IRQ
+                       >          ora #(1<<IRQ_bit|1<<NMI_bit)
+                       >        else
+04bf : 0901            >          ora #(1<<IRQ_bit)
+                       >        endif
+04c1 : 28              >        plp             ;set flags
+04c2 : 48              >        pha             ;save to verify
+04c3 : 08              >        php
+04c4 : 8dfcbf          >        sta I_port      ;interrupt next instruction plus outbound delay
+                        
+04c7 : 88                       dey             ;Y count will fail, if instructions are skipped
+04c8 : 88                       dey
+04c9 : 88                       dey
+04ca : 88                       dey
+04cb : 08                       php             ;check processor status later
+04cc : e0b7                     cpx #($ff-'I'+1)    ;returned registers OK?
+                                trap_ne         ;returned X
+04ce : f003            >        beq skip0027
+                       >        trap            ;failed not equal (non zero)
+04d0 : 20ffff          >        jsr $ffff
+                       >
+04d3 :                 >skip0027
+                        
+04d3 : c0a6                     cpy #($ff-'R'-7)
+                                trap_ne         ;returned Y
+04d5 : f003            >        beq skip0029
+                       >        trap            ;failed not equal (non zero)
+04d7 : 20ffff          >        jsr $ffff
+                       >
+04da :                 >skip0029
+                        
+04da : c951                     cmp #'Q'
+                                trap_ne         ;returned A
+04dc : f003            >        beq skip0031
+                       >        trap            ;failed not equal (non zero)
+04de : 20ffff          >        jsr $ffff
+                       >
+04e1 :                 >skip0031
+                        
+04e1 : ba                       tsx
+04e2 : e0fc                     cpx #$ff-3
+                                trap_ne         ;returned SP
+04e4 : f003            >        beq skip0033
+                       >        trap            ;failed not equal (non zero)
+04e6 : 20ffff          >        jsr $ffff
+                       >
+04e9 :                 >skip0033
+                        
+04e9 : 68                       pla             ;flags
+04ea : 4dfe01                   eor lst_f
+04ed : 297d                     and #$ff-fnz    ;ignore flags changed by dey
+                                trap_ne         ;returned flags
+04ef : f003            >        beq skip0035
+                       >        trap            ;failed not equal (non zero)
+04f1 : 20ffff          >        jsr $ffff
+                       >
+04f4 :                 >skip0035
+                        
+04f4 : a50a                     lda irq_a       ;accu seen in IRQ vector
+04f6 : cdff01                   cmp lst_a
+                                trap_ne         ;IRQ A received
+04f9 : f003            >        beq skip0037
+                       >        trap            ;failed not equal (non zero)
+04fb : 20ffff          >        jsr $ffff
+                       >
+04fe :                 >skip0037
+                        
+04fe : a2ff                     ldx #$ff        ;reset stack pointer
+0500 : 9a                       txs
+                        ; retest for set flags seen in IRQ vector
+0501 : a902                     lda #2          ;set expected interrupt source IRQ
+0503 : 8d0302                   sta I_src
+                                push_stat $ff-intdis
+0506 : a9fb            >            lda #$ff-intdis
+0508 : 48              >            pha         ;use stack to load status
+                        
+                                I_set IRQ_bit
+0509 : adfcbf          >        lda I_port      ;turn on interrupt by bit
+050c : 297f            >        and #I_filter
+                       >        if IRQ_bit > 7     ;set both NMI & IRQ
+                       >          ora #(1<<IRQ_bit|1<<NMI_bit)
+                       >        else
+050e : 0901            >          ora #(1<<IRQ_bit)
+                       >        endif
+0510 : 28              >        plp             ;set flags
+0511 : 48              >        pha             ;save to verify
+0512 : 08              >        php
+0513 : 8dfcbf          >        sta I_port      ;interrupt next instruction plus outbound delay
+                        
+0516 : ea                       nop             ;allow 6 cycles for interrupt to trip
+0517 : ea                       nop
+0518 : ea                       nop
+0519 : ad0302                   lda I_src
+                                trap_ne         ;IRQ timeout
+051c : f003            >        beq skip0041
+                       >        trap            ;failed not equal (non zero)
+051e : 20ffff          >        jsr $ffff
+                       >
+0521 :                 >skip0041
+                        
+0521 : ba                       tsx
+0522 : e0fd                     cpx #$ff-2      ;original accu & flags remain on stack
+                                trap_ne         ;returned SP
+0524 : f003            >        beq skip0043
+                       >        trap            ;failed not equal (non zero)
+0526 : 20ffff          >        jsr $ffff
+                       >
+0529 :                 >skip0043
+                        
+0529 : a50c                     lda irq_f       ;flags seen in IRQ vector
+052b : 4dfe01                   eor lst_f       ;turn off unchanged bits
+052e : 29cb                     and #m8-fai     ;mask untested other flags
+                                trap_ne         ;other flags (N,V,Z,C,D) changed
+0530 : f003            >        beq skip0045
+                       >        trap            ;failed not equal (non zero)
+0532 : 20ffff          >        jsr $ffff
+                       >
+0535 :                 >skip0045
+                        
+0535 : a2ff                     ldx #$ff        ;reset stack pointer
+0537 : 9a                       txs
+                        
+                        ; BRK integrity test
+                        ; test for clear flags seen in IRQ vector
+0538 : a901                     lda #1          ;set expected interrupt source BRK
+053a : 8d0302                   sta I_src
+                                set_stat 0
+053d : a900            >            lda #0
+053f : 48              >            pha         ;use stack to load status
+0540 : 28              >            plp
+                        
+0541 : 48                       pha             ;save entry registers
+0542 : 08                       php
+0543 : 00                       brk
+0544 : ea                       nop             ;should not be executed
+0545 : ea                       nop             ;allow 6 cycles for interrupt to trip
+0546 : ea                       nop
+0547 : ea                       nop
+0548 : ad0302                   lda I_src
+                                trap_ne         ;IRQ timeout
+054b : f003            >        beq skip0048
+                       >        trap            ;failed not equal (non zero)
+054d : 20ffff          >        jsr $ffff
+                       >
+0550 :                 >skip0048
+                        
+0550 : ba                       tsx
+0551 : e0fd                     cpx #$ff-2      ;original accu & flags remain on stack
+                                trap_ne         ;returned SP
+0553 : f003            >        beq skip0050
+                       >        trap            ;failed not equal (non zero)
+0555 : 20ffff          >        jsr $ffff
+                       >
+0558 :                 >skip0050
+                        
+0558 : a50c                     lda irq_f       ;flags seen in IRQ vector
+055a : 4dfe01                   eor lst_f       ;turn off unchanged bits
+055d : 29cb                     and #m8-fai     ;mask untested other flags
+                                trap_ne         ;other flags (N,V,Z,C,D) changed
+055f : f003            >        beq skip0052
+                       >        trap            ;failed not equal (non zero)
+0561 : 20ffff          >        jsr $ffff
+                       >
+0564 :                 >skip0052
+                        
+0564 : a2ff                     ldx #$ff        ;reset stack pointer
+0566 : 9a                       txs
+                        ; test all other registers
+0567 : a242                     ldx #'B'
+0569 : a052                     ldy #'R'
+056b : a901                     lda #1          ;set expected interrupt source BRK
+056d : 8d0302                   sta I_src
+                                set_stat 0
+0570 : a900            >            lda #0
+0572 : 48              >            pha         ;use stack to load status
+0573 : 28              >            plp
+                        
+0574 : 48                       pha             ;save entry
+0575 : 08                       php
+0576 : 00                       brk
+0577 : 88                       dey             ;should not be executed
+0578 : 88                       dey             ;Y count will fail, if return address is wrong
+0579 : 88                       dey
+057a : 88                       dey
+057b : 88                       dey
+057c : 08                       php             ;check processor status later
+057d : e043                     cpx #('B'+1)    ;returned registers OK?
+                                trap_ne         ;returned X
+057f : f003            >        beq skip0055
+                       >        trap            ;failed not equal (non zero)
+0581 : 20ffff          >        jsr $ffff
+                       >
+0584 :                 >skip0055
+                        
+0584 : c04b                     cpy #('R'-7)
+                                trap_ne         ;returned Y
+0586 : f003            >        beq skip0057
+                       >        trap            ;failed not equal (non zero)
+0588 : 20ffff          >        jsr $ffff
+                       >
+058b :                 >skip0057
+                        
+058b : c94b                     cmp #'K'
+                                trap_ne         ;returned A
+058d : f003            >        beq skip0059
+                       >        trap            ;failed not equal (non zero)
+058f : 20ffff          >        jsr $ffff
+                       >
+0592 :                 >skip0059
+                        
+0592 : ba                       tsx
+0593 : e0fc                     cpx #$ff-3
+                                trap_ne         ;returned SP
+0595 : f003            >        beq skip0061
+                       >        trap            ;failed not equal (non zero)
+0597 : 20ffff          >        jsr $ffff
+                       >
+059a :                 >skip0061
+                        
+059a : 68                       pla             ;flags
+059b : 4dfe01                   eor lst_f
+059e : 297d                     and #$ff-fnz    ;ignore flags changed by dey
+                                trap_ne         ;returned flags
+05a0 : f003            >        beq skip0063
+                       >        trap            ;failed not equal (non zero)
+05a2 : 20ffff          >        jsr $ffff
+                       >
+05a5 :                 >skip0063
+                        
+05a5 : a50a                     lda irq_a       ;accu seen in IRQ vector
+05a7 : cdff01                   cmp lst_a
+                                trap_ne         ;IRQ A received
+05aa : f003            >        beq skip0065
+                       >        trap            ;failed not equal (non zero)
+05ac : 20ffff          >        jsr $ffff
+                       >
+05af :                 >skip0065
+                        
+05af : a2ff                     ldx #$ff        ;reset stack pointer
+05b1 : 9a                       txs
+                        ; repeat with reversed registers
+05b2 : a2bd                     ldx #$ff-'B'
+05b4 : a0ad                     ldy #$ff-'R'
+05b6 : a901                     lda #1          ;set expected interrupt source BRK
+05b8 : 8d0302                   sta I_src
+                                set_stat $ff
+05bb : a9ff            >            lda #$ff
+05bd : 48              >            pha         ;use stack to load status
+05be : 28              >            plp
+                        
+05bf : 48                       pha             ;save entry registers
+05c0 : 08                       php
+05c1 : 00                       brk
+05c2 : 88                       dey             ;should not be executed
+05c3 : 88                       dey             ;Y count will fail, if return address is wrong
+05c4 : 88                       dey
+05c5 : 88                       dey
+05c6 : 88                       dey
+05c7 : 08                       php             ;check processor status later
+05c8 : e0be                     cpx #($ff-'B'+1)    ;returned registers OK?
+                                trap_ne         ;returned X
+05ca : f003            >        beq skip0068
+                       >        trap            ;failed not equal (non zero)
+05cc : 20ffff          >        jsr $ffff
+                       >
+05cf :                 >skip0068
+                        
+05cf : c0a6                     cpy #($ff-'R'-7)
+                                trap_ne         ;returned Y
+05d1 : f003            >        beq skip0070
+                       >        trap            ;failed not equal (non zero)
+05d3 : 20ffff          >        jsr $ffff
+                       >
+05d6 :                 >skip0070
+                        
+05d6 : c94b                     cmp #'K'
+                                trap_ne         ;returned A
+05d8 : f003            >        beq skip0072
+                       >        trap            ;failed not equal (non zero)
+05da : 20ffff          >        jsr $ffff
+                       >
+05dd :                 >skip0072
+                        
+05dd : ba                       tsx
+05de : e0fc                     cpx #$ff-3
+                                trap_ne         ;returned SP
+05e0 : f003            >        beq skip0074
+                       >        trap            ;failed not equal (non zero)
+05e2 : 20ffff          >        jsr $ffff
+                       >
+05e5 :                 >skip0074
+                        
+05e5 : 68                       pla             ;flags
+05e6 : 4dfe01                   eor lst_f
+05e9 : 297d                     and #$ff-fnz    ;ignore flags changed by dey
+                                trap_ne         ;returned flags
+05eb : f003            >        beq skip0076
+                       >        trap            ;failed not equal (non zero)
+05ed : 20ffff          >        jsr $ffff
+                       >
+05f0 :                 >skip0076
+                        
+05f0 : a50a                     lda irq_a       ;accu seen in IRQ vector
+05f2 : cdff01                   cmp lst_a
+                                trap_ne         ;IRQ A received
+05f5 : f003            >        beq skip0078
+                       >        trap            ;failed not equal (non zero)
+05f7 : 20ffff          >        jsr $ffff
+                       >
+05fa :                 >skip0078
+                        
+05fa : a2ff                     ldx #$ff        ;reset stack pointer
+05fc : 9a                       txs
+                        ; retest for set flags seen in IRQ vector
+05fd : a901                     lda #1          ;set expected interrupt source BRK
+05ff : 8d0302                   sta I_src
+                                set_stat $ff
+0602 : a9ff            >            lda #$ff
+0604 : 48              >            pha         ;use stack to load status
+0605 : 28              >            plp
+                        
+0606 : 48                       pha             ;save entry registers
+0607 : 08                       php
+0608 : 00                       brk
+0609 : ea                       nop             ;should not be executed
+060a : ea                       nop             ;allow 6 cycles for interrupt to trip
+060b : ea                       nop
+060c : ea                       nop
+060d : ad0302                   lda I_src
+                                trap_ne         ;IRQ timeout
+0610 : f003            >        beq skip0081
+                       >        trap            ;failed not equal (non zero)
+0612 : 20ffff          >        jsr $ffff
+                       >
+0615 :                 >skip0081
+                        
+0615 : ba                       tsx
+0616 : e0fd                     cpx #$ff-2      ;original accu & flags remain on stack
+                                trap_ne         ;returned SP
+0618 : f003            >        beq skip0083
+                       >        trap            ;failed not equal (non zero)
+061a : 20ffff          >        jsr $ffff
+                       >
+061d :                 >skip0083
+                        
+061d : a50c                     lda irq_f       ;flags seen in IRQ vector
+061f : 4dfe01                   eor lst_f       ;turn off unchanged bits
+0622 : 29cb                     and #m8-fai     ;mask untested other flags
+                                trap_ne         ;other flags (N,V,Z,C,D) changed
+0624 : f003            >        beq skip0085
+                       >        trap            ;failed not equal (non zero)
+0626 : 20ffff          >        jsr $ffff
+                       >
+0629 :                 >skip0085
+                        
+0629 : a2ff                     ldx #$ff        ;reset stack pointer
+062b : 9a                       txs
+                        
+                        ; NMI integrity test
+                        ; test for clear flags seen in NMI vector
+062c : a904                     lda #4          ;set expected interrupt source NMI
+062e : 8d0302                   sta I_src
+                                push_stat 0
+0631 : a900            >            lda #0
+0633 : 48              >            pha         ;use stack to load status
+                        
+                                I_set NMI_bit
+0634 : adfcbf          >        lda I_port      ;turn on interrupt by bit
+0637 : 297f            >        and #I_filter
+                       >        if NMI_bit > 7     ;set both NMI & IRQ
+                       >          ora #(1<<IRQ_bit|1<<NMI_bit)
+                       >        else
+0639 : 0902            >          ora #(1<<NMI_bit)
+                       >        endif
+063b : 28              >        plp             ;set flags
+063c : 48              >        pha             ;save to verify
+063d : 08              >        php
+063e : 8dfcbf          >        sta I_port      ;interrupt next instruction plus outbound delay
+                        
+0641 : ea                       nop             ;allow 6 cycles for interrupt to trip
+0642 : ea                       nop
+0643 : ea                       nop
+0644 : ad0302                   lda I_src
+                                trap_ne         ;NMI timeout
+0647 : f003            >        beq skip0089
+                       >        trap            ;failed not equal (non zero)
+0649 : 20ffff          >        jsr $ffff
+                       >
+064c :                 >skip0089
+                        
+064c : ba                       tsx
+064d : e0fd                     cpx #$ff-2      ;original accu & flags remain on stack
+                                trap_ne         ;returned SP
+064f : f003            >        beq skip0091
+                       >        trap            ;failed not equal (non zero)
+0651 : 20ffff          >        jsr $ffff
+                       >
+0654 :                 >skip0091
+                        
+0654 : a50f                     lda nmi_f       ;flags seen in NMI vector
+0656 : 4dfe01                   eor lst_f       ;turn off unchanged bits
+0659 : 29cb                     and #m8-fai     ;mask untested other flags
+                                trap_ne         ;other flags (N,V,Z,C,D) changed
+065b : f003            >        beq skip0093
+                       >        trap            ;failed not equal (non zero)
+065d : 20ffff          >        jsr $ffff
+                       >
+0660 :                 >skip0093
+                        
+0660 : a2ff                     ldx #$ff        ;reset stack pointer
+0662 : 9a                       txs
+                        ; test all other registers
+0663 : a24e                     ldx #'N'
+0665 : a04d                     ldy #'M'
+0667 : a904                     lda #4          ;set expected interrupt source NMI
+0669 : 8d0302                   sta I_src
+                                push_stat 0
+066c : a900            >            lda #0
+066e : 48              >            pha         ;use stack to load status
+                        
+                                I_set NMI_bit
+066f : adfcbf          >        lda I_port      ;turn on interrupt by bit
+0672 : 297f            >        and #I_filter
+                       >        if NMI_bit > 7     ;set both NMI & IRQ
+                       >          ora #(1<<IRQ_bit|1<<NMI_bit)
+                       >        else
+0674 : 0902            >          ora #(1<<NMI_bit)
+                       >        endif
+0676 : 28              >        plp             ;set flags
+0677 : 48              >        pha             ;save to verify
+0678 : 08              >        php
+0679 : 8dfcbf          >        sta I_port      ;interrupt next instruction plus outbound delay
+                        
+067c : 88                       dey             ;Y count will fail, if instructions are skipped
+067d : 88                       dey
+067e : 88                       dey
+067f : 88                       dey
+0680 : 08                       php             ;check processor status later
+0681 : e04f                     cpx #('N'+1)    ;returned registers OK?
+                                trap_ne         ;returned X
+0683 : f003            >        beq skip0097
+                       >        trap            ;failed not equal (non zero)
+0685 : 20ffff          >        jsr $ffff
+                       >
+0688 :                 >skip0097
+                        
+0688 : c046                     cpy #('M'-7)
+                                trap_ne         ;returned Y
+068a : f003            >        beq skip0099
+                       >        trap            ;failed not equal (non zero)
+068c : 20ffff          >        jsr $ffff
+                       >
+068f :                 >skip0099
+                        
+068f : c949                     cmp #'I'
+                                trap_ne         ;returned A
+0691 : f003            >        beq skip0101
+                       >        trap            ;failed not equal (non zero)
+0693 : 20ffff          >        jsr $ffff
+                       >
+0696 :                 >skip0101
+                        
+0696 : ba                       tsx
+0697 : e0fc                     cpx #$ff-3
+                                trap_ne         ;returned SP
+0699 : f003            >        beq skip0103
+                       >        trap            ;failed not equal (non zero)
+069b : 20ffff          >        jsr $ffff
+                       >
+069e :                 >skip0103
+                        
+069e : 68                       pla             ;flags
+069f : 4dfe01                   eor lst_f
+06a2 : 297d                     and #$ff-fnz    ;ignore flags changed by dey
+                                trap_ne         ;returned flags
+06a4 : f003            >        beq skip0105
+                       >        trap            ;failed not equal (non zero)
+06a6 : 20ffff          >        jsr $ffff
+                       >
+06a9 :                 >skip0105
+                        
+06a9 : a50d                     lda nmi_a       ;accu seen in NMI vector
+06ab : cdff01                   cmp lst_a
+                                trap_ne         ;NMI A received
+06ae : f003            >        beq skip0107
+                       >        trap            ;failed not equal (non zero)
+06b0 : 20ffff          >        jsr $ffff
+                       >
+06b3 :                 >skip0107
+                        
+06b3 : a2ff                     ldx #$ff        ;reset stack pointer
+06b5 : 9a                       txs
+                        ; repeat with reversed registers
+06b6 : a2b1                     ldx #$ff-'N'
+06b8 : a0b2                     ldy #$ff-'M'
+06ba : a904                     lda #4          ;set expected interrupt source NMI
+06bc : 8d0302                   sta I_src
+                                push_stat $ff-intdis
+06bf : a9fb            >            lda #$ff-intdis
+06c1 : 48              >            pha         ;use stack to load status
+                        
+                                I_set NMI_bit
+06c2 : adfcbf          >        lda I_port      ;turn on interrupt by bit
+06c5 : 297f            >        and #I_filter
+                       >        if NMI_bit > 7     ;set both NMI & IRQ
+                       >          ora #(1<<IRQ_bit|1<<NMI_bit)
+                       >        else
+06c7 : 0902            >          ora #(1<<NMI_bit)
+                       >        endif
+06c9 : 28              >        plp             ;set flags
+06ca : 48              >        pha             ;save to verify
+06cb : 08              >        php
+06cc : 8dfcbf          >        sta I_port      ;interrupt next instruction plus outbound delay
+                        
+06cf : 88                       dey             ;Y count will fail, if instructions are skipped
+06d0 : 88                       dey
+06d1 : 88                       dey
+06d2 : 88                       dey
+06d3 : 08                       php             ;check processor status later
+06d4 : e0b2                     cpx #($ff-'N'+1)    ;returned registers OK?
+                                trap_ne         ;returned X
+06d6 : f003            >        beq skip0111
+                       >        trap            ;failed not equal (non zero)
+06d8 : 20ffff          >        jsr $ffff
+                       >
+06db :                 >skip0111
+                        
+06db : c0ab                     cpy #($ff-'M'-7)
+                                trap_ne         ;returned Y
+06dd : f003            >        beq skip0113
+                       >        trap            ;failed not equal (non zero)
+06df : 20ffff          >        jsr $ffff
+                       >
+06e2 :                 >skip0113
+                        
+06e2 : c949                     cmp #'I'
+                                trap_ne         ;returned A
+06e4 : f003            >        beq skip0115
+                       >        trap            ;failed not equal (non zero)
+06e6 : 20ffff          >        jsr $ffff
+                       >
+06e9 :                 >skip0115
+                        
+06e9 : ba                       tsx
+06ea : e0fc                     cpx #$ff-3
+                                trap_ne         ;returned SP
+06ec : f003            >        beq skip0117
+                       >        trap            ;failed not equal (non zero)
+06ee : 20ffff          >        jsr $ffff
+                       >
+06f1 :                 >skip0117
+                        
+06f1 : 68                       pla             ;flags
+06f2 : 4dfe01                   eor lst_f
+06f5 : 297d                     and #$ff-fnz    ;ignore flags changed by dey
+                                trap_ne         ;returned flags
+06f7 : f003            >        beq skip0119
+                       >        trap            ;failed not equal (non zero)
+06f9 : 20ffff          >        jsr $ffff
+                       >
+06fc :                 >skip0119
+                        
+06fc : a50d                     lda nmi_a       ;accu seen in NMI vector
+06fe : cdff01                   cmp lst_a
+                                trap_ne         ;NMI A received
+0701 : f003            >        beq skip0121
+                       >        trap            ;failed not equal (non zero)
+0703 : 20ffff          >        jsr $ffff
+                       >
+0706 :                 >skip0121
+                        
+0706 : a2ff                     ldx #$ff        ;reset stack pointer
+0708 : 9a                       txs
+                        ; retest for set flags seen in NMI vector
+0709 : a904                     lda #4          ;set expected interrupt source NMI
+070b : 8d0302                   sta I_src
+                                push_stat $ff-intdis
+070e : a9fb            >            lda #$ff-intdis
+0710 : 48              >            pha         ;use stack to load status
+                        
+                                I_set NMI_bit
+0711 : adfcbf          >        lda I_port      ;turn on interrupt by bit
+0714 : 297f            >        and #I_filter
+                       >        if NMI_bit > 7     ;set both NMI & IRQ
+                       >          ora #(1<<IRQ_bit|1<<NMI_bit)
+                       >        else
+0716 : 0902            >          ora #(1<<NMI_bit)
+                       >        endif
+0718 : 28              >        plp             ;set flags
+0719 : 48              >        pha             ;save to verify
+071a : 08              >        php
+071b : 8dfcbf          >        sta I_port      ;interrupt next instruction plus outbound delay
+                        
+071e : ea                       nop             ;allow 6 cycles for interrupt to trip
+071f : ea                       nop
+0720 : ea                       nop
+0721 : ad0302                   lda I_src
+                                trap_ne         ;NMI timeout
+0724 : f003            >        beq skip0125
+                       >        trap            ;failed not equal (non zero)
+0726 : 20ffff          >        jsr $ffff
+                       >
+0729 :                 >skip0125
+                        
+0729 : ba                       tsx
+072a : e0fd                     cpx #$ff-2      ;original accu & flags remain on stack
+                                trap_ne         ;returned SP
+072c : f003            >        beq skip0127
+                       >        trap            ;failed not equal (non zero)
+072e : 20ffff          >        jsr $ffff
+                       >
+0731 :                 >skip0127
+                        
+0731 : a50f                     lda nmi_f       ;flags seen in NMI vector
+0733 : 4dfe01                   eor lst_f       ;turn off unchanged bits
+0736 : 29cb                     and #m8-fai     ;mask untested other flags
+                                trap_ne         ;other flags (N,V,Z,C,D) changed
+0738 : f003            >        beq skip0129
+                       >        trap            ;failed not equal (non zero)
+073a : 20ffff          >        jsr $ffff
+                       >
+073d :                 >skip0129
+                        
+073d : a2ff                     ldx #$ff        ;reset stack pointer
+073f : 9a                       txs
+                        
+                        ; test IRQ & NMI with interrupts disabled
+0740 : a200                     ldx #0
+0742 : a904                     lda #4          ;set expected interrupt NMI only
+0744 : 8d0302                   sta I_src
+                                push_stat intdis        
+0747 : a904            >            lda #intdis        
+0749 : 48              >            pha         ;use stack to load status
+                        
+                                I_set 8         ;both interrupts pending
+074a : adfcbf          >        lda I_port      ;turn on interrupt by bit
+074d : 297f            >        and #I_filter
+                       >        if 8          > 7     ;set both NMI & IRQ
+074f : 0903            >          ora #(1<<IRQ_bit|1<<NMI_bit)
+                       >        else
+                       >          ora #(1<<8         )
+                       >        endif
+0751 : 28              >        plp             ;set flags
+0752 : 48              >        pha             ;save to verify
+0753 : 08              >        php
+0754 : 8dfcbf          >        sta I_port      ;interrupt next instruction plus outbound delay
+                        
+0757 : e8                       inx
+0758 : e8                       inx
+0759 : e8                       inx
+075a : ad0302                   lda I_src       ;test NMI done?
+                                trap_ne
+075d : f003            >        beq skip0133
+                       >        trap            ;failed not equal (non zero)
+075f : 20ffff          >        jsr $ffff
+                       >
+0762 :                 >skip0133
+                        
+0762 : a200                     ldx #0
+0764 : a902                     lda #2          ;now re-enable IRQ
+0766 : 8d0302                   sta I_src
+0769 : 58                       cli
+076a : e8                       inx
+076b : e8                       inx
+076c : e8                       inx
+076d : ad0302                   lda I_src       ;test IRQ done?
+                                trap_ne
+0770 : f003            >        beq skip0135
+                       >        trap            ;failed not equal (non zero)
+0772 : 20ffff          >        jsr $ffff
+                       >
+0775 :                 >skip0135
+                        
+0775 : a2ff                     ldx #$ff        ;purge stack
+0777 : 9a                       txs
+                        
+                        ;test overlapping NMI, IRQ & BRK
+0778 : a200                     ldx #0
+077a : a907                     lda #7
+077c : 8d0302                   sta I_src
+077f : a9ff                     lda #$ff        ;measure timing
+0781 : 8d0002                   sta nmi_count
+0784 : 8d0102                   sta irq_count
+0787 : 8d0202                   sta brk_count
+                                push_stat 0
+078a : a900            >            lda #0
+078c : 48              >            pha         ;use stack to load status
+                        
+                                I_set 8         ;trigger NMI + IRQ
+078d : adfcbf          >        lda I_port      ;turn on interrupt by bit
+0790 : 297f            >        and #I_filter
+                       >        if 8          > 7     ;set both NMI & IRQ
+0792 : 0903            >          ora #(1<<IRQ_bit|1<<NMI_bit)
+                       >        else
+                       >          ora #(1<<8         )
+                       >        endif
+0794 : 28              >        plp             ;set flags
+0795 : 48              >        pha             ;save to verify
+0796 : 08              >        php
+0797 : 8dfcbf          >        sta I_port      ;interrupt next instruction plus outbound delay
+                        
+                        
+079a : 00                       brk
+079b : e8                       inx
+079c : e8                       inx
+079d : e8                       inx
+079e : e8                       inx
+079f : e8                       inx
+07a0 : e8                       inx
+07a1 : e8                       inx
+07a2 : e8                       inx
+07a3 : ad0302                   lda I_src       ;test all done?
+                        ;may fail due to a bug on a real NMOS 6502 - NMI could mask BRK
+                                trap_ne         ;lost an interrupt
+07a6 : f003            >        beq skip0139
+                       >        trap            ;failed not equal (non zero)
+07a8 : 20ffff          >        jsr $ffff
+                       >
+07ab :                 >skip0139
+                        
+                        
+                        ; S U C C E S S ************************************************       
+                        ; -------------       
+                                success         ;if you get here everything went well
+07ab : 20faff          >        jsr $fffa
+                        
+                        ; -------------       
+                        ; S U C C E S S ************************************************       
+                        ; check data_segment +0 to +2 for sequence of concurrent interrupts
+                        ; e.g. 0x200 = NMI, 0x201 = IRQ, 0x202 = BRK, lower values = earlier
+07ae : 4c0004                   jmp start       ;run again      
+                        
+                        ; manual tests for the WAI opcode of the 65c02
+                        
+                        wai     macro   
+                                db  $cb         ;WAI opcode
+                                endm
+                                
+                        ; requires single step operation, report = 0
+                        ;   set PC to the 1st instruction of the test
+                        ;   step to the WAI opcode, then manually tie the IRQ input low
+                        ;   continue to step until you see the PC advance, then remove IRQ
+                        ;   allow the routine to complete.
+                        
+                        ; WAI with interrupts disabled
+07b1 : a2ff                     ldx #$ff
+07b3 : 9a                       txs
+07b4 : a003                     ldy #3
+07b6 : a900                     lda #0          ;IRQ not expected
+07b8 : 8d0302                   sta I_src
+                                set_stat intdis
+07bb : a904            >            lda #intdis
+07bd : 48              >            pha         ;use stack to load status
+07be : 28              >            plp
+                        
+                                wai
+07bf : cb              >        db  $cb         ;WAI opcode
+                        
+07c0 : 88                       dey
+07c1 : 88                       dey
+07c2 : 88                       dey
+                                trap_ne         ;skipped opcodes!
+07c3 : f003            >        beq skip0144
+                       >        trap            ;failed not equal (non zero)
+07c5 : 20ffff          >        jsr $ffff
+                       >
+07c8 :                 >skip0144
+                        
+                        
+                                success
+07c8 : 20faff          >        jsr $fffa
+                        
+                                
+                        ; WAI with interrupts enabled
+07cb : a2ff                     ldx #$ff
+07cd : 9a                       txs
+07ce : a007                     ldy #7
+07d0 : a902                     lda #2          ;IRQ expected
+07d2 : 8d0302                   sta I_src
+                                set_stat 0
+07d5 : a900            >            lda #0
+07d7 : 48              >            pha         ;use stack to load status
+07d8 : 28              >            plp
+                        
+                                wai
+07d9 : cb              >        db  $cb         ;WAI opcode
+                        
+07da : 88                       dey
+07db : 88                       dey
+07dc : 88                       dey
+07dd : ad0302                   lda I_src
+                                trap_ne         ;IRQ vector not called
+07e0 : f003            >        beq skip0149
+                       >        trap            ;failed not equal (non zero)
+07e2 : 20ffff          >        jsr $ffff
+                       >
+07e5 :                 >skip0149
+                        
+07e5 : 88                       dey
+                                trap_ne         ;skipped opcodes!
+07e6 : f003            >        beq skip0151
+                       >        trap            ;failed not equal (non zero)
+07e8 : 20ffff          >        jsr $ffff
+                       >
+07eb :                 >skip0151
+                        
+                        
+                                success
+07eb : 20faff          >        jsr $fffa
+                        
+                                
+                        ; manual test for the STP opcode of the 65c02
+                        
+                        stp     macro   
+                                db  $db         ;STP opcode
+                                endm
+                                
+                        ; set PC to the 1st instruction of the test, then run
+07ee : ea                       nop
+07ef : ea                       nop
+                                stp             ;expected end of operation
+07f0 : db              >        db  $db         ;STP opcode
+                        
+07f1 : ea                       nop
+07f2 : ea                       nop
+                                trap            ;overran STP
+07f3 : 20ffff          >        jsr $ffff
+                        
+                        
+                        ;end of manual tests
+                        
+                        ;---------------------------------------------------------------------------
+                        ;trap in case of unexpected IRQ, NMI, BRK, RESET - IRQ, NMI, BRK test target
+07f6 : 88                       dey
+07f7 : 88                       dey
+07f8 :                  nmi_trap
+07f8 : 08                       php             ;either SP or Y count will fail, if we do not hit
+07f9 : 88                       dey
+07fa : 88                       dey
+07fb : 88                       dey
+07fc : 850d                     sta nmi_a       ;save regsters during NMI
+07fe : 860e                     stx nmi_x
+0800 : 68                       pla
+0801 : 48                       pha
+0802 : 850f                     sta nmi_f
+0804 : ad0302                   lda I_src       ;NMI expected?
+0807 : 2904                     and #4   
+                                trap_eq         ;unexpexted NMI - check stack for conditions
+0809 : d003            >        bne skip0156
+                       >        trap           ;failed equal (zero)
+080b : 20ffff          >        jsr $ffff
+                       >
+080e :                 >skip0156
+                        
+080e : 68                       pla             ;test I-flag was set
+080f : 48                       pha
+0810 : 2904                     and #intdis
+                                trap_eq         ;I-flag not set
+0812 : d003            >        bne skip0158
+                       >        trap           ;failed equal (zero)
+0814 : 20ffff          >        jsr $ffff
+                       >
+0817 :                 >skip0158
+                        
+0817 : 68                       pla             ;return with other flags reversed
+0818 : 49c3                     eor #m8-fai-decmode
+081a : 48                       pha
+081b : ba                       tsx        
+081c : bd0201                   lda $102,x     ;test break on stack
+081f : 2910                     and #break
+                                trap_ne         ;unexpected B-flag! - this may fail on a real 6502
+0821 : f003            >        beq skip0160
+                       >        trap            ;failed not equal (non zero)
+0823 : 20ffff          >        jsr $ffff
+                       >
+0826 :                 >skip0160
+                        
+                                                ;due to a hardware bug on concurrent BRK & NMI
+0826 : ad0302                   lda I_src       ;mark expected NMI has occured
+0829 : 29fb                     and #$ff-4
+082b : 8d0302                   sta I_src
+                                I_clr   NMI_bit   
+082e : adfcbf          >        lda I_port      ;turn off interrupt by bit
+0831 : 297d            >        and #I_filter-(1<<NMI_bit   )
+0833 : 8dfcbf          >        sta I_port
+                        
+0836 : a60e                     ldx nmi_x
+0838 : e8                       inx
+0839 : 8e0002                   stx nmi_count
+083c : a949                     lda #'I'        ;mark (NM)I
+083e : 28                       plp             ;should be reversed by rti
+083f : 40                       rti
+                        
+0840 :                  res_trap
+                                trap            ;unexpected RESET
+0840 : 20ffff          >        jsr $ffff
+                        
+                                
+0843 : 88                       dey
+0844 : 88                       dey
+0845 :                  irq_trap                ;BRK & IRQ test
+0845 : 08                       php             ;either SP or Y count will fail, if we do not hit
+0846 : 88                       dey
+0847 : 88                       dey
+0848 : 88                       dey
+0849 : 850a                     sta irq_a       ;save registers during IRQ/BRK
+084b : 860b                     stx irq_x
+084d : 68                       pla
+084e : 48                       pha
+084f : 850c                     sta irq_f
+0851 : ad0302                   lda I_src       ;IRQ expected?
+0854 : 2903                     and #3   
+                                trap_eq         ;unexpexted IRQ/BRK - check stack for conditions
+0856 : d003            >        bne skip0164
+                       >        trap           ;failed equal (zero)
+0858 : 20ffff          >        jsr $ffff
+                       >
+085b :                 >skip0164
+                        
+085b : 68                       pla             ;test I-flag was set
+085c : 48                       pha
+085d : 2904                     and #intdis
+                                trap_eq         ;I-flag not set
+085f : d003            >        bne skip0166
+                       >        trap           ;failed equal (zero)
+0861 : 20ffff          >        jsr $ffff
+                       >
+0864 :                 >skip0166
+                        
+0864 : 68                       pla             ;return with other flags reversed
+0865 : 49c3                     eor #m8-fai-decmode
+0867 : 48                       pha        
+0868 : ba                       tsx
+0869 : bd0201                   lda $102,x      ;test break on stack
+086c : 2910                     and #break
+086e : d024                     bne brk_trap
+                                
+0870 : ad0302                   lda I_src       ;IRQ expected?
+0873 : 2902                     and #2   
+                                trap_eq         ;unexpexted IRQ - check stack for conditions
+0875 : d003            >        bne skip0168
+                       >        trap           ;failed equal (zero)
+0877 : 20ffff          >        jsr $ffff
+                       >
+087a :                 >skip0168
+                        
+087a : ad0302                   lda I_src       ;mark expected IRQ has occured
+087d : 29fd                     and #$ff-2
+087f : 8d0302                   sta I_src
+                                I_clr   IRQ_bit   
+0882 : adfcbf          >        lda I_port      ;turn off interrupt by bit
+0885 : 297e            >        and #I_filter-(1<<IRQ_bit   )
+0887 : 8dfcbf          >        sta I_port
+                        
+088a : a60b                     ldx irq_x
+088c : e8                       inx
+088d : 8e0102                   stx irq_count
+0890 : a951                     lda #'Q'        ;mark (IR)Q
+0892 : 28                       plp             ;should be reversed by rti
+0893 : 40                       rti
+                                
+0894 :                  brk_trap
+0894 : ad0302                   lda I_src       ;break expected?
+0897 : 2901                     and #1
+                                trap_eq         ;unexpected BRK - check stack for conditions
+0899 : d003            >        bne skip0171
+                       >        trap           ;failed equal (zero)
+089b : 20ffff          >        jsr $ffff
+                       >
+089e :                 >skip0171
+                        
+089e : ad0302                   lda I_src       ;mark expected BRK has occured
+08a1 : 29fe                     and #$ff-1
+08a3 : 8d0302                   sta I_src
+08a6 : a60b                     ldx irq_x
+08a8 : e8                       inx
+08a9 : 8e0202                   stx brk_count   
+08ac : a50a                     lda irq_a
+08ae : a94b                     lda #'K'        ;mark (BR)K
+08b0 : 28                       plp             ;should be reversed by rti
+08b1 : 40                       rti
+                                
+                                
+                        ;system vectors
+08b2 :                  vec_init
+fffa =                  vec_bss equ $fffa
+08b2 : f807                     dw  nmi_trap
+08b4 : 4008                     dw  res_trap
+08b6 : 4508                     dw  irq_trap
+                            
+fffa =                          end start
+                                
+                            
+                        
+No errors in pass 2.
+Wrote binary from address $0400 through $08b7.
+Total size 1208 bytes.
+Program start address is at $0400 (1024).
+

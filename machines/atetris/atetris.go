@@ -44,7 +44,7 @@ func NewATetris() machines.Machine {
 	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000110000, Value: 0b0010100000000000}, m.pokey1)
 	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000110000, Value: 0b0010100000010000}, m.pokey2)
 
-	m.pokey1.P7 = true
+	m.pokey1.P7 = false
 
 	m.sos2.hBlank = &m.pokey1.P6
 
