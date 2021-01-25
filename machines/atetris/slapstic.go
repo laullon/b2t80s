@@ -87,7 +87,7 @@ func (slapstic *slapstic) ReadPort(addr uint16) (byte, bool) {
 	pagedAddr := uint16(slapstic.current_bank&1) * 0x4000
 	pagedAddr |= uint16(addr & 0x3fff)
 
-	if (addr & 0x3fff) >= 0x2000 {
+	if (addr & 0x2000) == 0x2000 {
 		slapstic.tweak(addr & 0x1fff)
 	}
 	return slapstic.rom[pagedAddr], false

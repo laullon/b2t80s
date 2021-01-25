@@ -86,24 +86,27 @@ type brk struct {
 func (op *brk) tick(cpu *m6502) {
 	switch op.t {
 	case 0:
-		op.imm = cpu.doIMM
-		op.irq = cpu.doIRQ
-		if !cpu.doIMM && !cpu.doIRQ {
+		if !op.imm && !op.irq {
 			cpu.regs.PC++
 		}
 	case 1:
 		cpu.push(uint8(cpu.regs.PC >> 8))
 	case 2:
 		cpu.push(uint8(cpu.regs.PC))
-		if cpu.doIMM {
+		if op.imm {
 			op.vector = 0xFFFA
 		} else {
 			op.vector = 0xFFFE
 		}
 	case 3:
-		cpu.regs.PS.B = true
+		if !op.imm && !op.irq {
+			cpu.regs.PS.B = true
+		} else {
+			cpu.regs.PS.B = false
+		}
 		cpu.regs.PS.X = true
 		cpu.push(cpu.regs.PS.get())
+		cpu.regs.PS.X = false
 	case 4:
 		cpu.regs.PC = uint16(cpu.bus.Read(op.vector))
 		cpu.regs.PS.I = true

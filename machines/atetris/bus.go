@@ -55,7 +55,7 @@ func newBus() m6502.Bus {
 	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0010110000000000}, &ram{mem: make([]byte, 0x01fff), mask: 0x00ff})
 
 	// Watchdog
-	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0011000000000000}, &ram{mem: make([]byte, 0x0100), mask: 0x00ff})
+	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0011000000000000}, &watchdog{})
 
 	return bus
 }
@@ -125,7 +125,7 @@ type watchdog struct {
 }
 
 func (wd *watchdog) ReadPort(addr uint16) (byte, bool) { panic(-1) }
-func (wd *watchdog) WritePort(addr uint16, data byte)  {}
+func (wd *watchdog) WritePort(addr uint16, data byte)  { println("--") }
 
 // ----------------------------
 type ram struct {

@@ -26,15 +26,10 @@ func init() {
 	ops[0x38] = &implicit{f: sec}
 	ops[0x3e] = &absolute{f: rolM, x: true}
 	ops[0x40] = &implicit{f: rti}
-	ops[0x46] = &zeropage{f: lsrM}
 	ops[0x48] = &implicit{f: pha}
-	ops[0x4a] = &implicit{f: lsr}
 	ops[0x4c] = &absoluteJMP{}
-	ops[0x4e] = &absolute{f: lsrM}
 	ops[0x50] = &relative{f: bvc}
-	ops[0x56] = &zeropage{f: lsrM, x: true}
 	ops[0x58] = &implicit{f: cli}
-	ops[0x5e] = &absolute{f: lsrM, x: true}
 	ops[0x60] = &implicit{f: rts}
 	ops[0x66] = &zeropage{f: rorM}
 	ops[0x68] = &implicit{f: pla}
@@ -87,35 +82,33 @@ func init() {
 	ops[0xbe] = &absolute{f: ldxM, y: true}
 	ops[0xbd] = &absolute{f: ldaM, x: true}
 	ops[0xc0] = &immediate{f: cpy}
-	ops[0xc1] = &indirectXY{f: cmpM, x: true}
-	ops[0xc4] = &zeropage{f: cpyM}
-	ops[0xc5] = &zeropage{f: cmpM}
+	ops[0xc4] = &zeropage{f: cpy}
 	ops[0xc6] = &zeropage{f: decM}
 	ops[0xc8] = &implicit{f: iny}
-	ops[0xc9] = &immediate{f: cmp}
 	ops[0xce] = &absolute{f: decM}
 	ops[0xca] = &implicit{f: dex}
-	ops[0xcc] = &absolute{f: cpyM}
-	ops[0xcd] = &absolute{f: cmpM}
+	ops[0xcc] = &absolute{f: cpy}
 	ops[0xd0] = &relative{f: bne}
-	ops[0xd1] = &indirectXY{f: cmpM, y: true}
-	ops[0xd5] = &zeropage{f: cmpM, x: true}
 	ops[0xd6] = &zeropage{f: decM, x: true}
 	ops[0xd8] = &implicit{f: cld}
-	ops[0xd9] = &absolute{f: cmpM, y: true}
-	ops[0xdd] = &absolute{f: cmpM, x: true}
 	ops[0xde] = &absolute{f: decM, x: true}
 	ops[0xe0] = &immediate{f: cpx}
-	ops[0xe4] = &zeropage{f: cpxM}
+	ops[0xe4] = &zeropage{f: cpx}
 	ops[0xe6] = &zeropage{f: incM}
 	ops[0xe8] = &implicit{f: inx}
 	ops[0xea] = &implicit{f: nop}
-	ops[0xec] = &absolute{f: cpxM}
+	ops[0xec] = &absolute{f: cpx}
 	ops[0xee] = &absolute{f: incM}
 	ops[0xf0] = &relative{f: beq}
 	ops[0xf6] = &zeropage{f: incM, x: true}
 	ops[0xf8] = &implicit{f: sed}
 	ops[0xfe] = &absolute{f: incM, x: true}
+
+	ops[0x4a] = &implicit{f: lsr}
+	ops[0x46] = &zeropage{f: lsrM}
+	ops[0x56] = &zeropage{f: lsrM, x: true}
+	ops[0x4e] = &absolute{f: lsrM}
+	ops[0x5e] = &absolute{f: lsrM, x: true}
 
 	ops[0x29] = &immediate{f: and}
 	ops[0x25] = &zeropage{f: andM}
@@ -162,6 +155,15 @@ func init() {
 	ops[0xe1] = &indirectXY{f: sbcM, x: true}
 	ops[0xf1] = &indirectXY{f: sbcM, y: true}
 
+	ops[0xc9] = &immediate{f: cmp}
+	ops[0xc5] = &zeropage{f: cmp}
+	ops[0xd5] = &zeropage{f: cmp, x: true}
+	ops[0xcd] = &absolute{f: cmp}
+	ops[0xdd] = &absolute{f: cmp, x: true}
+	ops[0xd9] = &absolute{f: cmp, y: true}
+	ops[0xc1] = &indirectXY{f: cmp, x: true}
+	ops[0xd1] = &indirectXY{f: cmp, y: true}
+
 	for opCode, op := range ops {
 		if op != nil {
 			op.setup(uint8(opCode))
@@ -170,7 +172,7 @@ func init() {
 }
 
 func rti(cpu *m6502) {
-	cpu.regs.PS.set(cpu.pop())
+	plp(cpu)
 	addr := uint16(cpu.pop())
 	addr |= uint16(cpu.pop()) << 8
 	cpu.regs.PC = addr
@@ -180,12 +182,16 @@ func bne(cpu *m6502) bool {
 	return !cpu.regs.PS.Z
 }
 
+func beq(cpu *m6502) bool {
+	return cpu.regs.PS.Z
+}
+
 func bcc(cpu *m6502) bool {
 	return !cpu.regs.PS.C
 }
 
-func beq(cpu *m6502) bool {
-	return cpu.regs.PS.Z
+func bcs(cpu *m6502) bool {
+	return cpu.regs.PS.C
 }
 
 func bpl(cpu *m6502) bool {
@@ -195,15 +201,13 @@ func bpl(cpu *m6502) bool {
 func bmi(cpu *m6502) bool {
 	return cpu.regs.PS.N
 }
+
 func bvc(cpu *m6502) bool {
 	return !cpu.regs.PS.V
 }
+
 func bvs(cpu *m6502) bool {
 	return cpu.regs.PS.V
-}
-
-func bcs(cpu *m6502) bool {
-	return cpu.regs.PS.C
 }
 
 func rts(cpu *m6502) {
@@ -336,10 +340,6 @@ func cmp(cpu *m6502, data uint8) {
 	cpu.regs.PS.C = (cpu.regs.A >= data)
 }
 
-func cmpM(cpu *m6502, data uint8) {
-	cmp(cpu, data)
-}
-
 func cpy(cpu *m6502, data uint8) {
 	r := cpu.regs.Y - data
 	ldzn(cpu, r)
@@ -350,14 +350,6 @@ func cpx(cpu *m6502, data uint8) {
 	r := cpu.regs.X - data
 	ldzn(cpu, r)
 	cpu.regs.PS.C = (cpu.regs.X >= data)
-}
-
-func cpxM(cpu *m6502, data uint8) {
-	cpx(cpu, data)
-}
-
-func cpyM(cpu *m6502, data uint8) {
-	cpy(cpu, data)
 }
 
 func eor(cpu *m6502, data uint8) {
@@ -425,9 +417,7 @@ func pha(cpu *m6502) {
 }
 
 func php(cpu *m6502) {
-	cpu.regs.PS.B = true
-	cpu.regs.PS.X = true
-	cpu.push(cpu.regs.PS.get())
+	cpu.push(cpu.regs.PS.get() | 0b00110000)
 }
 
 func pla(cpu *m6502) {
@@ -436,7 +426,7 @@ func pla(cpu *m6502) {
 }
 
 func plp(cpu *m6502) {
-	cpu.regs.PS.set(cpu.pop())
+	cpu.regs.PS.set(cpu.pop() & 0b11001111)
 }
 
 func lsrM(cpu *m6502, data uint8) uint8 {

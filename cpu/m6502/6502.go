@@ -146,10 +146,16 @@ func (cpu *m6502) CurrentOP() string                             { return fmt.Sp
 
 func (cpu *m6502) Tick() {
 	if (cpu.op == nil) || cpu.op.done() {
-		if (cpu.doIRQ || cpu.doIMM) && !cpu.regs.PS.I {
-			cpu.op = ops[0x00]
+		if cpu.doIMM {
+			cpu.op = &brk{imm: true}
 			cpu.op.reset()
 			cpu.op.setPC(cpu.regs.PC)
+			cpu.doIMM = false
+		} else if cpu.doIRQ && !cpu.regs.PS.I {
+			cpu.op = &brk{irq: true}
+			cpu.op.reset()
+			cpu.op.setPC(cpu.regs.PC)
+			cpu.doIRQ = false
 		} else {
 			opCode := cpu.bus.Read(cpu.regs.PC)
 			cpu.op = ops[opCode]
