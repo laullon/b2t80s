@@ -136,67 +136,65 @@ func (op *brk) String() string {
 }
 
 // -----
-type indirect struct {
+type indirectX struct {
 	basicop
-	F      func(cpu *m6502, addr uint16)
-	addr   uint16
-	target uint16
-}
-
-func (op *indirect) tick(cpu *m6502) {
-	switch op.t {
-	case 0:
-		op.addr = uint16(cpu.bus.Read(cpu.regs.PC))
-		cpu.regs.PC++
-	case 1:
-		op.addr |= uint16(cpu.bus.Read(cpu.regs.PC)) << 8
-		cpu.regs.PC++
-	case 2:
-		op.target = uint16(cpu.bus.Read(op.addr))
-	case 3:
-		op.target |= uint16(cpu.bus.Read(op.addr+1)) << 8
-	case 4:
-		op.F(cpu, op.target)
-		op.d = true
-	}
-	op.t++
-}
-
-func (op *indirect) String() string {
-	mod := ""
-	return fmt.Sprintf(debugFMT,
-		op.pc,
-		fmt.Sprintf("%02X %02X %02X", op.opCode, op.addr&0x0ff, op.addr>>8),
-		fmt.Sprintf("%s (0x%04X)%s", op.ins, op.addr, mod),
-	)
-}
-
-// -----
-type indirectXY struct {
-	basicop
-	x, y     bool
 	r, w, rw bool
 	f        interface{}
 	addr     uint16
 	addrZ    uint8
 }
 
-func (op *indirectXY) tick(cpu *m6502) {
+func (op *indirectX) tick(cpu *m6502) {
 	switch op.t {
 	case 0:
 		op.addrZ = cpu.bus.Read(cpu.regs.PC)
-		if op.x {
-			op.addrZ += cpu.regs.X
-		}
+		op.addrZ += cpu.regs.X
 		cpu.regs.PC++
 	case 1:
 		op.addr = uint16(cpu.bus.Read(uint16(op.addrZ)))
 	case 2:
 		op.addr |= uint16(cpu.bus.Read(uint16(op.addrZ+1))) << 8
 	case 3:
-		if op.y {
-			op.addr += uint16(cpu.regs.Y)
-		}
+		exec(cpu, op.f, op.addr, op.r, op.w, op.rw)
+		op.d = true
+	}
+	op.t++
+}
+
+func (op *indirectX) setup(opCode uint8) {
+	op.opCode = opCode
+	op.ins = getFunctionName(op.f)
+	op.r, op.w, op.rw = getRWRW(op.f)
+}
+
+func (op *indirectX) String() string {
+	return fmt.Sprintf(debugFMT,
+		op.pc,
+		fmt.Sprintf("%02X %02X", op.opCode, op.addrZ),
+		fmt.Sprintf("%s (0x%02X, X)", op.ins, op.addrZ),
+	)
+}
+
+// -----
+type indirectY struct {
+	basicop
+	r, w, rw bool
+	f        interface{}
+	addr     uint16
+	addrZ    uint8
+}
+
+func (op *indirectY) tick(cpu *m6502) {
+	switch op.t {
+	case 0:
+		op.addrZ = cpu.bus.Read(cpu.regs.PC)
+		cpu.regs.PC++
+	case 1:
+		op.addr = uint16(cpu.bus.Read(uint16(op.addrZ)))
+	case 2:
+		op.addr |= uint16(cpu.bus.Read(uint16(op.addrZ+1))) << 8
+	case 3:
+		op.addr += uint16(cpu.regs.Y)
 	case 4:
 		exec(cpu, op.f, op.addr, op.r, op.w, op.rw)
 		op.d = true
@@ -204,23 +202,17 @@ func (op *indirectXY) tick(cpu *m6502) {
 	op.t++
 }
 
-func (op *indirectXY) setup(opCode uint8) {
+func (op *indirectY) setup(opCode uint8) {
 	op.opCode = opCode
 	op.ins = getFunctionName(op.f)
 	op.r, op.w, op.rw = getRWRW(op.f)
 }
 
-func (op *indirectXY) String() string {
-	mod := ""
-	if op.x {
-		mod = "X"
-	} else if op.y {
-		mod = "Y"
-	}
+func (op *indirectY) String() string {
 	return fmt.Sprintf(debugFMT,
 		op.pc,
 		fmt.Sprintf("%02X %02X", op.opCode, op.addrZ),
-		fmt.Sprintf("%s (0x%02X), %s", op.ins, op.addrZ, mod),
+		fmt.Sprintf("%s (0x%02X), Y", op.ins, op.addrZ),
 	)
 }
 
@@ -552,6 +544,7 @@ func exec(cpu *m6502, f interface{}, addr uint16, r, w, rw bool) {
 		ff := f.(func(*m6502, uint8))
 		ff(cpu, cpu.bus.Read(addr))
 	} else if w {
+		cpu.bus.Read(addr)
 		ff := f.(func(*m6502) uint8)
 		cpu.bus.Write(addr, ff(cpu))
 	} else if rw {
