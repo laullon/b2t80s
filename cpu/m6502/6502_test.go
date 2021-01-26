@@ -149,7 +149,7 @@ func TestTiming(t *testing.T) {
 		if cpu.regs.PC == 0x1000 {
 			// TODO: review
 			// assert.Equal(t, 1141, ticks, "wrong number of ticks: %d", ticks)
-			assert.Equal(t, 1075, ticks, "wrong number of ticks: %d", ticks)
+			assert.Equal(t, 1058, ticks, "wrong number of ticks: %d", ticks)
 			return
 		}
 	}

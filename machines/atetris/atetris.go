@@ -23,7 +23,8 @@ type atetris struct {
 func NewATetris() machines.Machine {
 	image.NewRGBA(image.Rect(0, 0, 456, 262))
 
-	bus := newBus()
+	bus := newBus().(*bus)
+
 	m := &atetris{
 		cpu:    m6502.MewM6502(bus),
 		clock:  emulator.NewCLock(14318181/8, 60),
@@ -31,6 +32,8 @@ func NewATetris() machines.Machine {
 		pokey2: pokey.NewPokey(),
 		sos2:   newSOS2(),
 	}
+
+	// bus.ram.cpu = m.cpu
 
 	m.monitor = emulator.NewMonitor(m.sos2.display)
 	m.sos2.monitor = m.monitor

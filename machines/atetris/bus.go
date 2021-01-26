@@ -29,6 +29,10 @@ import (
 // 4000-7FFF   R     xxxxxxxx    Banked program ROM
 // 8000-FFFF   R     xxxxxxxx    Program ROM
 
+type bus struct {
+	ports map[emulator.PortMask]emulator.PortManager
+}
+
 func newBus() m6502.Bus {
 	bus := &bus{
 		ports: make(map[emulator.PortMask]emulator.PortManager),
@@ -37,7 +41,7 @@ func newBus() m6502.Bus {
 	rom := loadRom("136066-1100.45f")
 	status := &status{}
 
-	//RAM
+	// RAM
 	bus.RegisterPort(emulator.PortMask{Mask: 0b1111000000000000, Value: 0b0000000000000000}, &ram{mem: make([]byte, 0x1000), mask: 0x0fff})
 
 	// ROM
@@ -46,22 +50,15 @@ func newBus() m6502.Bus {
 
 	// EEPROM
 	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0011010000000000}, &eepromStatus{})
-	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0010010000000000}, &eeprom{mem: make([]byte, 0x01ff), mask: 0x01ff})
+	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0010010000000000}, &eeprom{mem: make([]byte, 0x0200), mask: 0x01ff})
 
 	// STATUS
 	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0011110000000000}, status)
-
-	// Unused
-	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0010110000000000}, &ram{mem: make([]byte, 0x01fff), mask: 0x00ff})
 
 	// Watchdog
 	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0011000000000000}, &watchdog{})
 
 	return bus
-}
-
-type bus struct {
-	ports map[emulator.PortMask]emulator.PortManager
 }
 
 func (bus *bus) Write(addr uint16, data uint8) {
@@ -109,7 +106,7 @@ type eepromStatus struct {
 	lock bool
 }
 
-func (s *eepromStatus) ReadPort(addr uint16) (byte, bool) { panic(-1) }
+func (s *eepromStatus) ReadPort(addr uint16) (byte, bool) { return 0xff, false } //panic(-1) }
 func (s *eepromStatus) WritePort(addr uint16, data byte)  { s.lock = !s.lock }
 
 // ----------------------------
@@ -117,20 +114,21 @@ type status struct {
 	romPage byte
 }
 
-func (s *status) ReadPort(addr uint16) (byte, bool) { panic(-1) }
+func (s *status) ReadPort(addr uint16) (byte, bool) { return 0xff, false } //panic(-1) }
 func (s *status) WritePort(addr uint16, data byte)  { s.romPage = data & 0b00000111 }
 
 // ----------------------------
 type watchdog struct {
 }
 
-func (wd *watchdog) ReadPort(addr uint16) (byte, bool) { panic(-1) }
-func (wd *watchdog) WritePort(addr uint16, data byte)  { println("--") }
+func (wd *watchdog) ReadPort(addr uint16) (byte, bool) { return 0xff, false } //panic(-1) }
+func (wd *watchdog) WritePort(addr uint16, data byte)  {}
 
 // ----------------------------
 type ram struct {
 	mem  []byte
 	mask uint16
+	cpu  emulator.CPU
 }
 
 func (ram *ram) ReadPort(addr uint16) (byte, bool) { return ram.mem[addr&ram.mask], false }
@@ -151,4 +149,4 @@ type fixedROM struct {
 }
 
 func (rom *fixedROM) ReadPort(addr uint16) (byte, bool) { return rom.rom[addr], false }
-func (rom *fixedROM) WritePort(addr uint16, data byte)  { panic(-1) }
+func (rom *fixedROM) WritePort(addr uint16, data byte)  {} //panic(-1) }
