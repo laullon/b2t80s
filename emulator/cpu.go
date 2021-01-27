@@ -5,12 +5,15 @@ type CPU interface {
 	Interrupt(bool)
 	Halt()
 	Wait(bool)
+	Reset()
 	Tick()
 
 	Registers() interface{}
 
 	SetDebuger(debugger Debugger)
 	RegisterTrap(pc uint16, trap CPUTrap)
+
+	CurrentOP() string
 }
 
 type Debugger interface {
