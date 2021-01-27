@@ -1,8 +1,6 @@
 package atetris
 
 import (
-	"image"
-
 	"github.com/laullon/b2t80s/cpu/m6502"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/pokey"
@@ -21,8 +19,6 @@ type atetris struct {
 }
 
 func NewATetris() machines.Machine {
-	image.NewRGBA(image.Rect(0, 0, 456, 262))
-
 	bus := newBus().(*bus)
 
 	m := &atetris{
@@ -32,8 +28,6 @@ func NewATetris() machines.Machine {
 		pokey2: pokey.NewPokey(),
 		sos2:   newSOS2(),
 	}
-
-	// bus.ram.cpu = m.cpu
 
 	m.monitor = emulator.NewMonitor(m.sos2.display)
 	m.sos2.monitor = m.monitor
@@ -46,6 +40,11 @@ func NewATetris() machines.Machine {
 	//POKEY
 	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000110000, Value: 0b0010100000000000}, m.pokey1)
 	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000110000, Value: 0b0010100000010000}, m.pokey2)
+
+	// Watchdog
+	wd := &watchdog{cpu: m.cpu}
+	wd.start()
+	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0011000000000000}, wd)
 
 	m.pokey1.P7 = false
 

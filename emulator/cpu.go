@@ -5,6 +5,7 @@ type CPU interface {
 	Interrupt(bool)
 	Halt()
 	Wait(bool)
+	Reset()
 	Tick()
 
 	Registers() interface{}

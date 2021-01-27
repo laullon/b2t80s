@@ -36,7 +36,7 @@ func NewDebugger(cpu emulator.CPU, mem emulator.Memory, clock emulator.Clock) em
 		memory: mem,
 		clock:  clock,
 		doStop: false,
-		dump:   true,
+		dump:   false,
 	}
 	cpu.SetDebuger(debug)
 	return debug

@@ -542,14 +542,19 @@ func getFunctionName(f interface{}) string {
 func exec(cpu *m6502, f interface{}, addr uint16, r, w, rw bool) {
 	if r {
 		ff := f.(func(*m6502, uint8))
+		fmt.Printf("read  0x%04X 0x%02X\n", addr, cpu.bus.Read(addr))
 		ff(cpu, cpu.bus.Read(addr))
 	} else if w {
-		cpu.bus.Read(addr)
 		ff := f.(func(*m6502) uint8)
-		cpu.bus.Write(addr, ff(cpu))
+		r := ff(cpu)
+		fmt.Printf("write 0x%04X 0x%02X\n", addr, r)
+		cpu.bus.Write(addr, r)
 	} else if rw {
 		ff := f.(func(*m6502, uint8) uint8)
-		cpu.bus.Write(addr, ff(cpu, cpu.bus.Read(addr)))
+		fmt.Printf("read 0x%04X 0x%02X\n", addr, cpu.bus.Read(addr))
+		r := ff(cpu, cpu.bus.Read(addr))
+		fmt.Printf("write 0x%04X 0x%02X\n", addr, r)
+		cpu.bus.Write(addr, r)
 	} else {
 		panic((-1))
 	}

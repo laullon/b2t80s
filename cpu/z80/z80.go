@@ -219,6 +219,10 @@ func (cpu *z80) Halt() {
 	cpu.halt = true
 }
 
+func (cpu *z80) Reset() {
+	panic(-1)
+}
+
 func (cpu *z80) execInterrupt() {
 	cpu.prepareForNewInstruction()
 	cpu.doInterrupt = false
