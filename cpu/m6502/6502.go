@@ -118,8 +118,9 @@ func (r Registers) String() string {
 type m6502 struct {
 	regs Registers
 
-	doIRQ bool
-	doIMM bool
+	doIRQ   bool
+	doIMM   bool
+	doReset bool
 
 	bus Bus
 	log cpuUtils.Log
@@ -138,6 +139,7 @@ func MewM6502(bus Bus) emulator.CPU {
 
 func (cpu *m6502) Interrupt(i bool)                              { cpu.doIRQ = i }
 func (cpu *m6502) Halt()                                         {}
+func (cpu *m6502) Reset()                                        { cpu.doReset = true }
 func (cpu *m6502) Wait(bool)                                     {}
 func (cpu *m6502) Registers() interface{}                        { return cpu.regs }
 func (cpu *m6502) SetDebuger(debugger emulator.Debugger)         { cpu.debugger = debugger }
@@ -146,14 +148,16 @@ func (cpu *m6502) CurrentOP() string                             { return fmt.Sp
 
 func (cpu *m6502) Tick() {
 	if (cpu.op == nil) || cpu.op.done() {
-		if cpu.doIMM {
+		if cpu.doReset {
+			cpu.op = &reset{}
+			cpu.op.setPC(cpu.regs.PC)
+			cpu.doReset = false
+		} else if cpu.doIMM {
 			cpu.op = &brk{imm: true}
-			cpu.op.reset()
 			cpu.op.setPC(cpu.regs.PC)
 			cpu.doIMM = false
 		} else if cpu.doIRQ && !cpu.regs.PS.I {
 			cpu.op = &brk{irq: true}
-			cpu.op.reset()
 			cpu.op.setPC(cpu.regs.PC)
 			cpu.doIRQ = false
 		} else {
