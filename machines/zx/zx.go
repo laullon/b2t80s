@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	clock48k  = 3500000
-	clock128k = 3546900
+	clock48k  = uint(3500000)
+	clock128k = uint(3546900)
 )
 
 type ZX interface {
@@ -46,10 +46,10 @@ func NewZX(mem *memory, plus, cas, ay bool) *zx {
 	bus := emulator.NewBus(mem)
 
 	cpu := z80.NewZ80(bus)
-	clock := emulator.NewCLock(speed)
+	clock := emulator.NewCLock(speed, 50)
 
 	ula := NewULA(mem, bus, plus)
-	sound := emulator.NewSoundSystem(speed / 80)
+	sound := emulator.NewSoundSystem(speed / uint(80))
 
 	ula.cpu = cpu
 	sound.AddSource(ula)

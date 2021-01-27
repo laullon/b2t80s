@@ -90,7 +90,7 @@ func NewCPC(cpc464 bool) machines.Machine {
 	// 	fdc.SetDiscB(disc)
 	// }
 
-	clock := emulator.NewCLock(4000000)
+	clock := emulator.NewCLock(4000000, 50)
 	cpc := &cpc{
 		bus:      bus,
 		cpu:      cpu,
