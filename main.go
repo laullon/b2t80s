@@ -17,6 +17,7 @@ import (
 	"fyne.io/fyne/theme"
 	"fyne.io/fyne/widget"
 	"github.com/laullon/b2t80s/machines"
+	"github.com/laullon/b2t80s/machines/atari/a2600"
 	"github.com/laullon/b2t80s/machines/atetris"
 	"github.com/laullon/b2t80s/machines/cpc"
 	"github.com/laullon/b2t80s/machines/msx"
@@ -83,6 +84,9 @@ func main() {
 		case "atetris":
 			machine = atetris.NewATetris()
 			name = "Tetris"
+		case "a2600":
+			machine = a2600.NewA2600()
+			name = "Atari 2600"
 		default:
 			panic(fmt.Errorf("mode '%s' not valid", *mode))
 		}
