@@ -395,7 +395,11 @@ func (op *indirectJMP) tick(cpu *m6502) {
 	case 2:
 		cpu.regs.PC = uint16(cpu.bus.Read(op.readAddr))
 	case 3:
-		cpu.regs.PC |= uint16(cpu.bus.Read(op.readAddr+1)) << 8
+		if op.readAddr&0x00ff == 0xff {
+			cpu.regs.PC |= uint16(cpu.bus.Read(op.readAddr&0xff00)) << 8
+		} else {
+			cpu.regs.PC |= uint16(cpu.bus.Read(op.readAddr+1)) << 8
+		}
 		op.d = true
 	}
 	op.t++
@@ -542,18 +546,18 @@ func getFunctionName(f interface{}) string {
 func exec(cpu *m6502, f interface{}, addr uint16, r, w, rw bool) {
 	if r {
 		ff := f.(func(*m6502, uint8))
-		fmt.Printf("read  0x%04X 0x%02X\n", addr, cpu.bus.Read(addr))
+		// fmt.Printf("read  0x%04X 0x%02X\n", addr, cpu.bus.Read(addr))
 		ff(cpu, cpu.bus.Read(addr))
 	} else if w {
 		ff := f.(func(*m6502) uint8)
 		r := ff(cpu)
-		fmt.Printf("write 0x%04X 0x%02X\n", addr, r)
+		// fmt.Printf("write 0x%04X 0x%02X\n", addr, r)
 		cpu.bus.Write(addr, r)
 	} else if rw {
 		ff := f.(func(*m6502, uint8) uint8)
-		fmt.Printf("read 0x%04X 0x%02X\n", addr, cpu.bus.Read(addr))
+		// fmt.Printf("read 0x%04X 0x%02X\n", addr, cpu.bus.Read(addr))
 		r := ff(cpu, cpu.bus.Read(addr))
-		fmt.Printf("write 0x%04X 0x%02X\n", addr, r)
+		// fmt.Printf("write 0x%04X 0x%02X\n", addr, r)
 		cpu.bus.Write(addr, r)
 	} else {
 		panic((-1))
