@@ -125,7 +125,8 @@ type m6502 struct {
 	bus Bus
 	log cpuUtils.Log
 
-	op operation
+	op     operation
+	nextOp operation
 
 	debugger emulator.Debugger
 }
@@ -147,41 +148,55 @@ func (cpu *m6502) RegisterTrap(pc uint16, trap emulator.CPUTrap) {}
 func (cpu *m6502) CurrentOP() string                             { return fmt.Sprintf("%v", cpu.op) }
 
 func (cpu *m6502) Tick() {
-	if (cpu.op == nil) || cpu.op.done() {
-		if cpu.doReset {
-			cpu.op = &reset{}
-			cpu.op.setPC(cpu.regs.PC)
-			cpu.doReset = false
-		} else if cpu.doIMM {
-			cpu.op = &brk{imm: true}
-			cpu.op.setPC(cpu.regs.PC)
-			cpu.doIMM = false
-		} else if cpu.doIRQ && !cpu.regs.PS.I {
-			cpu.op = &brk{irq: true}
-			cpu.op.setPC(cpu.regs.PC)
-			cpu.doIRQ = false
-		} else {
-			opCode := cpu.bus.Read(cpu.regs.PC)
-			cpu.op = ops[opCode]
-			if cpu.op == nil {
-				fmt.Printf("opCode: 0x%X NOT FOUND !!! pc:0x%04X\n", opCode, cpu.regs.PC)
-				panic(-1)
-			}
-			cpu.op.reset()
-			cpu.op.setPC(cpu.regs.PC)
-			cpu.regs.PC++
-		}
-	} else {
-		cpu.op.tick(cpu)
-	}
+	done := cpu.op.tick(cpu)
 
-	if cpu.op.done() && (cpu.log != nil) {
+	if done && (cpu.log != nil) {
 		cpu.log.AddEntry(fmt.Sprintf("%-30v%v irq:%v imm:%v", cpu.op, cpu.regs, cpu.doIRQ, cpu.doIMM))
 	}
 
-	if cpu.op.done() && (cpu.debugger != nil) {
+	if done && (cpu.debugger != nil) {
 		cpu.debugger.AddInstruction(cpu.op.getPC(), "", fmt.Sprintf("%-30v", cpu.op))
 	}
+
+	if done {
+		if cpu.nextOp != nil {
+			cpu.op = cpu.nextOp
+			cpu.op.reset()
+			cpu.nextOp = nil
+		} else {
+			fmt.Printf("no nextOp after -> %-30v \n", cpu.op)
+			panic(-1)
+		}
+	}
+}
+
+func (cpu *m6502) preFetch() {
+	var newOp operation
+
+	if cpu.doReset {
+		newOp = &reset{}
+		newOp.setPC(0)
+		cpu.doReset = false
+	} else if cpu.doIMM {
+		newOp = &brk{imm: true}
+		newOp.setPC(0)
+		cpu.doIMM = false
+	} else if cpu.doIRQ && !cpu.regs.PS.I {
+		newOp = &brk{irq: true}
+		newOp.setPC(0)
+		cpu.doIRQ = false
+	} else {
+		opCode := cpu.bus.Read(cpu.regs.PC)
+		newOp = ops[opCode]
+		if newOp == nil {
+			newOp = &unsupported{}
+			newOp.setup(opCode)
+		}
+		newOp.setPC(cpu.regs.PC)
+		cpu.regs.PC++
+	}
+
+	cpu.nextOp = newOp
 }
 
 func (cpu *m6502) push(data uint8) {

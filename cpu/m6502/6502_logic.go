@@ -186,6 +186,7 @@ func rti(cpu *m6502) {
 	addr := uint16(cpu.pop())
 	addr |= uint16(cpu.pop()) << 8
 	cpu.regs.PC = addr
+	cpu.preFetch()
 }
 
 func bne(cpu *m6502) bool { return !cpu.regs.PS.Z }
@@ -201,6 +202,7 @@ func rts(cpu *m6502) {
 	addr := uint16(cpu.pop())
 	addr |= uint16(cpu.pop()) << 8
 	cpu.regs.PC = addr + 1
+	cpu.preFetch()
 }
 
 func sta(cpu *m6502) uint8 { return cpu.regs.A }

@@ -40,5 +40,5 @@ func (log *logTail) Print() string {
 	var sb strings.Builder
 	sb.WriteString(strings.Join(log.entries[log.idx:], "\n"))
 	sb.WriteString(strings.Join(log.entries[:log.idx], "\n"))
-	return sb.String()
+	return strings.Trim(sb.String(), "\n")
 }
