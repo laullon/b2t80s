@@ -10,8 +10,7 @@ import (
 var debugFMT = "0x%04X: %-10s %-20s"
 
 type operation interface {
-	done() bool
-	tick(cpu *m6502)
+	tick(cpu *m6502) (done bool)
 	reset()
 	setup(opCode uint8)
 	setPC(pc uint16)
@@ -23,17 +22,11 @@ type basicop struct {
 	opCode uint8
 
 	pc uint16
-	d  bool
 	t  uint
 }
 
 func (op *basicop) reset() {
-	op.d = false
 	op.t = 0
-}
-
-func (op *basicop) done() bool {
-	return op.d
 }
 
 func (op *basicop) setPC(pc uint16) {
@@ -48,7 +41,7 @@ type reset struct {
 	basicop
 }
 
-func (op *reset) tick(cpu *m6502) {
+func (op *reset) tick(cpu *m6502) (done bool) {
 	switch op.t {
 	case 0:
 		cpu.regs.SP = 0
@@ -59,9 +52,11 @@ func (op *reset) tick(cpu *m6502) {
 		cpu.regs.SP--
 	case 7:
 		cpu.regs.PC = (cpu.regs.PC & 0xff00) | uint16(cpu.bus.Read(0xff00+uint16(cpu.regs.SP)))
-		op.d = true
+		cpu.preFetch()
+		done = true
 	}
 	op.t++
+	return
 }
 
 func (op *reset) setup(opCode uint8) {
@@ -83,7 +78,7 @@ type brk struct {
 	irq, imm bool
 }
 
-func (op *brk) tick(cpu *m6502) {
+func (op *brk) tick(cpu *m6502) (done bool) {
 	switch op.t {
 	case 0:
 		if !op.imm && !op.irq {
@@ -112,9 +107,11 @@ func (op *brk) tick(cpu *m6502) {
 		cpu.regs.PS.I = true
 	case 5:
 		cpu.regs.PC |= uint16(cpu.bus.Read(op.vector+1)) << 8
-		op.d = true
+		cpu.preFetch()
+		done = true
 	}
 	op.t++
+	return
 }
 
 func (op *brk) setup(opCode uint8) {
@@ -144,7 +141,7 @@ type indirectX struct {
 	addrZ    uint8
 }
 
-func (op *indirectX) tick(cpu *m6502) {
+func (op *indirectX) tick(cpu *m6502) (done bool) {
 	switch op.t {
 	case 0:
 		op.addrZ = cpu.bus.Read(cpu.regs.PC)
@@ -156,9 +153,10 @@ func (op *indirectX) tick(cpu *m6502) {
 		op.addr |= uint16(cpu.bus.Read(uint16(op.addrZ+1))) << 8
 	case 3:
 		exec(cpu, op.f, op.addr, op.r, op.w, op.rw)
-		op.d = true
+		done = true
 	}
 	op.t++
+	return
 }
 
 func (op *indirectX) setup(opCode uint8) {
@@ -184,7 +182,7 @@ type indirectY struct {
 	addrZ    uint8
 }
 
-func (op *indirectY) tick(cpu *m6502) {
+func (op *indirectY) tick(cpu *m6502) (done bool) {
 	switch op.t {
 	case 0:
 		op.addrZ = cpu.bus.Read(cpu.regs.PC)
@@ -197,9 +195,10 @@ func (op *indirectY) tick(cpu *m6502) {
 		op.addr += uint16(cpu.regs.Y)
 	case 4:
 		exec(cpu, op.f, op.addr, op.r, op.w, op.rw)
-		op.d = true
+		done = true
 	}
 	op.t++
+	return
 }
 
 func (op *indirectY) setup(opCode uint8) {
@@ -222,9 +221,11 @@ type implicit struct {
 	f func(cpu *m6502)
 }
 
-func (op *implicit) tick(cpu *m6502) {
+func (op *implicit) tick(cpu *m6502) (done bool) {
+	cpu.preFetch()
 	op.f(cpu)
-	op.d = true
+	done = true
+	return
 }
 
 func (op *implicit) setup(opCode uint8) {
@@ -248,11 +249,13 @@ type immediate struct {
 	data uint8
 }
 
-func (op *immediate) tick(cpu *m6502) {
+func (op *immediate) tick(cpu *m6502) (done bool) {
 	op.data = cpu.bus.Read(cpu.regs.PC)
-	op.f(cpu, op.data)
 	cpu.regs.PC++
-	op.d = true
+	cpu.preFetch()
+	op.f(cpu, op.data)
+	done = true
+	return
 }
 
 func (op *immediate) setup(opCode uint8) {
@@ -277,23 +280,29 @@ type relative struct {
 	target uint16
 }
 
-func (op *relative) tick(cpu *m6502) {
+func (op *relative) tick(cpu *m6502) (done bool) {
 	switch op.t {
 	case 0:
-		op.d = !op.f(cpu)
+		done = !op.f(cpu)
 		op.off = int8(cpu.bus.Read(cpu.regs.PC))
 		cpu.regs.PC++
+		if done {
+			cpu.preFetch()
+		}
 	case 1:
 		op.target = cpu.regs.PC + uint16(op.off)
 		if (cpu.regs.PC & 0xff00) == (op.target & 0xff00) { // no page change
 			cpu.regs.PC = op.target
-			op.d = true
+			cpu.preFetch()
+			done = true
 		}
 	case 2:
 		cpu.regs.PC = op.target
-		op.d = true
+		cpu.preFetch()
+		done = true
 	}
 	op.t++
+	return
 }
 
 func (op *relative) setup(opCode uint8) {
@@ -316,7 +325,7 @@ type absoluteJMP struct {
 	readAddr uint16
 }
 
-func (op *absoluteJMP) tick(cpu *m6502) {
+func (op *absoluteJMP) tick(cpu *m6502) (done bool) {
 	switch op.t {
 	case 0:
 		op.readAddr = uint16(cpu.bus.Read(cpu.regs.PC))
@@ -324,9 +333,11 @@ func (op *absoluteJMP) tick(cpu *m6502) {
 	case 1:
 		op.readAddr |= uint16(cpu.bus.Read(cpu.regs.PC)) << 8
 		cpu.regs.PC = op.readAddr
-		op.d = true
+		cpu.preFetch()
+		done = true
 	}
 	op.t++
+	return
 }
 
 func (op *absoluteJMP) setup(opCode uint8) {
@@ -348,7 +359,7 @@ type absoluteJSR struct {
 	readAddr uint16
 }
 
-func (op *absoluteJSR) tick(cpu *m6502) {
+func (op *absoluteJSR) tick(cpu *m6502) (done bool) {
 	switch op.t {
 	case 0:
 		op.readAddr = uint16(cpu.bus.Read(cpu.regs.PC))
@@ -361,9 +372,11 @@ func (op *absoluteJSR) tick(cpu *m6502) {
 	case 3:
 		cpu.push(uint8((cpu.regs.PC - 1)))
 		cpu.regs.PC = op.readAddr
-		op.d = true
+		cpu.preFetch()
+		done = true
 	}
 	op.t++
+	return
 }
 
 func (op *absoluteJSR) setup(opCode uint8) {
@@ -385,7 +398,7 @@ type indirectJMP struct {
 	readAddr uint16
 }
 
-func (op *indirectJMP) tick(cpu *m6502) {
+func (op *indirectJMP) tick(cpu *m6502) (done bool) {
 	switch op.t {
 	case 0:
 		op.readAddr = uint16(cpu.bus.Read(cpu.regs.PC))
@@ -400,9 +413,11 @@ func (op *indirectJMP) tick(cpu *m6502) {
 		} else {
 			cpu.regs.PC |= uint16(cpu.bus.Read(op.readAddr+1)) << 8
 		}
-		op.d = true
+		cpu.preFetch()
+		done = true
 	}
 	op.t++
+	return
 }
 
 func (op *indirectJMP) setup(opCode uint8) {
@@ -428,7 +443,7 @@ type absolute struct {
 	targetAddr uint16
 }
 
-func (op *absolute) tick(cpu *m6502) {
+func (op *absolute) tick(cpu *m6502) (done bool) {
 	switch op.t {
 	case 0:
 		op.readAddr = uint16(cpu.bus.Read(cpu.regs.PC))
@@ -446,13 +461,14 @@ func (op *absolute) tick(cpu *m6502) {
 		}
 		if (op.targetAddr & 0xff00) == (op.readAddr & 0xff00) { // page change ?
 			exec(cpu, op.f, op.targetAddr, op.r, op.w, op.rw)
-			op.d = true
+			done = true
 		}
 	case 3:
 		exec(cpu, op.f, op.targetAddr, op.r, op.w, op.rw)
-		op.d = true
+		done = true
 	}
 	op.t++
+	return
 }
 
 func (op *absolute) setup(opCode uint8) {
@@ -485,7 +501,7 @@ type zeropage struct {
 	addr     uint8
 }
 
-func (op *zeropage) tick(cpu *m6502) {
+func (op *zeropage) tick(cpu *m6502) (done bool) {
 	switch op.t {
 	case 0:
 		op.addr = cpu.bus.Read(cpu.regs.PC)
@@ -498,9 +514,10 @@ func (op *zeropage) tick(cpu *m6502) {
 		}
 	case 2:
 		exec(cpu, op.f, uint16(op.addr), op.r, op.w, op.rw)
-		op.d = true
+		done = true
 	}
 	op.t++
+	return
 }
 
 func (op *zeropage) setup(opCode uint8) {
@@ -537,6 +554,27 @@ func getRWRW(f interface{}) (r, w, rw bool) {
 	return
 }
 
+// -----
+
+type unsupported struct {
+	basicop
+}
+
+func (op *unsupported) tick(cpu *m6502) (done bool) {
+	panic(fmt.Sprintf("opCode: 0x%X NOT FOUND !!! pc:0x%04X", op.opCode, op.pc))
+}
+
+func (op *unsupported) setup(opCode uint8) {
+	op.opCode = opCode
+}
+
+func (op *unsupported) String() string {
+	op.tick(nil)
+	return "---"
+}
+
+//-----------
+
 func getFunctionName(f interface{}) string {
 	name := runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
 	idx := strings.LastIndex(name, ".") + 1
@@ -544,6 +582,7 @@ func getFunctionName(f interface{}) string {
 }
 
 func exec(cpu *m6502, f interface{}, addr uint16, r, w, rw bool) {
+	cpu.preFetch()
 	if r {
 		ff := f.(func(*m6502, uint8))
 		// fmt.Printf("read  0x%04X 0x%02X\n", addr, cpu.bus.Read(addr))

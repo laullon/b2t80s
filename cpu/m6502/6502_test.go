@@ -47,20 +47,21 @@ func TestFunctionalTests(t *testing.T) {
 			if cpu.log != nil {
 				println(cpu.log.Print())
 			}
-			assert.FailNow(t, "Panic")
+			assert.FailNow(t, "Panic", r)
 		}
 	}()
 
 	cpu.regs.PC = 0x0400
-	cpu.op = nil
+	cpu.preFetch()
+	cpu.op = cpu.nextOp
 	for i := 0; ; i++ {
 		cpu.Tick()
-		if cpu.regs.PC > 0xfff0 {
-			if !assert.NotEqual(t, uint16(0xffff), cpu.regs.PC, "ERROR !!!") {
-				if cpu.log != nil {
-					println(cpu.log.Print())
-				}
+		if cpu.regs.PC == 0x0000 {
+			if cpu.log != nil {
+				println(cpu.log.Print())
 			}
+			assert.FailNow(t, "Error detected!!!!")
+		} else if cpu.regs.PC == 0xFFFF {
 			return
 		}
 	}
@@ -92,19 +93,20 @@ func TestInterrup(t *testing.T) {
 	}
 
 	cpu.regs.PC = 0x0400
-	cpu.op = nil
+	cpu.preFetch()
+	cpu.op = cpu.nextOp
 	defer func() {
 		if r := recover(); r != nil {
 			if cpu.log != nil {
 				println(cpu.log.Print())
 			}
-			fmt.Printf("%v\n", r)
-			assert.FailNow(t, "Panic")
+			assert.FailNow(t, "Panic", r)
 		}
 	}()
 
 	cpu.regs.PC = 0x0400
-	cpu.op = nil
+	cpu.preFetch()
+	cpu.op = cpu.nextOp
 	for i := 0; ; i++ {
 		cpu.Tick()
 		if cpu.regs.PC > 0xfff0 {
@@ -134,7 +136,8 @@ func TestTiming(t *testing.T) {
 	cpu := MewM6502(&simpleBus{mem: mem}).(*m6502)
 
 	cpu.regs.PC = 0x1000
-	cpu.op = nil
+	cpu.preFetch()
+	cpu.op = cpu.nextOp
 	ticks := 0
 
 	if testing.Short() {
@@ -146,7 +149,7 @@ func TestTiming(t *testing.T) {
 	for i := 0; ; i++ {
 		ticks++
 		cpu.Tick()
-		if cpu.regs.PC == 0x1000 {
+		if cpu.regs.PC == 0x1001 {
 			// TODO: review
 			// assert.Equal(t, 1141, ticks, "wrong number of ticks: %d", ticks)
 			assert.Equal(t, 1058, ticks, "wrong number of ticks: %d", ticks)

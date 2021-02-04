@@ -20,6 +20,7 @@ import (
 	"github.com/laullon/b2t80s/machines/atetris"
 	"github.com/laullon/b2t80s/machines/cpc"
 	"github.com/laullon/b2t80s/machines/msx"
+	"github.com/laullon/b2t80s/machines/nes"
 	"github.com/laullon/b2t80s/machines/zx"
 
 	_ "net/http/pprof"
@@ -83,6 +84,9 @@ func main() {
 		case "atetris":
 			machine = atetris.NewATetris()
 			name = "Tetris"
+		case "nes":
+			machine = nes.NewNES()
+			name = "Nes"
 		default:
 			panic(fmt.Errorf("mode '%s' not valid", *mode))
 		}

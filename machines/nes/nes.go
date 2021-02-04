@@ -5,6 +5,7 @@ import (
 	"github.com/laullon/b2t80s/cpu/m6502"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/machines"
+	"github.com/laullon/b2t80s/machines/nes/mappers"
 	"github.com/laullon/b2t80s/ui"
 )
 
@@ -17,24 +18,36 @@ type nes struct {
 }
 
 func NewNES() machines.Machine {
-	bus := m6502.NewBus()
-	// display := image.NewRGBA(image.Rect(0, 0, 160, 192))
-	// monitor := emulator.NewMonitor(display)
+	cartridge := mappers.CreateMapper("tests/cpu_interrupts.nes")
 
-	m := &nes{
-		cpu:   m6502.MewM6502(bus),
-		clock: emulator.NewCLock(3_584_160/3, 60),
-	}
+	clock := emulator.NewCLock(palClock, 50)
+	bus := m6502.NewBus()
+	cpu := m6502.MewM6502(bus)
+	apu := newAPU(cpu, palClock)
+
+	debugger := m6502.NewDebugger(cpu, nil, clock)
+	// debugger.SetDump(true)
+	cpu.SetDebuger(debugger)
+
+	clock.AddTicker(0, cpu)
+	clock.AddTicker(2, apu)
 
 	// RAM
 	bus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b00000000_00000000}, &ram{data: make([]byte, 0x800), mask: 0x7ff})
 
-	if *machines.Debug {
-		m.debugger = m6502.NewDebugger(m.cpu, nil, m.clock)
-		m.cpu.SetDebuger(m.debugger)
-	}
+	// Fake PPU
+	bus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b00100000_00000000}, &ram{data: make([]byte, 0x08), mask: 0x07})
 
-	m.clock.AddTicker(0, m.cpu)
+	// APU
+	bus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b01000000_00000000}, apu)
+
+	cartridge.Insert(bus)
+
+	m := &nes{
+		cpu:      m6502.MewM6502(bus),
+		clock:    emulator.NewCLock(3_584_160/3, 60),
+		debugger: debugger,
+	}
 
 	return m
 }

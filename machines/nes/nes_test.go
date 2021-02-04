@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func _TestInterrupts(t *testing.T) {
+func TestInterrupts(t *testing.T) {
 	mmc1 := mappers.CreateMapper("tests/cpu_interrupts.nes")
 
 	clock := emulator.NewCLock(palClock, 50)
@@ -49,7 +49,7 @@ func _TestInterrupts(t *testing.T) {
 	// hijack mapper ram
 	bus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b01100000_00000000}, testValidator)
 
-	clock.RunFor(5)
+	clock.RunFor(10)
 }
 
 type fakeRam struct {
