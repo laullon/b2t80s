@@ -119,7 +119,7 @@ type m6502 struct {
 	regs Registers
 
 	doIRQ   bool
-	doIMM   bool
+	doNMI   bool
 	doReset bool
 
 	bus Bus
@@ -139,6 +139,7 @@ func MewM6502(bus Bus) emulator.CPU {
 }
 
 func (cpu *m6502) Interrupt(i bool)                              { cpu.doIRQ = i }
+func (cpu *m6502) NMI(i bool)                                    { cpu.doNMI = i }
 func (cpu *m6502) Halt()                                         {}
 func (cpu *m6502) Reset()                                        { cpu.doReset = true }
 func (cpu *m6502) Wait(bool)                                     {}
@@ -151,7 +152,7 @@ func (cpu *m6502) Tick() {
 	done := cpu.op.tick(cpu)
 
 	if done && (cpu.log != nil) {
-		cpu.log.AddEntry(fmt.Sprintf("%-30v%v irq:%v imm:%v", cpu.op, cpu.regs, cpu.doIRQ, cpu.doIMM))
+		cpu.log.AddEntry(fmt.Sprintf("%-30v%v irq:%v nmi:%v", cpu.op, cpu.regs, cpu.doIRQ, cpu.doNMI))
 	}
 
 	if done && (cpu.debugger != nil) {
@@ -177,10 +178,10 @@ func (cpu *m6502) preFetch() {
 		newOp = &reset{}
 		newOp.setPC(0)
 		cpu.doReset = false
-	} else if cpu.doIMM {
+	} else if cpu.doNMI {
 		newOp = &brk{imm: true}
 		newOp.setPC(0)
-		cpu.doIMM = false
+		cpu.doNMI = false
 	} else if cpu.doIRQ && !cpu.regs.PS.I {
 		newOp = &brk{irq: true}
 		newOp.setPC(0)

@@ -30,7 +30,10 @@ func newMMC1(file *nesFile) Mapper {
 	return m
 }
 
-func (m *mmc1) Insert(bus m6502.Bus) {
+func (m *mmc1) ConnectToPPU(bus m6502.Bus) {
+}
+
+func (m *mmc1) ConnectToCPU(bus m6502.Bus) {
 	bus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b01100000_00000000}, m.ram)
 	bus.RegisterPort(emulator.PortMask{Mask: 0b11000000_00000000, Value: 0b10000000_00000000}, m.rom[0])
 	bus.RegisterPort(emulator.PortMask{Mask: 0b11000000_00000000, Value: 0b11000000_00000000}, m.rom[1])

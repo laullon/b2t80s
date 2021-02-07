@@ -19,7 +19,7 @@ func TestMMC1(t *testing.T) {
 	// Fake PPU
 	bus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b00100000_00000000}, &ram{mem: make([]byte, 0x08), mask: 0x07})
 
-	mmc1.Insert(bus)
+	mmc1.ConnectToCPU(bus)
 
 	for i := 0; i < 5000000; i++ {
 		cpu.Tick()

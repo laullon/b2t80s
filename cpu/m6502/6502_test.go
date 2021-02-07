@@ -183,7 +183,7 @@ type simpleBus struct {
 func (bus *simpleBus) Write(addr uint16, data uint8) {
 	if bus.interrupt {
 		if addr == 0xbffc {
-			bus.cpu.doIMM = data&0x02 != 0
+			bus.cpu.doNMI = data&0x02 != 0
 			bus.cpu.doIRQ = data&0x01 != 0
 		}
 	}

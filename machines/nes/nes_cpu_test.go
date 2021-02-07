@@ -50,7 +50,7 @@ func TestCPU(t *testing.T) {
 	// APU
 	bus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b01000000_00000000}, apu)
 
-	mmc1.Insert(bus)
+	mmc1.ConnectToCPU(bus)
 
 	// hijack mapper ram
 	bus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b01100000_00000000}, testValidator)

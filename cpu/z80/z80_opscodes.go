@@ -536,10 +536,10 @@ func init() {
 
 	// -----
 
-	println("---------")
-	println("                         CB                DD                DDCB              ED                FD                FDCB")
-	for code := 0; code < 256; code++ {
-		fmt.Printf("0x%02X - %-18v%-18v%-18v%-18v%-18v%-18v%-18v\n", code, lookup[code], lookupCB[code], lookupDD[code], lookupDDCB[code], lookupED[code], lookupFD[code], lookupFDCB[code])
-	}
-	println("---------")
+	// println("---------")
+	// println("                         CB                DD                DDCB              ED                FD                FDCB")
+	// for code := 0; code < 256; code++ {
+	// 	fmt.Printf("0x%02X - %-18v%-18v%-18v%-18v%-18v%-18v%-18v\n", code, lookup[code], lookupCB[code], lookupDD[code], lookupDDCB[code], lookupED[code], lookupFD[code], lookupFDCB[code])
+	// }
+	// println("---------")
 }

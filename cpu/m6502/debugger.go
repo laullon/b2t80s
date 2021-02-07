@@ -59,7 +59,7 @@ func (debug *debugger) AddInstruction(pc uint16, mem, instruction string) {
 
 	if debug.dump {
 		print(le.String())
-		fmt.Printf("%v irq:%v imm:%v\n", debug.cpu.regs, debug.cpu.doIRQ, debug.cpu.doIMM)
+		fmt.Printf("%v irq:%v imm:%v\n", debug.cpu.regs, debug.cpu.doIRQ, debug.cpu.doNMI)
 	}
 
 	if len(debug.log) > 10 {

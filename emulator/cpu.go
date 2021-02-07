@@ -3,6 +3,7 @@ package emulator
 type CPUTrap func()
 type CPU interface {
 	Interrupt(bool)
+	NMI(bool)
 	Halt()
 	Wait(bool)
 	Reset()
