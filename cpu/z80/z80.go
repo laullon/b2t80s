@@ -211,6 +211,9 @@ func (cpu *z80) Interrupt(i bool) {
 	cpu.doInterrupt = i
 }
 
+func (cpu *z80) NMI(i bool) {
+}
+
 func (cpu *z80) Wait(w bool) {
 	cpu.wait = w
 }

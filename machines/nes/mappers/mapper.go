@@ -7,7 +7,8 @@ import (
 )
 
 type Mapper interface {
-	Insert(bus m6502.Bus)
+	ConnectToCPU(bus m6502.Bus)
+	ConnectToPPU(bus m6502.Bus)
 }
 
 func CreateMapper(fileName string) Mapper {
@@ -18,6 +19,9 @@ func CreateMapper(fileName string) Mapper {
 		return newNROM(file)
 	case 1:
 		return newMMC1(file)
+	case 3:
+		return newCNROM(file)
+
 	default:
 		panic(fmt.Sprintf("mapper type '%d' not supported", file.mapper()))
 	}
@@ -32,7 +36,7 @@ type rom struct {
 }
 
 func (rom *rom) ReadPort(addr uint16) (byte, bool) { return rom.mem[addr&rom.mask], false }
-func (rom *rom) WritePort(addr uint16, data byte)  { rom.write(addr, data) }
+func (rom *rom) WritePort(addr uint16, data byte)  { rom.mem[addr&rom.mask] = data }
 
 // ----------------------------
 

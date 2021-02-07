@@ -12,18 +12,29 @@ import (
 var palClock = uint(1_662_607)
 
 type nes struct {
+	cpu emulator.CPU
+	ppu *ppu
+	apu *apu
+
 	clock    emulator.Clock
-	cpu      emulator.CPU
 	debugger emulator.Debugger
 }
 
 func NewNES() machines.Machine {
-	cartridge := mappers.CreateMapper("tests/cpu_interrupts.nes")
+	// cartridge := mappers.CreateMapper("games/nes/GALAXIAN.NES")
+	// cartridge := mappers.CreateMapper("/Users/glaullon/Downloads/palette_pal.nes")
+	// cartridge := mappers.CreateMapper("/Users/glaullon/Downloads/allpads.nes")
+	cartridge := mappers.CreateMapper("machines/nes/tests/nestest.nes")
+	// cartridge := mappers.CreateMapper("games/nes/Donkey Kong Classics (U).nes")
 
 	clock := emulator.NewCLock(palClock, 50)
-	bus := m6502.NewBus()
-	cpu := m6502.MewM6502(bus)
+	cpuBus := m6502.NewBus()
+	cpu := m6502.MewM6502(cpuBus)
+
 	apu := newAPU(cpu, palClock)
+
+	ppuBus := m6502.NewBus()
+	ppu := newPPU(ppuBus, cpu)
 
 	debugger := m6502.NewDebugger(cpu, nil, clock)
 	// debugger.SetDump(true)
@@ -31,21 +42,25 @@ func NewNES() machines.Machine {
 
 	clock.AddTicker(0, cpu)
 	clock.AddTicker(2, apu)
+	clock.AddTicker(5, ppu)
 
 	// RAM
-	bus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b00000000_00000000}, &ram{data: make([]byte, 0x800), mask: 0x7ff})
+	cpuBus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b00000000_00000000}, &ram{data: make([]byte, 0x800), mask: 0x7ff})
 
-	// Fake PPU
-	bus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b00100000_00000000}, &ram{data: make([]byte, 0x08), mask: 0x07})
+	// PPU
+	cpuBus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b00100000_00000000}, ppu)
 
 	// APU
-	bus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b01000000_00000000}, apu)
+	cpuBus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b01000000_00000000}, apu)
 
-	cartridge.Insert(bus)
+	cartridge.ConnectToCPU(cpuBus)
+	cartridge.ConnectToPPU(ppuBus)
 
 	m := &nes{
-		cpu:      m6502.MewM6502(bus),
-		clock:    emulator.NewCLock(3_584_160/3, 60),
+		cpu:      cpu,
+		ppu:      ppu,
+		apu:      apu,
+		clock:    clock,
 		debugger: debugger,
 	}
 
@@ -53,26 +68,13 @@ func NewNES() machines.Machine {
 }
 
 func (t *nes) Debugger() emulator.Debugger     { return t.debugger }
-func (t *nes) Monitor() emulator.Monitor       { return nil } //t.tia.monitor }
+func (t *nes) Monitor() emulator.Monitor       { return t.ppu.monitor }
 func (t *nes) Clock() emulator.Clock           { return t.clock }
-func (t *nes) UIControls() []ui.Control        { return nil }
+func (t *nes) UIControls() []ui.Control        { return []ui.Control{newPalleteControl(t.ppu.bus)} }
 func (t *nes) GetVolumeControl() func(float64) { return func(f float64) {} }
-func (t *nes) OnKeyEvent(key *fyne.KeyEvent)   {}
+func (t *nes) OnKeyEvent(key *fyne.KeyEvent)   { t.apu.onKeyEvent(key) }
 
 // ----------------------------
-// type clearIRQ struct {
-// 	cpu emulator.CPU
-// }
-
-// func (s *clearIRQ) ReadPort(addr uint16) (byte, bool) { panic(-1) }
-// func (s *clearIRQ) WritePort(addr uint16, data byte)  { s.cpu.Interrupt(false) }
-
-type rom struct {
-	data []byte
-}
-
-func (rom *rom) ReadPort(addr uint16) (byte, bool) { return rom.data[addr&0x0fff], false }
-func (rom *rom) WritePort(addr uint16, data byte)  { panic(-1) }
 
 type ram struct {
 	data []byte
