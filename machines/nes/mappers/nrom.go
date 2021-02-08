@@ -32,12 +32,8 @@ func newNROM(file *nesFile) Mapper {
 }
 
 func (m *nrom) ConnectToPPU(bus m6502.Bus) {
-	// Pattern table 0
 	bus.RegisterPort(emulator.PortMask{Mask: 0b1111_000000000000, Value: 0b0000_000000000000}, m.pattern0)
-
-	// Pattern table 1
 	bus.RegisterPort(emulator.PortMask{Mask: 0b1111_000000000000, Value: 0b0001_000000000000}, m.pattern1)
-
 }
 
 func (m *nrom) ConnectToCPU(bus m6502.Bus) {

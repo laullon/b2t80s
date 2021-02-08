@@ -1,8 +1,10 @@
 package nes
 
 import (
+	"fmt"
 	"image"
 	"image/color"
+	"math/bits"
 
 	"github.com/laullon/b2t80s/cpu/m6502"
 	"github.com/laullon/b2t80s/emulator"
@@ -25,6 +27,10 @@ type ppu struct {
 	palette *ram
 
 	enableNMI bool
+
+	oam []byte
+
+	spriteBase uint16
 }
 
 // 1662607*3,2 / 50 / 341 = 312,043542522
@@ -39,10 +45,12 @@ func newPPU(bus m6502.Bus, cpu emulator.CPU) *ppu {
 		monitor: emulator.NewMonitor(display),
 		ram:     &ram{data: make([]byte, 0x1000), mask: 0x0fff},
 		palette: &ram{data: make([]byte, 0x20), mask: 0x1f},
+		oam:     make([]byte, 0x100),
 	}
 
 	// ram
 	bus.RegisterPort(emulator.PortMask{Mask: 0b1111_000000000000, Value: 0b0010_000000000000}, ppu.ram)
+	bus.RegisterPort(emulator.PortMask{Mask: 0b1111_000000000000, Value: 0b0011_000000000000}, ppu.ram)
 
 	// palette
 	bus.RegisterPort(emulator.PortMask{Mask: 0b1111_1111_0000_0000, Value: 0b0011_1111_0000_0000}, ppu.palette)
@@ -96,7 +104,7 @@ func (ppu *ppu) Tick() {
 					color |= uint16(((pattern0 & 0x80) >> 7) | ((pattern1 & 0x80) >> 6))
 					pattern0 <<= 1
 					pattern1 <<= 1
-					ppu.display.Set(ppu.h+i, ppu.v, colors[ppu.bus.Read(color)])
+					ppu.display.Set(ppu.h+i, ppu.v, colors[ppu.bus.Read(color)&0x3f])
 				}
 			}
 		}
@@ -110,8 +118,45 @@ func (ppu *ppu) Tick() {
 			}
 			if ppu.v == 312 {
 				ppu.v = 0
+				ppu.drawSprites()
 				ppu.monitor.FrameDone()
 				// panic(-1)
+			}
+		}
+	}
+}
+
+const (
+	sY = iota
+	sID
+	sAttr
+	sX
+)
+
+func (ppu *ppu) drawSprites() {
+	for sIdx := 0; sIdx < 64; sIdx++ {
+		sprite := ppu.oam[sIdx*4 : (sIdx*4)+4]
+		if sprite[sY] != 0xff {
+			for y := 0; y < 8; y++ {
+				patternAddr := ppu.spriteBase | uint16(sprite[sID])<<4 | uint16(y)
+				pattern0 := ppu.bus.Read(patternAddr)
+				pattern1 := ppu.bus.Read(patternAddr | 0x08)
+				if sprite[sAttr]&0x40 == 0x40 {
+					pattern0 = bits.Reverse8(pattern0)
+					pattern1 = bits.Reverse8(pattern1)
+				}
+
+				for i := 0; i < 8; i++ {
+					c := ((pattern0 & 0x80) >> 7) | ((pattern1 & 0x80) >> 6)
+					if c != 0 {
+						color := uint16(0x3f00)
+						color |= uint16(sprite[sAttr]&0x3) << 2
+						color |= uint16(c)
+						ppu.display.Set(int(sprite[sX])+i, int(sprite[sY])+y, colors[ppu.bus.Read(color)&0x3f])
+					}
+					pattern0 <<= 1
+					pattern1 <<= 1
+				}
 			}
 		}
 	}
@@ -124,10 +169,11 @@ func (ppu *ppu) ReadPort(addr uint16) (byte, bool) {
 
 func (ppu *ppu) WritePort(addr uint16, data byte) {
 	// fmt.Printf("[ppu] write 0x%04X 0x%02x\n", addr, data)
-	switch addr & 0x07 {
+	switch addr & 0xff {
 	case 0:
 		ppu.nameTableBase = 0x2000 | (uint16(data&0x3) << 10)
 		ppu.patternBase = 0x1000 * (uint16(data&0x10) >> 4)
+		ppu.spriteBase = 0x1000 * (uint16(data&0x08) >> 3)
 		// fmt.Printf("[ppu] write -> nameTableBase:0x%04X data:%08b  \n", ppu.nameTableBase, data)
 		ppu.enableNMI = data&0x80 == 0x80
 		if data&0x04 == 0 {
@@ -143,5 +189,8 @@ func (ppu *ppu) WritePort(addr uint16, data byte) {
 		// fmt.Printf("[ppu] write -> addr:0x%04X data:%v  \n", ppu.addr, data)
 		ppu.bus.Write(ppu.addr, data)
 		ppu.addr += ppu.addrInc
+	case 0x14:
+		fmt.Printf("[ppu] write -> addr:0x%04X data:%v  \n", ppu.addr, data)
+
 	}
 }
