@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"fyne.io/fyne"
+	"github.com/laullon/b2t80s/cpu/m6502"
 	"github.com/laullon/b2t80s/emulator"
 )
 
@@ -21,6 +22,11 @@ type apu struct {
 	readControlers bool
 	ctrl0idx       byte
 	ctrl0          byte
+
+	dmaSrc uint16
+	doDMA  bool
+	cpuBus m6502.Bus
+	ppu    *ppu
 }
 
 func newAPU(cpu emulator.CPU, clock uint) *apu {
@@ -33,6 +39,15 @@ func newAPU(cpu emulator.CPU, clock uint) *apu {
 }
 
 func (apu *apu) Tick() {
+	if apu.doDMA {
+		apu.cpu.Wait(true)
+		apu.ppu.oam[apu.dmaSrc&0xff] = apu.cpuBus.Read(apu.dmaSrc)
+		apu.dmaSrc++
+		if apu.dmaSrc&0xff == 0 {
+			apu.doDMA = false
+			apu.cpu.Wait(false)
+		}
+	}
 	// if apu.doIRQ {
 	// 	apu.cpu.Interrupt(true)
 	// }
@@ -48,7 +63,7 @@ func (apu *apu) Tick() {
 }
 
 func (apu *apu) ReadPort(addr uint16) (res byte, skip bool) {
-	fmt.Printf("[apu] read  0x%04X\n", addr)
+	// fmt.Printf("[apu] read  0x%04X\n", addr)
 	switch addr {
 	case 0x4016:
 		res = (apu.ctrl0 >> apu.ctrl0idx) & 0x1
@@ -61,13 +76,16 @@ func (apu *apu) ReadPort(addr uint16) (res byte, skip bool) {
 func (apu *apu) WritePort(addr uint16, data byte) {
 	fmt.Printf("[apu] write 0x%04X 0x%02x\n", addr, data)
 	switch addr {
+	case 0x4014:
+		apu.dmaSrc = uint16(data) << 8
+		apu.doDMA = true
 	case 0x4016:
 		apu.readControlers = data&1 == 1
 	}
 }
 
 func (apu *apu) onKeyEvent(key *fyne.KeyEvent) {
-	fmt.Println("key:", key.Name)
+	// fmt.Println("key:", key.Name)
 	switch key.Name {
 
 	case fyne.KeyZ: // A

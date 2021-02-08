@@ -14,7 +14,7 @@ type Mapper interface {
 func CreateMapper(fileName string) Mapper {
 	file := loadFile(fileName)
 
-	switch file.mapper() {
+	switch file.header.mapper {
 	case 0:
 		return newNROM(file)
 	case 1:
@@ -23,7 +23,7 @@ func CreateMapper(fileName string) Mapper {
 		return newCNROM(file)
 
 	default:
-		panic(fmt.Sprintf("mapper type '%d' not supported", file.mapper()))
+		panic(fmt.Sprintf("mapper type '%d' not supported", file.header.mapper))
 	}
 }
 

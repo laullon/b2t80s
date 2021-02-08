@@ -31,6 +31,11 @@ func newMMC1(file *nesFile) Mapper {
 }
 
 func (m *mmc1) ConnectToPPU(bus m6502.Bus) {
+	if m.file.header.chrSize == 0 {
+		bus.RegisterPort(emulator.PortMask{Mask: 0b1110_000000000000, Value: 0b0000_000000000000}, m.ram)
+	} else {
+		panic(-1)
+	}
 }
 
 func (m *mmc1) ConnectToCPU(bus m6502.Bus) {

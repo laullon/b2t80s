@@ -1,6 +1,8 @@
 package nes
 
 import (
+	"os"
+
 	"fyne.io/fyne"
 	"github.com/laullon/b2t80s/cpu/m6502"
 	"github.com/laullon/b2t80s/emulator"
@@ -24,8 +26,9 @@ func NewNES() machines.Machine {
 	// cartridge := mappers.CreateMapper("games/nes/GALAXIAN.NES")
 	// cartridge := mappers.CreateMapper("/Users/glaullon/Downloads/palette_pal.nes")
 	// cartridge := mappers.CreateMapper("/Users/glaullon/Downloads/allpads.nes")
-	cartridge := mappers.CreateMapper("machines/nes/tests/nestest.nes")
+	// cartridge := mappers.CreateMapper("machines/nes/tests/nestest.nes")
 	// cartridge := mappers.CreateMapper("games/nes/Donkey Kong Classics (U).nes")
+	cartridge := mappers.CreateMapper(os.Args[len(os.Args)-1])
 
 	clock := emulator.NewCLock(palClock, 50)
 	cpuBus := m6502.NewBus()
@@ -35,6 +38,10 @@ func NewNES() machines.Machine {
 
 	ppuBus := m6502.NewBus()
 	ppu := newPPU(ppuBus, cpu)
+
+	// DMA
+	apu.cpuBus = cpuBus
+	apu.ppu = ppu
 
 	debugger := m6502.NewDebugger(cpu, nil, clock)
 	// debugger.SetDump(true)

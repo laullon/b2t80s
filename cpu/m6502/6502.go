@@ -121,6 +121,7 @@ type m6502 struct {
 	doIRQ   bool
 	doNMI   bool
 	doReset bool
+	doWait  bool
 
 	bus Bus
 	log cpuUtils.Log
@@ -142,13 +143,17 @@ func (cpu *m6502) Interrupt(i bool)                              { cpu.doIRQ = i
 func (cpu *m6502) NMI(i bool)                                    { cpu.doNMI = i }
 func (cpu *m6502) Halt()                                         {}
 func (cpu *m6502) Reset()                                        { cpu.doReset = true }
-func (cpu *m6502) Wait(bool)                                     {}
+func (cpu *m6502) Wait(w bool)                                   { cpu.doWait = w }
 func (cpu *m6502) Registers() interface{}                        { return cpu.regs }
 func (cpu *m6502) SetDebuger(debugger emulator.Debugger)         { cpu.debugger = debugger }
 func (cpu *m6502) RegisterTrap(pc uint16, trap emulator.CPUTrap) {}
 func (cpu *m6502) CurrentOP() string                             { return fmt.Sprintf("%v", cpu.op) }
 
 func (cpu *m6502) Tick() {
+	if cpu.doWait {
+		return
+	}
+
 	done := cpu.op.tick(cpu)
 
 	if done && (cpu.log != nil) {
