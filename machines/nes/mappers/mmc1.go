@@ -36,6 +36,7 @@ func (m *mmc1) ConnectToPPU(bus m6502.Bus) {
 	} else {
 		panic(-1)
 	}
+	setPPUMemory(m.file, bus)
 }
 
 func (m *mmc1) ConnectToCPU(bus m6502.Bus) {

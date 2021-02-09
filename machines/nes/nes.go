@@ -43,16 +43,12 @@ func NewNES() machines.Machine {
 	apu.cpuBus = cpuBus
 	apu.ppu = ppu
 
-	debugger := m6502.NewDebugger(cpu, nil, clock)
-	// debugger.SetDump(true)
-	cpu.SetDebuger(debugger)
-
 	clock.AddTicker(0, cpu)
 	clock.AddTicker(2, apu)
 	clock.AddTicker(5, ppu)
 
 	// RAM
-	cpuBus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b00000000_00000000}, &ram{data: make([]byte, 0x800), mask: 0x7ff})
+	cpuBus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b00000000_00000000}, &m6502.BasicRam{Data: make([]byte, 0x800), Mask: 0x7ff})
 
 	// PPU
 	cpuBus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b00100000_00000000}, ppu)
@@ -64,11 +60,17 @@ func NewNES() machines.Machine {
 	cartridge.ConnectToPPU(ppuBus)
 
 	m := &nes{
-		cpu:      cpu,
-		ppu:      ppu,
-		apu:      apu,
-		clock:    clock,
-		debugger: debugger,
+		cpu:   cpu,
+		ppu:   ppu,
+		apu:   apu,
+		clock: clock,
+	}
+
+	if *machines.Debug {
+		debugger := m6502.NewDebugger(cpu, nil, clock)
+		// debugger.SetDump(true)
+		cpu.SetDebuger(debugger)
+		m.debugger = debugger
 	}
 
 	return m
@@ -82,11 +84,3 @@ func (t *nes) GetVolumeControl() func(float64) { return func(f float64) {} }
 func (t *nes) OnKeyEvent(key *fyne.KeyEvent)   { t.apu.onKeyEvent(key) }
 
 // ----------------------------
-
-type ram struct {
-	data []byte
-	mask uint16
-}
-
-func (ram *ram) ReadPort(addr uint16) (byte, bool) { return ram.data[addr&ram.mask], false }
-func (ram *ram) WritePort(addr uint16, data byte)  { ram.data[addr&ram.mask] = data }
