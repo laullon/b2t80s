@@ -45,7 +45,7 @@ func (bus *bus) Read(addr uint16) uint8 {
 	// fmt.Printf(fmt.Sprintf("[readPort]-> port:0x%04X pc:0x%04X \n", port, cpu.regs.PC))
 	for portMask, portManager := range bus.ports {
 		if (addr & portMask.Mask) == portMask.Value {
-			// fmt.Printf("[readPort] (0x%04X) port:0x%04X (0x%04X)(0x%04X) \n", cpu.regs.PC, port, port&portMask.Mask, portMask.Value)
+			// fmt.Printf("[readPort] port:0x%04X (0x%04X)(0x%04X) \n", addr, addr&portMask.Mask, portMask.Value)
 			// println(reflect.TypeOf(portManager).Elem().Name())
 			data, skip = portManager.ReadPort(addr)
 			if !skip {
@@ -63,4 +63,24 @@ func (bus *bus) RegisterPort(mask emulator.PortMask, manager emulator.PortManage
 		delete(bus.ports, mask)
 	}
 	bus.ports[mask] = manager
+}
+
+type BasicRam struct {
+	Data  []byte
+	Mask  uint16
+	Trace bool
+}
+
+func (ram *BasicRam) ReadPort(addr uint16) (byte, bool) {
+	if ram.Trace {
+		fmt.Printf("[ram] read 0x%04X \n", addr)
+	}
+	return ram.Data[addr&ram.Mask], false
+}
+
+func (ram *BasicRam) WritePort(addr uint16, data byte) {
+	if ram.Trace {
+		fmt.Printf("[ram] write 0x%04X 0x%02x\n", addr, data)
+	}
+	ram.Data[addr&ram.Mask] = data
 }

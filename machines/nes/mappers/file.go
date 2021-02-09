@@ -17,7 +17,11 @@ type header struct {
 	mapper  byte
 	prgSize byte
 	chrSize byte
-	flags   []byte
+
+	vMirror   bool
+	fourPages bool
+
+	flags []byte
 }
 
 func loadFile(fileName string) *nesFile {
@@ -28,8 +32,13 @@ func loadFile(fileName string) *nesFile {
 	file := &nesFile{}
 	file.header.prgSize = data[4]
 	file.header.chrSize = data[5]
+
+	file.header.vMirror = data[6]&0x01 == 1
+	file.header.fourPages = data[6]&0x08 != 0
+
+	file.header.mapper = (data[7] & 0xf0) | ((data[6] & 0xf0) >> 4)
+
 	file.header.flags = data[6:11]
-	file.header.mapper = (file.header.flags[1] & 0xf0) | ((file.header.flags[0] & 0xf0) >> 4)
 
 	fmt.Printf("file: %v \n", file)
 

@@ -6,6 +6,7 @@ import (
 
 	cpuUtils "github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/machines"
 )
 
 type Registers struct {
@@ -150,6 +151,16 @@ func (cpu *m6502) RegisterTrap(pc uint16, trap emulator.CPUTrap) {}
 func (cpu *m6502) CurrentOP() string                             { return fmt.Sprintf("%v", cpu.op) }
 
 func (cpu *m6502) Tick() {
+	if *machines.Debug {
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Printf("Panic on => %-30v%v irq:%v nmi:%v", cpu.op, cpu.regs, cpu.doIRQ, cpu.doNMI)
+				panic(r)
+			}
+		}()
+
+	}
+
 	if cpu.doWait {
 		return
 	}

@@ -42,10 +42,10 @@ func TestCPU(t *testing.T) {
 	clock.AddTicker(0, testValidator)
 
 	// RAM
-	bus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b00000000_00000000}, &ram{data: make([]byte, 0x800), mask: 0x7ff})
+	bus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b00000000_00000000}, &m6502.BasicRam{Data: make([]byte, 0x800), Mask: 0x7ff})
 
 	// Fake PPU
-	bus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b00100000_00000000}, &ram{data: make([]byte, 0x08), mask: 0x07})
+	bus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b00100000_00000000}, &m6502.BasicRam{Data: make([]byte, 0x08), Mask: 0x07})
 
 	// APU
 	bus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b01000000_00000000}, apu)

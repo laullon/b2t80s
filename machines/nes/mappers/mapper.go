@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/laullon/b2t80s/cpu/m6502"
+	"github.com/laullon/b2t80s/emulator"
 )
 
 type Mapper interface {
@@ -24,6 +25,30 @@ func CreateMapper(fileName string) Mapper {
 
 	default:
 		panic(fmt.Sprintf("mapper type '%d' not supported", file.header.mapper))
+	}
+}
+
+func setPPUMemory(file *nesFile, ppuBus m6502.Bus) {
+	if file.header.fourPages {
+		ram := &m6502.BasicRam{Data: make([]byte, 0x1000), Mask: 0x0fff}
+		ppuBus.RegisterPort(emulator.PortMask{Mask: 0b1111_000000000000, Value: 0b0010_000000000000}, ram)
+		ppuBus.RegisterPort(emulator.PortMask{Mask: 0b1111_000000000000, Value: 0b0011_000000000000}, ram)
+	} else if file.header.vMirror {
+		ram0 := &m6502.BasicRam{Data: make([]byte, 0x400), Mask: 0x03ff}
+		ppuBus.RegisterPort(emulator.PortMask{Mask: 0b1111_1100_00000000, Value: 0b0010_000000000000}, ram0)
+		ppuBus.RegisterPort(emulator.PortMask{Mask: 0b1111_1100_00000000, Value: 0b0010_100000000000}, ram0)
+
+		ram1 := &m6502.BasicRam{Data: make([]byte, 0x400), Mask: 0x03ff}
+		ppuBus.RegisterPort(emulator.PortMask{Mask: 0b1111_1100_00000000, Value: 0b0010_010000000000}, ram1)
+		ppuBus.RegisterPort(emulator.PortMask{Mask: 0b1111_1100_00000000, Value: 0b0010_110000000000}, ram1)
+	} else {
+		ram0 := &m6502.BasicRam{Data: make([]byte, 0x400), Mask: 0x03ff}
+		ppuBus.RegisterPort(emulator.PortMask{Mask: 0b1111_1100_00000000, Value: 0b0010_000000000000}, ram0)
+		ppuBus.RegisterPort(emulator.PortMask{Mask: 0b1111_1100_00000000, Value: 0b0010_010000000000}, ram0)
+
+		ram1 := &m6502.BasicRam{Data: make([]byte, 0x400), Mask: 0x03ff}
+		ppuBus.RegisterPort(emulator.PortMask{Mask: 0b1111_1100_00000000, Value: 0b0010_100000000000}, ram1)
+		ppuBus.RegisterPort(emulator.PortMask{Mask: 0b1111_1100_00000000, Value: 0b0010_110000000000}, ram1)
 	}
 }
 
