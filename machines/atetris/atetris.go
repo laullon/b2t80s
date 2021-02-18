@@ -19,7 +19,7 @@ type atetris struct {
 }
 
 func NewATetris() machines.Machine {
-	bus := newBus().(*bus)
+	bus := newBus()
 
 	m := &atetris{
 		cpu:    m6502.MewM6502(bus),
@@ -32,19 +32,19 @@ func NewATetris() machines.Machine {
 	m.monitor = emulator.NewMonitor(m.sos2.display)
 	m.sos2.monitor = m.monitor
 
-	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0011100000000000}, &clearIRQ{cpu: m.cpu})
+	bus.RegisterPort("clearIRQ", emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0011100000000000}, &clearIRQ{cpu: m.cpu})
 
-	bus.RegisterPort(emulator.PortMask{Mask: 0b1111000000000000, Value: 0b0001000000000000}, &ram{mem: m.sos2.vram, mask: 0x0fff})
-	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0010000000000000}, m.sos2.color)
+	bus.RegisterPort("vRam", emulator.PortMask{Mask: 0b1111000000000000, Value: 0b0001000000000000}, &ram{mem: m.sos2.vram, mask: 0x0fff})
+	bus.RegisterPort("color", emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0010000000000000}, m.sos2.color)
 
 	//POKEY
-	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000110000, Value: 0b0010100000000000}, m.pokey1)
-	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000110000, Value: 0b0010100000010000}, m.pokey2)
+	bus.RegisterPort("pokey1", emulator.PortMask{Mask: 0b1111110000110000, Value: 0b0010100000000000}, m.pokey1)
+	bus.RegisterPort("pokey2", emulator.PortMask{Mask: 0b1111110000110000, Value: 0b0010100000010000}, m.pokey2)
 
 	// Watchdog
 	wd := &watchdog{cpu: m.cpu}
 	wd.start()
-	bus.RegisterPort(emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0011000000000000}, wd)
+	bus.RegisterPort("watchdog", emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0011000000000000}, wd)
 
 	m.pokey1.P7 = false
 

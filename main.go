@@ -103,10 +103,10 @@ func main() {
 	// 	}
 	// }
 
-	app := app.New()
-	app.Settings().SetTheme(theme.LightTheme())
+	machines.App = app.New()
+	machines.App.Settings().SetTheme(theme.LightTheme())
 
-	w := app.NewWindow(name + " - b2t80s Emulator")
+	w := machines.App.NewWindow(name + " - b2t80s Emulator")
 
 	debugger := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
 

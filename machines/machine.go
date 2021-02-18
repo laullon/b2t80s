@@ -11,6 +11,7 @@ var Debug *bool
 var DskAFile *string
 var TapFile *string
 var RomFile *string
+var App fyne.App
 
 type Machine interface {
 	OnKeyEvent(event *fyne.KeyEvent)

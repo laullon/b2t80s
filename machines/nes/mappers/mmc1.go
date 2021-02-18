@@ -32,7 +32,7 @@ func newMMC1(file *nesFile) Mapper {
 
 func (m *mmc1) ConnectToPPU(bus m6502.Bus) {
 	if m.file.header.chrSize == 0 {
-		bus.RegisterPort(emulator.PortMask{Mask: 0b1110_000000000000, Value: 0b0000_000000000000}, m.ram)
+		bus.RegisterPort("cart.ram", emulator.PortMask{Mask: 0b1110_000000000000, Value: 0b0000_000000000000}, m.ram)
 	} else {
 		panic(-1)
 	}
@@ -40,14 +40,9 @@ func (m *mmc1) ConnectToPPU(bus m6502.Bus) {
 }
 
 func (m *mmc1) ConnectToCPU(bus m6502.Bus) {
-	bus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b01100000_00000000}, m.ram)
-	bus.RegisterPort(emulator.PortMask{Mask: 0b11000000_00000000, Value: 0b10000000_00000000}, m.rom[0])
-	bus.RegisterPort(emulator.PortMask{Mask: 0b11000000_00000000, Value: 0b11000000_00000000}, m.rom[1])
-
-	// CPU $6000-$7FFF: 8 KB PRG RAM bank, (optional)
-	// CPU $8000-$BFFF: 16 KB PRG ROM bank, either switchable or fixed to the first bank
-	// CPU $C000-$FFFF: 16 KB PRG ROM bank, either fixed to the last bank or switchable
-
+	bus.RegisterPort("cart.ram", emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b01100000_00000000}, m.ram)
+	bus.RegisterPort("cart.rom_0", emulator.PortMask{Mask: 0b11000000_00000000, Value: 0b10000000_00000000}, m.rom[0])
+	bus.RegisterPort("cart.rom_1", emulator.PortMask{Mask: 0b11000000_00000000, Value: 0b11000000_00000000}, m.rom[1])
 }
 
 func (m *mmc1) write(addr uint16, data byte) {

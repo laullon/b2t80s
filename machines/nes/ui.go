@@ -2,64 +2,108 @@ package nes
 
 import (
 	"image"
+	"image/draw"
+	"time"
 
 	"fyne.io/fyne"
 	"fyne.io/fyne/canvas"
 	"fyne.io/fyne/layout"
 	"fyne.io/fyne/widget"
-	"github.com/laullon/b2t80s/cpu/m6502"
+	"github.com/laullon/b2t80s/machines"
 )
 
-type spriteControl struct {
-	ui     fyne.CanvasObject
-	show   *widget.Button
-	ppuBus m6502.Bus
+type ppuDebugControl struct {
+	ui        fyne.CanvasObject
+	show      *widget.Button
+	ppu       *ppu
+	display   *image.RGBA
+	container *fyne.Container
 }
 
-func newPalleteControl(ppuBus m6502.Bus) *spriteControl {
-	ctrl := &spriteControl{ppuBus: ppuBus}
+func newPalleteControl(ppu *ppu) *ppuDebugControl {
+	ctrl := &ppuDebugControl{
+		ppu:     ppu,
+		display: image.NewRGBA(image.Rect(0, 0, (64*8)+4+84, (64*8)+2)),
+	}
 
-	ctrl.show = widget.NewButton("show palettes", ctrl.doShow)
+	ctrl.show = widget.NewButton("ppu debug", ctrl.doShow)
 
 	ctrl.ui = widget.NewHBox(
 		widget.NewToolbarSeparator().ToolbarObject(),
 		ctrl.show,
 	)
 
+	img := canvas.NewImageFromImage(ctrl.display)
+	img.SetMinSize(fyne.NewSize((64*8)+4+84, (64*8)+2))
+	img.ScaleMode = canvas.ImageScalePixels
+
+	ctrl.container = fyne.NewContainerWithLayout(layout.NewBorderLayout(nil, nil, nil, nil), img)
+
 	return ctrl
 }
 
-func (ctrl *spriteControl) Widget() fyne.CanvasObject {
+func (ctrl *ppuDebugControl) Widget() fyne.CanvasObject {
 	return ctrl.ui
 }
 
-func (ctrl *spriteControl) doShow() {
-	container := fyne.NewContainerWithLayout(layout.NewGridLayout(8))
+func (ctrl *ppuDebugControl) doShow() {
+	secondaryWindow := machines.App.NewWindow("secondary")
+	secondaryWindow.SetContent(ctrl.container)
+	secondaryWindow.Show()
 
-	for idx := uint16(0); idx < 32; idx++ {
-		display := image.NewRGBA(image.Rect(0, 0, 160, 40))
+	wait := time.Duration(500 * time.Millisecond)
+	ticker := time.NewTicker(wait)
+	go func() {
+		for range ticker.C {
+			ctrl.update()
+			ctrl.container.Refresh()
+		}
+	}()
 
-		for y := 0; y < 2; y++ {
-			for x := 0; x < 0x10; x++ {
-				c := uint16(0x3f00 | (y << 4) | x)
-				for dx := 0; dx < 10; dx++ {
-					for dy := 0; dy < 10; dy++ {
-						display.Set(x*10+dx, y*10+dy, colors[ctrl.ppuBus.Read(c)])
+}
+
+func (ctrl *ppuDebugControl) update() {
+	draw.Draw(ctrl.display, image.Rect((64*8)+4, 0, (64*8)+4+84, 20), &image.Uniform{colors[ctrl.ppu.bus.Read(0x3f00)&0x3f]}, image.ZP, draw.Src)
+	for palette := uint16(0); palette < 6; palette++ {
+		for color := 0; color < 4; color++ {
+			y := int((palette + 1) * 22)
+			x := color * 22
+			c := uint16(0x3f00) | (palette << 2) | uint16(color)
+			draw.Draw(ctrl.display, image.Rect((64*8)+4+x, y, (64*8)+4+x+20, y+20), &image.Uniform{colors[ctrl.ppu.bus.Read(c)&0x3f]}, image.ZP, draw.Src)
+		}
+	}
+
+	for row := 0; row < 64; row++ {
+		for y := 0; y < 8; y++ {
+			for col := 0; col < 64; col++ {
+				charAddr := ctrl.ppu.charAddrs[col][row]
+				char := uint16(ctrl.ppu.bus.Read(charAddr))
+
+				patternAddr := ctrl.ppu.patternBase | char<<4 | uint16(y)
+				pattern0 := ctrl.ppu.bus.Read(patternAddr)
+				pattern1 := ctrl.ppu.bus.Read(patternAddr | 0x08)
+
+				attrAddr := ctrl.ppu.attrAddrs[col][row]
+				b := ctrl.ppu.blocks[col][row]
+				attr := ctrl.ppu.bus.Read(attrAddr)
+				palette := (attr >> (b * 2)) & 0x03
+
+				for x := 0; x < 8; x++ {
+					c := uint16(((pattern0 & 0x80) >> 7) | ((pattern1 & 0x80) >> 6))
+					color := uint16(0x3f00) | uint16(palette)<<2 | c
+					pattern0 <<= 1
+					pattern1 <<= 1
+					imgX := int(col*8) + x
+					if col > 31 {
+						imgX += 2
 					}
+					imgY := int(row*8) + y
+					if row > 31 {
+						imgY += 2
+					}
+					ctrl.display.SetRGBA(imgX, imgY, colors[ctrl.ppu.bus.Read(color)&0x3f])
 				}
 			}
 		}
-		img := canvas.NewImageFromImage(display)
-		img.SetMinSize(fyne.NewSize(160, 40))
-		img.ScaleMode = canvas.ImageScalePixels
-
-		container.AddObject(img)
 	}
-
-	c := fyne.CurrentApp().Driver().CanvasForObject(ctrl.ui)
-	pos := fyne.CurrentApp().Driver().AbsolutePositionForObject(ctrl.ui)
-	var pop *widget.PopUp
-	pop = widget.NewPopUp(container, c)
-	pop.Move(pos)
-
 }
