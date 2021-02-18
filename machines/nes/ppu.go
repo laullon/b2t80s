@@ -19,14 +19,19 @@ type ppu struct {
 
 	mask byte
 
+	writeLacht byte
+
 	addr    uint16
 	addrInc uint16
 
-	scroll  uint16
-	scrollX byte
-	scrollY byte
+	scrollXv uint8
+	scrollYv uint8
+	scrollX  uint8
+	scrollY  uint8
 
-	nameTableBase uint16
+	redLine bool
+
+	nameTableBase byte
 	patternBase   uint16
 
 	palette *m6502.BasicRam
@@ -42,6 +47,10 @@ type ppu struct {
 
 	spriteBase uint16
 	sprite0hit bool
+
+	charAddrs [][]uint16
+	attrAddrs [][]uint16
+	blocks    [][]byte
 }
 
 // 1662607*3,2 / 50 / 341 = 312,043542522
@@ -58,8 +67,38 @@ func newPPU(bus m6502.Bus, cpu emulator.CPU) *ppu {
 		oam:     make([]byte, 0x100),
 	}
 
+	ppu.charAddrs = make([][]uint16, 64)
+	ppu.attrAddrs = make([][]uint16, 64)
+	ppu.blocks = make([][]byte, 64)
+
+	for x := 0; x < 64; x++ {
+		ppu.charAddrs[x] = make([]uint16, 64)
+		ppu.attrAddrs[x] = make([]uint16, 64)
+		ppu.blocks[x] = make([]byte, 64)
+
+		for y := 0; y < 64; y++ {
+			page := (((y&0x20)>>4 | (x&0x20)>>5) * 4) << 8
+			addr := 0x2000 | page
+
+			off := (y&0x1f)<<5 | (x & 0x1f)
+			chrAddr := addr | off
+			ppu.charAddrs[x][y] = uint16(chrAddr)
+
+			off = ((y >> 2 & 0x07) << 3) | ((x >> 2) & 0x0f)
+			attrAddr := addr | 0x03c0 | off
+			ppu.attrAddrs[x][y] = uint16(attrAddr)
+
+			off = (y & 2) | (x&2)>>1
+			ppu.blocks[x][y] = byte(off)
+
+			// fmt.Printf("0x%04X ", attrAddr)
+		}
+		// println()
+	}
+
+	// panic(-1)
 	// palette
-	bus.RegisterPort(emulator.PortMask{Mask: 0b1111_1111_0000_0000, Value: 0b0011_1111_0000_0000}, ppu.palette)
+	bus.RegisterPort("palette", emulator.PortMask{Mask: 0b1111_1111_0000_0000, Value: 0b0011_1111_0000_0000}, ppu.palette)
 
 	return ppu
 }
@@ -77,8 +116,12 @@ func (ppu *ppu) Tick() {
 	}
 	for i := 0; i < 16; i++ {
 		ppu.h++
+		if ppu.h == 257 {
+			ppu.scrollX = ppu.scrollXv
+		}
 		if ppu.h == 342 {
 			ppu.drawLine()
+
 			ppu.h = 0
 			ppu.v++
 			ppu.vblank = ppu.v > 241
@@ -88,17 +131,16 @@ func (ppu *ppu) Tick() {
 
 			if ppu.v == 261 {
 				ppu.sprite0hit = false
+				ppu.scrollY = ppu.scrollYv
+				// fmt.Printf("0x%02x 0b%08b %03d\n", ppu.scrollY, ppu.scrollY, ppu.scrollY)
 			}
 
 			if ppu.v == 312 {
 				ppu.v = 0
 				ppu.drawSprites()
 				ppu.monitor.FrameDone()
+				// println("----")
 				// panic(-1)
-
-				ppu.scrollX = byte(ppu.scroll >> 8)
-				ppu.scrollY = byte(ppu.scroll)
-
 			}
 		}
 	}
@@ -108,51 +150,50 @@ func (ppu *ppu) drawLine() {
 	if ppu.mask&0x08 == 0 {
 		return
 	}
-	cRow := (uint16(ppu.v) >> 3) & 0x1f
-	y := uint16(ppu.v) & 0x007
-	for col := uint16(0); col < 32; col++ {
-		base := ppu.nameTableBase
-		if col < 32 {
-			cCol := col + uint16(ppu.scrollX)>>3
-			if cCol >= 32 {
-				cCol -= 32
-				base ^= 0x0400
+	row := uint8(ppu.v>>3) & 0x1f
+	if row >= 31 {
+		return
+	}
+	row = ((ppu.scrollY >> 3) + row)
+	if row > 29 {
+		row += 2
+	}
+	row += (ppu.nameTableBase >> 1) * 32
+
+	yOff := uint16(ppu.v) & 0x007
+
+	for x := -8; x < 256+8; x += 8 {
+		col := uint8((x>>3)+(int(ppu.scrollX)>>3)) & 0x3f
+		col += ((ppu.nameTableBase & 1) * 32)
+		col &= 0x3f
+
+		charAddr := ppu.charAddrs[col][row&63]
+		char := uint16(ppu.bus.Read(charAddr))
+
+		patternAddr := ppu.patternBase | char<<4 | yOff
+		pattern0 := ppu.bus.Read(patternAddr)
+		pattern1 := ppu.bus.Read(patternAddr | 0x08)
+
+		attrAddr := ppu.attrAddrs[col][row&63]
+		b := ppu.blocks[col][row&63]
+		attr := ppu.bus.Read(attrAddr)
+		palette := (attr >> (b * 2)) & 0x03
+
+		for i := 0; i < 8; i++ {
+			c := uint16(((pattern0 & 0x80) >> 7) | ((pattern1 & 0x80) >> 6))
+			colorIdx := uint16(0x3f00) | (uint16(palette) << 2) | c
+			pattern0 <<= 1
+			pattern1 <<= 1
+			imgX := x + i - (int(ppu.scrollX) & 0x07)
+			imgY := ppu.v - (int(ppu.scrollY) & 0x07)
+			rgb := colors[ppu.bus.Read(colorIdx)&0x3f]
+			if ppu.redLine {
+				rgb = color.RGBA{0xff, 0, 0, 0xff}
 			}
-			if ppu.v == 0 {
-				println("col:", col, "+", uint16(ppu.scrollX)>>3, "=", cCol)
-			}
-			bCol := cCol >> 2 & 0x07
-			bRow := cRow >> 2 & 0x07
-
-			rCol := cCol >> 1 & 0x01
-			rRow := cRow >> 1 & 0x01
-			region := (rRow << 1) | rCol
-
-			charAddr := base | (cRow << 5) | cCol
-			char := uint16(ppu.bus.Read(charAddr))
-
-			patternAddr := ppu.patternBase | char<<4 | y
-			pattern0 := ppu.bus.Read(patternAddr)
-			pattern1 := ppu.bus.Read(patternAddr | 0x08)
-
-			attrAddr := base | 0x03c0 | (bRow << 3) | bCol
-			attr := ppu.bus.Read(attrAddr)
-			palette := (attr >> (region * 2)) & 0x03
-
-			for i := 0; i < 8; i++ {
-				c := uint16(((pattern0 & 0x80) >> 7) | ((pattern1 & 0x80) >> 6))
-				color := uint16(0x3f00)
-				if c != 0 {
-					color |= uint16(palette) << 2
-					color |= c
-				}
-				pattern0 <<= 1
-				pattern1 <<= 1
-				x := int(col*8) + i - (int(ppu.scrollX) & 0x07)
-				ppu.display.SetRGBA(x, ppu.v, colors[ppu.bus.Read(color)&0x3f])
-			}
+			ppu.display.SetRGBA(imgX, imgY, rgb)
 		}
 	}
+	ppu.redLine = false
 }
 
 const (
@@ -211,6 +252,7 @@ func (ppu *ppu) ReadPort(addr uint16) (res byte, skip bool) {
 		if ppu.sprite0hit {
 			res |= 0x40
 		}
+		ppu.writeLacht = 0
 
 	case 4:
 		res = ppu.oam[ppu.oamAddr]
@@ -224,7 +266,7 @@ func (ppu *ppu) ReadPort(addr uint16) (res byte, skip bool) {
 		ppu.addr += ppu.addrInc
 
 	default:
-		panic(fmt.Sprintf("[ppu] read register %d (0x%04X)\n", addr&0x7, addr))
+		// panic(fmt.Sprintf("[ppu] read register %d (0x%04X)\n", addr&0x7, addr))
 	}
 	return
 }
@@ -233,7 +275,7 @@ func (ppu *ppu) WritePort(addr uint16, data byte) {
 	ppu.lastWrite = data
 	switch addr & 0xff {
 	case 0:
-		ppu.nameTableBase = 0x2000 | (uint16(data&0x3) << 10)
+		ppu.nameTableBase = data & 0x3
 		ppu.patternBase = 0x1000 * (uint16(data&0x10) >> 4)
 		ppu.spriteBase = 0x1000 * (uint16(data&0x08) >> 3)
 		// fmt.Printf("[ppu] write -> nameTableBase:0x%04X data:%08b  \n", ppu.nameTableBase, data)
@@ -255,17 +297,31 @@ func (ppu *ppu) WritePort(addr uint16, data byte) {
 		ppu.oam[ppu.oamAddr] = data
 
 	case 5:
-		ppu.scroll <<= 8
-		ppu.scroll |= uint16(data)
+		if ppu.writeLacht == 0 {
+			ppu.scrollXv = data
+			ppu.writeLacht = 1
+			fmt.Printf("X:%03d 0x%02X %08b  v:%03d \n", data, data, data, ppu.v)
+			ppu.redLine = true
+		} else {
+			ppu.scrollYv = data
+			ppu.writeLacht = 0
+			// fmt.Printf("V:%03d 0x%02X %08b  v:%03d \n", data, data, data, ppu.v)
+		}
 
 	case 6:
-		ppu.addr <<= 8
-		ppu.addr |= uint16(data)
+		if ppu.writeLacht == 0 {
+			ppu.addr = (uint16(data) << 8) | (ppu.addr & 0x00ff)
+			ppu.writeLacht = 1
+		} else {
+			ppu.addr = (ppu.addr & 0xff00) | uint16(data)
+			ppu.writeLacht = 0
+		}
+
 	case 7:
 		ppu.bus.Write(ppu.addr&0x3FFF, data)
 		ppu.addr += ppu.addrInc
+
 	default:
 		panic(fmt.Sprintf("[ppu] write 0x%04X 0x%02x\n", addr, data))
-
 	}
 }

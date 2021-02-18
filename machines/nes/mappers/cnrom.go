@@ -25,12 +25,12 @@ func newCNROM(file *nesFile) Mapper {
 }
 
 func (m *cnrom) ConnectToPPU(bus m6502.Bus) {
-	bus.RegisterPort(emulator.PortMask{Mask: 0b1110_000000000000, Value: 0b0000_000000000000}, m.chr)
+	bus.RegisterPort("cart.chr", emulator.PortMask{Mask: 0b1110_000000000000, Value: 0b0000_000000000000}, m.chr)
 	setPPUMemory(m.file, bus)
 }
 
 func (m *cnrom) ConnectToCPU(bus m6502.Bus) {
-	bus.RegisterPort(emulator.PortMask{Mask: 0b10000000_00000000, Value: 0b10000000_00000000}, m)
+	bus.RegisterPort("cart.control", emulator.PortMask{Mask: 0b10000000_00000000, Value: 0b10000000_00000000}, m)
 }
 
 func (m *cnrom) ReadPort(addr uint16) (byte, bool) {

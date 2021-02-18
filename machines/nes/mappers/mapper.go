@@ -29,27 +29,39 @@ func CreateMapper(fileName string) Mapper {
 }
 
 func setPPUMemory(file *nesFile, ppuBus m6502.Bus) {
+	var nt0 *m6502.BasicRam
+	var nt1 *m6502.BasicRam
+	var nt2 *m6502.BasicRam
+	var nt3 *m6502.BasicRam
 	if file.header.fourPages {
-		ram := &m6502.BasicRam{Data: make([]byte, 0x1000), Mask: 0x0fff}
-		ppuBus.RegisterPort(emulator.PortMask{Mask: 0b1111_000000000000, Value: 0b0010_000000000000}, ram)
-		ppuBus.RegisterPort(emulator.PortMask{Mask: 0b1111_000000000000, Value: 0b0011_000000000000}, ram)
+		nt0 = &m6502.BasicRam{Data: make([]byte, 0x0400), Mask: 0x03ff}
+		nt1 = &m6502.BasicRam{Data: make([]byte, 0x0400), Mask: 0x03ff}
+		nt2 = &m6502.BasicRam{Data: make([]byte, 0x0400), Mask: 0x03ff}
+		nt3 = &m6502.BasicRam{Data: make([]byte, 0x0400), Mask: 0x03ff}
 	} else if file.header.vMirror {
-		ram0 := &m6502.BasicRam{Data: make([]byte, 0x400), Mask: 0x03ff}
-		ppuBus.RegisterPort(emulator.PortMask{Mask: 0b1111_1100_00000000, Value: 0b0010_000000000000}, ram0)
-		ppuBus.RegisterPort(emulator.PortMask{Mask: 0b1111_1100_00000000, Value: 0b0010_100000000000}, ram0)
-
-		ram1 := &m6502.BasicRam{Data: make([]byte, 0x400), Mask: 0x03ff}
-		ppuBus.RegisterPort(emulator.PortMask{Mask: 0b1111_1100_00000000, Value: 0b0010_010000000000}, ram1)
-		ppuBus.RegisterPort(emulator.PortMask{Mask: 0b1111_1100_00000000, Value: 0b0010_110000000000}, ram1)
+		nt0 = &m6502.BasicRam{Data: make([]byte, 0x0400), Mask: 0x03ff}
+		nt1 = &m6502.BasicRam{Data: make([]byte, 0x0400), Mask: 0x03ff}
+		nt2 = nt0
+		nt3 = nt1
 	} else {
-		ram0 := &m6502.BasicRam{Data: make([]byte, 0x400), Mask: 0x03ff}
-		ppuBus.RegisterPort(emulator.PortMask{Mask: 0b1111_1100_00000000, Value: 0b0010_000000000000}, ram0)
-		ppuBus.RegisterPort(emulator.PortMask{Mask: 0b1111_1100_00000000, Value: 0b0010_010000000000}, ram0)
-
-		ram1 := &m6502.BasicRam{Data: make([]byte, 0x400), Mask: 0x03ff}
-		ppuBus.RegisterPort(emulator.PortMask{Mask: 0b1111_1100_00000000, Value: 0b0010_100000000000}, ram1)
-		ppuBus.RegisterPort(emulator.PortMask{Mask: 0b1111_1100_00000000, Value: 0b0010_110000000000}, ram1)
+		nt0 = &m6502.BasicRam{Data: make([]byte, 0x0400), Mask: 0x03ff}
+		nt1 = nt0
+		nt2 = &m6502.BasicRam{Data: make([]byte, 0x0400), Mask: 0x03ff}
+		nt3 = nt2
 	}
+
+	ppuBus.RegisterPort("NameTable_0", emulator.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0010_0000_0000_0000}, nt0)
+	ppuBus.RegisterPort("NameTable_1", emulator.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0010_0100_0000_0000}, nt1)
+	ppuBus.RegisterPort("NameTable_2", emulator.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0010_1000_0000_0000}, nt2)
+	ppuBus.RegisterPort("NameTable_3", emulator.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0010_1100_0000_0000}, nt3)
+
+	// ppuBus.RegisterPort("NameTable_0m", emulator.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0011_0000_0000_0000}, nt0)
+	// ppuBus.RegisterPort("NameTable_1m", emulator.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0011_0100_0000_0000}, nt1)
+	// ppuBus.RegisterPort("NameTable_2m", emulator.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0011_1000_0000_0000}, nt2)
+	// ppuBus.RegisterPort("NameTable_3m1", emulator.PortMask{Mask: 0b1111_1111_0000_0000, Value: 0b0011_1100_0000_0000}, nt3)
+	// ppuBus.RegisterPort("NameTable_3m2", emulator.PortMask{Mask: 0b1111_1111_0000_0000, Value: 0b0011_1110_0000_0000}, nt3)
+	// ppuBus.RegisterPort("NameTable_3m3", emulator.PortMask{Mask: 0b1111_1111_0000_0000, Value: 0b0011_1101_0000_0000}, nt3)
+
 }
 
 // ----------------------------
