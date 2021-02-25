@@ -1,8 +1,8 @@
 package atetris
 
 import (
+	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/m6502"
-	"github.com/laullon/b2t80s/emulator"
 )
 
 // 0000-0FFF   R/W   xxxxxxxx    Program RAM
@@ -40,18 +40,18 @@ func newBus() m6502.Bus {
 	}
 
 	// RAM
-	bus.RegisterPort("ram", emulator.PortMask{Mask: 0b1111000000000000, Value: 0b0000000000000000}, &ram{mem: make([]byte, 0x1000), mask: 0x0fff})
+	bus.RegisterPort("ram", cpu.PortMask{Mask: 0b1111000000000000, Value: 0b0000000000000000}, &ram{mem: make([]byte, 0x1000), mask: 0x0fff})
 
 	// ROM
-	bus.RegisterPort("slapstic", emulator.PortMask{Mask: 0b1100000000000000, Value: 0b0100000000000000}, newSlapstic(rom))
-	bus.RegisterPort("rom", emulator.PortMask{Mask: 0b1000000000000000, Value: 0b1000000000000000}, &fixedROM{rom: rom})
+	bus.RegisterPort("slapstic", cpu.PortMask{Mask: 0b1100000000000000, Value: 0b0100000000000000}, newSlapstic(rom))
+	bus.RegisterPort("rom", cpu.PortMask{Mask: 0b1000000000000000, Value: 0b1000000000000000}, &fixedROM{rom: rom})
 
 	// EEPROM
-	bus.RegisterPort("eeprom.status", emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0011010000000000}, eeprom.status)
-	bus.RegisterPort("eeprom", emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0010010000000000}, eeprom)
+	bus.RegisterPort("eeprom.status", cpu.PortMask{Mask: 0b1111110000000000, Value: 0b0011010000000000}, eeprom.status)
+	bus.RegisterPort("eeprom", cpu.PortMask{Mask: 0b1111110000000000, Value: 0b0010010000000000}, eeprom)
 
 	// STATUS
-	bus.RegisterPort("status", emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0011110000000000}, status)
+	bus.RegisterPort("status", cpu.PortMask{Mask: 0b1111110000000000, Value: 0b0011110000000000}, status)
 
 	return bus
 }
@@ -67,7 +67,7 @@ func (s *status) WritePort(addr uint16, data byte)  { s.romPage = data & 0b00000
 type ram struct {
 	mem  []byte
 	mask uint16
-	cpu  emulator.CPU
+	cpu  cpu.CPU
 }
 
 func (ram *ram) ReadPort(addr uint16) (byte, bool) { return ram.mem[addr&ram.mask], false }

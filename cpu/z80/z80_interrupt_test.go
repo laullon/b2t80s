@@ -31,8 +31,8 @@ func TestInterrupt(t *testing.T) {
 
 	bus := emulator.NewBus(&basicMemory{memory: mem})
 	cpu := NewZ80(bus)
-	cpu.SetDebuger(&dumpDebbuger{cpu: cpu.(*z80)})
-	bus.RegisterPort(emulator.PortMask{Mask: 0, Value: 0}, tester)
+	// cpu.SetDebuger(&dumpDebbuger{cpu: cpu.(*z80)})
+	bus.RegisterPort(cpu.PortMask{Mask: 0, Value: 0}, tester)
 
 	count := 0
 
@@ -66,12 +66,6 @@ func (c *counterHardware) WritePort(port uint16, data byte)  { c.c++ }
 
 type dumpDebbuger struct {
 	cpu *z80
-}
-
-func (d *dumpDebbuger) AddInstruction(pc uint16, mem, instruction string) {
-	le := &logEntry{ins: instruction, mem: mem, pc: pc}
-	print(le.String())
-	println(d.cpu.regs.dump())
 }
 
 // func (d *dumpDebbuger) NextInstruction(mem []byte) {}

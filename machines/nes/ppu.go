@@ -6,12 +6,13 @@ import (
 	"image/color"
 	"math/bits"
 
+	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/m6502"
 	"github.com/laullon/b2t80s/emulator"
 )
 
 type ppu struct {
-	cpu     emulator.CPU
+	cpu     cpu.CPU
 	bus     m6502.Bus
 	display *image.RGBA
 	monitor emulator.Monitor
@@ -56,10 +57,10 @@ type ppu struct {
 // 1662607*3,2 / 50 / 341 = 312,043542522
 // 32 x 30 = 256 x 240
 
-func newPPU(bus m6502.Bus, cpu emulator.CPU) *ppu {
+func newPPU(bus m6502.Bus, m6805 cpu.CPU) *ppu {
 	display := image.NewRGBA(image.Rect(0, 0, 256, 240))
 	ppu := &ppu{
-		cpu:     cpu,
+		cpu:     m6805,
 		bus:     bus,
 		display: display,
 		monitor: emulator.NewMonitor(display),
@@ -98,7 +99,7 @@ func newPPU(bus m6502.Bus, cpu emulator.CPU) *ppu {
 
 	// panic(-1)
 	// palette
-	bus.RegisterPort("palette", emulator.PortMask{Mask: 0b1111_1111_0000_0000, Value: 0b0011_1111_0000_0000}, ppu.palette)
+	bus.RegisterPort("palette", cpu.PortMask{Mask: 0b1111_1111_0000_0000, Value: 0b0011_1111_0000_0000}, ppu.palette)
 
 	return ppu
 }
@@ -116,6 +117,13 @@ func (ppu *ppu) Tick() {
 	}
 	for i := 0; i < 16; i++ {
 		ppu.h++
+
+		if ppu.v == 241 && ppu.h == 1 {
+			ppu.vblank = true
+		} else if ppu.v == 261 && ppu.h == 1 {
+			ppu.vblank = false
+		}
+
 		if ppu.h == 257 {
 			ppu.scrollX = ppu.scrollXv
 		}
@@ -124,10 +132,6 @@ func (ppu *ppu) Tick() {
 
 			ppu.h = 0
 			ppu.v++
-			ppu.vblank = ppu.v > 241
-			if ppu.v == 243 && ppu.enableNMI {
-				ppu.cpu.NMI(true)
-			}
 
 			if ppu.v == 261 {
 				ppu.sprite0hit = false
@@ -142,6 +146,10 @@ func (ppu *ppu) Tick() {
 				// println("----")
 				// panic(-1)
 			}
+		}
+
+		if ppu.enableNMI {
+			ppu.cpu.NMI(ppu.vblank)
 		}
 	}
 }
@@ -248,6 +256,7 @@ func (ppu *ppu) ReadPort(addr uint16) (res byte, skip bool) {
 		res = ppu.lastWrite & 0x0f
 		if ppu.vblank {
 			res |= 0x80
+			ppu.vblank = false
 		}
 		if ppu.sprite0hit {
 			res |= 0x40
@@ -300,7 +309,7 @@ func (ppu *ppu) WritePort(addr uint16, data byte) {
 		if ppu.writeLacht == 0 {
 			ppu.scrollXv = data
 			ppu.writeLacht = 1
-			fmt.Printf("X:%03d 0x%02X %08b  v:%03d \n", data, data, data, ppu.v)
+			// fmt.Printf("X:%03d 0x%02X %08b  v:%03d \n", data, data, data, ppu.v)
 			ppu.redLine = true
 		} else {
 			ppu.scrollYv = data

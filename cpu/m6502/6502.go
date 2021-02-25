@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	cpuUtils "github.com/laullon/b2t80s/cpu"
-	"github.com/laullon/b2t80s/emulator"
-	"github.com/laullon/b2t80s/machines"
+	"github.com/laullon/b2t80s/cpu"
 )
 
 type Registers struct {
@@ -116,50 +114,52 @@ func (r Registers) String() string {
 	return fmt.Sprintf("A:0x%02X X:0x%02X Y:0x%02X SP:0x%02X PC:0x%04X PS:(0x%02X)%v", r.A, r.X, r.Y, r.SP, r.PC, r.PS.get(), r.PS)
 }
 
+type M6502 interface {
+	cpu.CPU
+	Registers() *Registers
+}
+
 type m6502 struct {
 	regs Registers
 
 	doIRQ   bool
 	doNMI   bool
+	onNMI   bool
 	doReset bool
 	doWait  bool
 
 	bus Bus
-	log cpuUtils.Log
 
 	op     operation
 	nextOp operation
 
-	debugger emulator.Debugger
+	log      cpu.CPUTracer
+	debugger cpu.DebuggerCallbacks
 }
 
-func MewM6502(bus Bus) emulator.CPU {
+func MewM6502(bus Bus) M6502 {
 	return &m6502{
 		bus: bus,
 		op:  &reset{},
 	}
 }
 
-func (cpu *m6502) Interrupt(i bool)                              { cpu.doIRQ = i }
-func (cpu *m6502) NMI(i bool)                                    { cpu.doNMI = i }
-func (cpu *m6502) Halt()                                         {}
-func (cpu *m6502) Reset()                                        { cpu.doReset = true }
-func (cpu *m6502) Wait(w bool)                                   { cpu.doWait = w }
-func (cpu *m6502) Registers() interface{}                        { return cpu.regs }
-func (cpu *m6502) SetDebuger(debugger emulator.Debugger)         { cpu.debugger = debugger }
-func (cpu *m6502) RegisterTrap(pc uint16, trap emulator.CPUTrap) {}
-func (cpu *m6502) CurrentOP() string                             { return fmt.Sprintf("%v", cpu.op) }
+func (cpu *m6502) Interrupt(i bool)                     { cpu.doIRQ = i }
+func (cpu *m6502) NMI(i bool)                           { cpu.doNMI = i }
+func (cpu *m6502) Halt()                                {}
+func (cpu *m6502) Reset()                               { cpu.doReset = true }
+func (cpu *m6502) Wait(w bool)                          { cpu.doWait = w }
+func (cpu *m6502) Registers() *Registers                { return &cpu.regs }
+func (cpu *m6502) SetTracer(t cpu.CPUTracer)            { cpu.log = t }
+func (cpu *m6502) SetDebugger(db cpu.DebuggerCallbacks) { cpu.debugger = db }
+
+// func (cpu *m6502) RegisterTrap(pc uint16, trap cpu.CPUTrap) {}
+func (cpu *m6502) CurrentOP() string { return fmt.Sprintf("%v", cpu.op) }
+
+func (cpu *m6502) Status() string     { return cpu.regs.String() }
+func (cpu *m6502) FullStatus() string { return cpu.regs.String() }
 
 func (cpu *m6502) Tick() {
-	if *machines.Debug {
-		defer func() {
-			if r := recover(); r != nil {
-				fmt.Printf("Panic on => %-30v%v irq:%v nmi:%v", cpu.op, cpu.regs, cpu.doIRQ, cpu.doNMI)
-				panic(r)
-			}
-		}()
-
-	}
 
 	if cpu.doWait {
 		return
@@ -167,16 +167,14 @@ func (cpu *m6502) Tick() {
 
 	done := cpu.op.tick(cpu)
 
-	if done && (cpu.log != nil) {
-		cpu.log.AddEntry(fmt.Sprintf("%-30v%v irq:%v nmi:%v", cpu.op, cpu.regs, cpu.doIRQ, cpu.doNMI))
-	}
-
-	if done && (cpu.debugger != nil) {
-		cpu.debugger.AddInstruction(cpu.op.getPC(), "", fmt.Sprintf("%-30v", cpu.op))
-	}
-
 	if done {
+		if cpu.log != nil {
+			cpu.log.AppendLastOP(cpu.op.String())
+		}
 		if cpu.nextOp != nil {
+			if cpu.debugger != nil {
+				cpu.debugger.Eval()
+			}
 			cpu.op = cpu.nextOp
 			cpu.op.reset()
 			cpu.nextOp = nil
@@ -194,14 +192,15 @@ func (cpu *m6502) preFetch() {
 		newOp = &reset{}
 		newOp.setPC(0)
 		cpu.doReset = false
-	} else if cpu.doNMI {
+	} else if cpu.doNMI && !cpu.onNMI {
 		newOp = &brk{imm: true}
 		newOp.setPC(0)
-		cpu.doNMI = false
+		cpu.onNMI = true
+		// cpu.doNMI = false
 	} else if cpu.doIRQ && !cpu.regs.PS.I {
 		newOp = &brk{irq: true}
 		newOp.setPC(0)
-		cpu.doIRQ = false
+		// cpu.doIRQ = false
 	} else {
 		opCode := cpu.bus.Read(cpu.regs.PC)
 		newOp = ops[opCode]

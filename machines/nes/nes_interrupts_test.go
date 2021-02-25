@@ -36,18 +36,18 @@ func TestInterrupts(t *testing.T) {
 	clock.AddTicker(0, testValidator)
 
 	// RAM
-	bus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b00000000_00000000}, &m6502.BasicRam{Data: make([]byte, 0x800), Mask: 0x7ff})
+	bus.RegisterPort(cpu.PortMask{Mask: 0b11100000_00000000, Value: 0b00000000_00000000}, &m6502.BasicRam{Data: make([]byte, 0x800), Mask: 0x7ff})
 
 	// Fake PPU
-	bus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b00100000_00000000}, &m6502.BasicRam{Data: make([]byte, 0x08), Mask: 0x07})
+	bus.RegisterPort(cpu.PortMask{Mask: 0b11100000_00000000, Value: 0b00100000_00000000}, &m6502.BasicRam{Data: make([]byte, 0x08), Mask: 0x07})
 
 	// APU
-	bus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b01000000_00000000}, apu)
+	bus.RegisterPort(cpu.PortMask{Mask: 0b11100000_00000000, Value: 0b01000000_00000000}, apu)
 
 	mmc1.ConnectToCPU(bus)
 
 	// hijack mapper ram
-	bus.RegisterPort(emulator.PortMask{Mask: 0b11100000_00000000, Value: 0b01100000_00000000}, testValidator)
+	bus.RegisterPort(cpu.PortMask{Mask: 0b11100000_00000000, Value: 0b01100000_00000000}, testValidator)
 
 	clock.RunFor(10)
 }

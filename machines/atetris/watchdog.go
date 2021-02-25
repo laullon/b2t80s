@@ -3,12 +3,12 @@ package atetris
 import (
 	"time"
 
-	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/cpu"
 )
 
 type watchdog struct {
 	count int
-	cpu   emulator.CPU
+	cpu   cpu.CPU
 }
 
 func (wd *watchdog) ReadPort(addr uint16) (byte, bool) { panic(-1) }

@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"fyne.io/fyne"
+	"fyne.io/fyne/v2"
 )
 
 func (ula *ula) OnKeyEvent(key *fyne.KeyEvent) {

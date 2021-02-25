@@ -186,6 +186,7 @@ func rti(cpu *m6502) {
 	addr := uint16(cpu.pop())
 	addr |= uint16(cpu.pop()) << 8
 	cpu.regs.PC = addr
+	cpu.onNMI = false
 	cpu.preFetch()
 }
 

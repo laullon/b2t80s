@@ -1,8 +1,6 @@
 package cartridge
 
-import (
-	"github.com/laullon/b2t80s/emulator"
-)
+import "github.com/laullon/b2t80s/cpu/z80"
 
 type konami struct {
 	rom       []byte
@@ -10,7 +8,7 @@ type konami struct {
 	banksMask byte
 }
 
-func NewKonami(rom []byte) emulator.Memory {
+func NewKonami(rom []byte) z80.Memory {
 	cart := &konami{
 		rom: rom,
 	}

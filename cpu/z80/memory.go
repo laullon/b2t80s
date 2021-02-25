@@ -1,4 +1,4 @@
-package emulator
+package z80
 
 type Memory interface {
 	GetByte(pos uint16) byte

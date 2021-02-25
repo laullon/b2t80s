@@ -1,17 +1,16 @@
 package zx
 
 import (
-	// "fyne.io/fyne"
-
 	"fmt"
 	"time"
 
-	"fyne.io/fyne"
+	"fyne.io/fyne/v2"
+	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/z80"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/ay8912"
 	"github.com/laullon/b2t80s/emulator/storage/cassette"
-	"github.com/laullon/b2t80s/machines"
+	"github.com/laullon/b2t80s/ui"
 )
 
 const (
@@ -26,10 +25,10 @@ type ZX interface {
 }
 
 type zx struct {
-	bus      emulator.Bus
+	bus      z80.Bus
 	ula      *ula
-	cpu      emulator.CPU
-	mem      emulator.Memory
+	cpu      z80.Z80
+	mem      z80.Memory
 	cassette cassette.Cassette
 	sound    emulator.SoundSystem
 	debugger emulator.Debugger
@@ -43,51 +42,45 @@ func NewZX(mem *memory, plus, cas, ay bool) *zx {
 		speed = clock128k
 	}
 
-	bus := emulator.NewBus(mem)
+	bus := z80.NewBus(mem)
 
-	cpu := z80.NewZ80(bus)
+	z80 := z80.NewZ80(bus)
 	clock := emulator.NewCLock(speed, 50)
 
 	ula := NewULA(mem, bus, plus)
 	sound := emulator.NewSoundSystem(speed / uint(80))
 
-	ula.cpu = cpu
+	ula.cpu = z80
 	sound.AddSource(ula)
 
 	clock.AddTicker(0, ula)
 	clock.AddTicker(80, sound)
 
-	bus.RegisterPort(emulator.PortMask{Mask: 0x00FF, Value: 0x00FE}, ula)
-	bus.RegisterPort(emulator.PortMask{Mask: 0x00FF, Value: 0x00FF}, ula)
-	bus.RegisterPort(emulator.PortMask{Mask: 0x00e0, Value: 0x0000}, &kempston{})
+	bus.RegisterPort(cpu.PortMask{Mask: 0x00FF, Value: 0x00FE}, ula)
+	bus.RegisterPort(cpu.PortMask{Mask: 0x00FF, Value: 0x00FF}, ula)
+	bus.RegisterPort(cpu.PortMask{Mask: 0x00e0, Value: 0x0000}, &kempston{})
 
 	zx := &zx{
 		bus:   bus,
 		ula:   ula,
-		cpu:   cpu,
+		cpu:   z80,
 		mem:   mem,
 		sound: sound,
 		clock: clock,
 	}
 
-	if *machines.Debug {
-		debugger := z80.NewDebugger(cpu, mem, clock)
-		clock.AddTicker(0, debugger)
-		zx.debugger = debugger
-	}
-
 	if ay {
 		zx.ay8912 = ay8912.New()
 		sound.AddSource(zx.ay8912)
-		bus.RegisterPort(emulator.PortMask{Mask: 0xc002, Value: 0xc000}, zx.ay8912)
-		bus.RegisterPort(emulator.PortMask{Mask: 0xc002, Value: 0x8000}, zx.ay8912)
+		bus.RegisterPort(cpu.PortMask{Mask: 0xc002, Value: 0xc000}, zx.ay8912)
+		bus.RegisterPort(cpu.PortMask{Mask: 0xc002, Value: 0x8000}, zx.ay8912)
 		clock.AddTicker(2, zx.ay8912)
 	}
 
 	if cas {
 		zx.cassette = cassette.New()
-		if len(*machines.TapFile) > 0 {
-			zx.cassette.LoadTapFile(*machines.TapFile)
+		if len(*emulator.TapFile) > 0 {
+			zx.cassette.LoadTapFile(*emulator.TapFile)
 		}
 		clock.AddTicker(0, zx.cassette)
 		ula.cassette = zx.cassette
@@ -116,13 +109,16 @@ func (zx *zx) Clock() emulator.Clock {
 	return zx.clock
 }
 
+func (zx *zx) CPUControl() ui.Control               { return ui.NewZ80UI(zx.cpu.Registers()) }
+func (zx *zx) SetDebugger(db cpu.DebuggerCallbacks) { zx.cpu.SetDebugger(db) }
+
 func (zx *zx) loadDataBlock() {
 	data := zx.cassette.NextDataBlock()
 	if data == nil {
 		return //emulator.CONTINUE
 	}
 
-	regs := zx.cpu.Registers().(*z80.Z80Registers)
+	regs := zx.cpu.Registers()
 	requestedLength := regs.DE.Get()
 	startAddress := regs.IX.Get()
 	fmt.Printf("Loading block to 0x%04x \n", startAddress)

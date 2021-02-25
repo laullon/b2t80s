@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
+	"strconv"
 	"strings"
 )
-
-var debugFMT = "0x%04X: %-10s %-20s"
 
 type operation interface {
 	tick(cpu *m6502) (done bool)
@@ -15,6 +14,7 @@ type operation interface {
 	setup(opCode uint8)
 	setPC(pc uint16)
 	getPC() uint16
+	String() string
 }
 
 type basicop struct {
@@ -64,11 +64,11 @@ func (op *reset) setup(opCode uint8) {
 }
 
 func (op *reset) String() string {
-	return fmt.Sprintf(debugFMT,
-		op.pc,
-		"",
-		"RESET",
-	)
+	sb := &strings.Builder{}
+	writePC(sb, op.pc)
+	writeMemory(sb)
+	writeOP(sb, "RESET")
+	return sb.String()
 }
 
 // -----
@@ -125,11 +125,11 @@ func (op *brk) String() string {
 	} else if op.imm {
 		mod = "-IMM-"
 	}
-	return fmt.Sprintf(debugFMT,
-		op.pc,
-		fmt.Sprintf("%02X", op.opCode),
-		fmt.Sprintf("BRK %5s", mod),
-	)
+	sb := &strings.Builder{}
+	writePC(sb, op.pc)
+	writeMemory(sb, op.opCode)
+	writeOP(sb, "BRK ", mod)
+	return sb.String()
 }
 
 // -----
@@ -166,11 +166,11 @@ func (op *indirectX) setup(opCode uint8) {
 }
 
 func (op *indirectX) String() string {
-	return fmt.Sprintf(debugFMT,
-		op.pc,
-		fmt.Sprintf("%02X %02X", op.opCode, op.addrZ),
-		fmt.Sprintf("%s (0x%02X, X)", op.ins, op.addrZ),
-	)
+	sb := &strings.Builder{}
+	writePC(sb, op.pc)
+	writeMemory(sb, op.opCode, op.addrZ)
+	writeOP(sb, op.ins, " (0x", toHex8(op.addrZ), ", X)")
+	return sb.String()
 }
 
 // -----
@@ -208,11 +208,11 @@ func (op *indirectY) setup(opCode uint8) {
 }
 
 func (op *indirectY) String() string {
-	return fmt.Sprintf(debugFMT,
-		op.pc,
-		fmt.Sprintf("%02X %02X", op.opCode, op.addrZ),
-		fmt.Sprintf("%s (0x%02X), Y", op.ins, op.addrZ),
-	)
+	sb := &strings.Builder{}
+	writePC(sb, op.pc)
+	writeMemory(sb, op.opCode, op.addrZ)
+	writeOP(sb, op.ins, " (0x", toHex8(op.addrZ), "), Y")
+	return sb.String()
 }
 
 // -----
@@ -222,9 +222,13 @@ type implicit struct {
 }
 
 func (op *implicit) tick(cpu *m6502) (done bool) {
-	cpu.preFetch()
-	op.f(cpu)
-	done = true
+	switch op.t {
+	case 1:
+		cpu.preFetch()
+		op.f(cpu)
+		done = true
+	}
+	op.t++
 	return
 }
 
@@ -234,11 +238,11 @@ func (op *implicit) setup(opCode uint8) {
 }
 
 func (op *implicit) String() string {
-	return fmt.Sprintf(debugFMT,
-		op.pc,
-		fmt.Sprintf("%02X", op.opCode),
-		fmt.Sprintf("%s", op.ins),
-	)
+	sb := &strings.Builder{}
+	writePC(sb, op.pc)
+	writeMemory(sb, op.opCode)
+	writeOP(sb, op.ins)
+	return sb.String()
 }
 
 // -----
@@ -250,11 +254,15 @@ type immediate struct {
 }
 
 func (op *immediate) tick(cpu *m6502) (done bool) {
-	op.data = cpu.bus.Read(cpu.regs.PC)
-	cpu.regs.PC++
-	cpu.preFetch()
-	op.f(cpu, op.data)
-	done = true
+	switch op.t {
+	case 1:
+		op.data = cpu.bus.Read(cpu.regs.PC)
+		cpu.regs.PC++
+		cpu.preFetch()
+		op.f(cpu, op.data)
+		done = true
+	}
+	op.t++
 	return
 }
 
@@ -264,11 +272,11 @@ func (op *immediate) setup(opCode uint8) {
 }
 
 func (op *immediate) String() string {
-	return fmt.Sprintf(debugFMT,
-		op.pc,
-		fmt.Sprintf("%02X %02X", op.opCode, op.data),
-		fmt.Sprintf("%s 0x%02X", op.ins, op.data),
-	)
+	sb := &strings.Builder{}
+	writePC(sb, op.pc)
+	writeMemory(sb, op.opCode, op.data)
+	writeOP(sb, op.ins, toHex8(op.data))
+	return sb.String()
 }
 
 // -----
@@ -282,21 +290,21 @@ type relative struct {
 
 func (op *relative) tick(cpu *m6502) (done bool) {
 	switch op.t {
-	case 0:
+	case 1:
 		done = !op.f(cpu)
 		op.off = int8(cpu.bus.Read(cpu.regs.PC))
 		cpu.regs.PC++
 		if done {
 			cpu.preFetch()
 		}
-	case 1:
+	case 2:
 		op.target = cpu.regs.PC + uint16(op.off)
 		if (cpu.regs.PC & 0xff00) == (op.target & 0xff00) { // no page change
 			cpu.regs.PC = op.target
 			cpu.preFetch()
 			done = true
 		}
-	case 2:
+	case 3:
 		cpu.regs.PC = op.target
 		cpu.preFetch()
 		done = true
@@ -311,11 +319,11 @@ func (op *relative) setup(opCode uint8) {
 }
 
 func (op *relative) String() string {
-	return fmt.Sprintf(debugFMT,
-		op.pc,
-		fmt.Sprintf("%02X %02X", op.opCode, uint8(op.off)),
-		fmt.Sprintf("%s %d", op.ins, op.off),
-	)
+	sb := &strings.Builder{}
+	writePC(sb, op.pc)
+	writeMemory(sb, op.opCode, uint8(op.off))
+	writeOP(sb, op.ins, toHex8(uint8(op.off)))
+	return sb.String()
 }
 
 // -----
@@ -345,11 +353,11 @@ func (op *absoluteJMP) setup(opCode uint8) {
 }
 
 func (op *absoluteJMP) String() string {
-	return fmt.Sprintf(debugFMT,
-		op.pc,
-		fmt.Sprintf("%02X %02X %02X", op.opCode, op.readAddr&0x0ff, op.readAddr>>8),
-		fmt.Sprintf("jmp 0x%04X", op.readAddr),
-	)
+	sb := &strings.Builder{}
+	writePC(sb, op.pc)
+	writeMemory(sb, op.opCode, uint8(op.readAddr&0x0ff), uint8(op.readAddr>>8))
+	writeOP(sb, "jmp 0x", toHex16(op.readAddr))
+	return sb.String()
 }
 
 // -----
@@ -361,15 +369,15 @@ type absoluteJSR struct {
 
 func (op *absoluteJSR) tick(cpu *m6502) (done bool) {
 	switch op.t {
-	case 0:
+	case 1:
 		op.readAddr = uint16(cpu.bus.Read(cpu.regs.PC))
 		cpu.regs.PC++
-	case 1:
+	case 2:
 		op.readAddr |= uint16(cpu.bus.Read(cpu.regs.PC)) << 8
 		cpu.regs.PC++
-	case 2:
-		cpu.push(uint8((cpu.regs.PC - 1) >> 8))
 	case 3:
+		cpu.push(uint8((cpu.regs.PC - 1) >> 8))
+	case 5:
 		cpu.push(uint8((cpu.regs.PC - 1)))
 		cpu.regs.PC = op.readAddr
 		cpu.preFetch()
@@ -384,11 +392,11 @@ func (op *absoluteJSR) setup(opCode uint8) {
 }
 
 func (op *absoluteJSR) String() string {
-	return fmt.Sprintf(debugFMT,
-		op.pc,
-		fmt.Sprintf("%02X %02X %02X", op.opCode, op.readAddr&0x0ff, op.readAddr>>8),
-		fmt.Sprintf("jsr 0x%04X", op.readAddr),
-	)
+	sb := &strings.Builder{}
+	writePC(sb, op.pc)
+	writeMemory(sb, op.opCode, uint8(op.readAddr&0x0ff), uint8(op.readAddr>>8))
+	writeOP(sb, "jsr 0x", toHex16(op.readAddr))
+	return sb.String()
 }
 
 // -----
@@ -425,11 +433,11 @@ func (op *indirectJMP) setup(opCode uint8) {
 }
 
 func (op *indirectJMP) String() string {
-	return fmt.Sprintf(debugFMT,
-		op.pc,
-		fmt.Sprintf("%02X %02X %02X", op.opCode, op.readAddr&0x0ff, op.readAddr>>8),
-		fmt.Sprintf("jmp 0x%04X", op.readAddr),
-	)
+	sb := &strings.Builder{}
+	writePC(sb, op.pc)
+	writeMemory(sb, op.opCode, uint8(op.readAddr&0x0ff), uint8(op.readAddr>>8))
+	writeOP(sb, op.ins, " 0x", toHex16(op.readAddr))
+	return sb.String()
 }
 
 // -----
@@ -445,13 +453,13 @@ type absolute struct {
 
 func (op *absolute) tick(cpu *m6502) (done bool) {
 	switch op.t {
-	case 0:
+	case 1:
 		op.readAddr = uint16(cpu.bus.Read(cpu.regs.PC))
 		cpu.regs.PC++
-	case 1:
+	case 2:
 		op.readAddr |= uint16(cpu.bus.Read(cpu.regs.PC)) << 8
 		cpu.regs.PC++
-	case 2:
+	case 3:
 		if op.x {
 			op.targetAddr = op.readAddr + uint16(cpu.regs.X)
 		} else if op.y {
@@ -463,7 +471,7 @@ func (op *absolute) tick(cpu *m6502) (done bool) {
 			exec(cpu, op.f, op.targetAddr, op.r, op.w, op.rw)
 			done = true
 		}
-	case 3:
+	case 4:
 		exec(cpu, op.f, op.targetAddr, op.r, op.w, op.rw)
 		done = true
 	}
@@ -484,11 +492,11 @@ func (op *absolute) String() string {
 	} else if op.y {
 		mod = ", Y"
 	}
-	return fmt.Sprintf(debugFMT,
-		op.pc,
-		fmt.Sprintf("%02X %02X %02X", op.opCode, op.readAddr&0x0ff, op.readAddr>>8),
-		fmt.Sprintf("%s 0x%04X%s", op.ins, op.readAddr, mod),
-	)
+	sb := &strings.Builder{}
+	writePC(sb, op.pc)
+	writeMemory(sb, op.opCode, uint8(op.readAddr&0x0ff), uint8(op.readAddr>>8))
+	writeOP(sb, op.ins, " 0x", toHex16(op.readAddr), mod)
+	return sb.String()
 }
 
 // -----
@@ -533,11 +541,11 @@ func (op *zeropage) String() string {
 	} else if op.y {
 		mod = ", Y"
 	}
-	return fmt.Sprintf(debugFMT,
-		op.pc,
-		fmt.Sprintf("%02X %02X", op.opCode, op.addr),
-		fmt.Sprintf("%s 0x%02X%s", op.ins, op.addr, mod),
-	)
+	sb := &strings.Builder{}
+	writePC(sb, op.pc)
+	writeMemory(sb, op.opCode, op.addr)
+	writeOP(sb, op.ins, " 0x", toHex8(op.addr), mod)
+	return sb.String()
 }
 
 func getRWRW(f interface{}) (r, w, rw bool) {
@@ -601,4 +609,36 @@ func exec(cpu *m6502, f interface{}, addr uint16, r, w, rw bool) {
 	} else {
 		panic((-1))
 	}
+}
+
+//-----------
+
+func writePC(sb *strings.Builder, pc uint16) {
+	sb.WriteString("0x")
+	sb.WriteString(toHex16(pc))
+	sb.WriteString(":")
+}
+
+func writeMemory(sb *strings.Builder, bytes ...uint8) {
+	for _, b := range bytes {
+		sb.WriteString(" ")
+		sb.WriteString(toHex8(b))
+	}
+	sb.WriteString("             "[:10-(len(bytes)*3)+1])
+}
+
+func writeOP(sb *strings.Builder, strs ...string) {
+	for _, str := range strs {
+		sb.WriteString(str)
+	}
+}
+
+func toHex8(v uint8) string {
+	n := "0" + strconv.FormatUint(uint64(v), 16)
+	return n[len(n)-2:]
+}
+
+func toHex16(v uint16) string {
+	n := "000" + strconv.FormatUint(uint64(v), 16)
+	return n[len(n)-4:]
 }

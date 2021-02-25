@@ -5,6 +5,8 @@ import (
 	"image/color"
 	"sync"
 
+	"github.com/laullon/b2t80s/cpu"
+	"github.com/laullon/b2t80s/cpu/z80"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/storage/cassette"
 )
@@ -30,8 +32,8 @@ var palette = []color.RGBA{
 
 type ula struct {
 	memory *memory
-	bus    emulator.Bus
-	cpu    emulator.CPU
+	bus    z80.Bus
+	cpu    cpu.CPU
 
 	keyboardRow  []byte
 	borderColour color.RGBA
@@ -58,7 +60,7 @@ type ula struct {
 	mux            sync.Mutex
 }
 
-func NewULA(mem *memory, bus emulator.Bus, plus bool) *ula {
+func NewULA(mem *memory, bus z80.Bus, plus bool) *ula {
 	ula := &ula{
 		memory:          mem,
 		bus:             bus,

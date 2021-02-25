@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"strings"
 
-	"fyne.io/fyne"
+	"fyne.io/fyne/v2"
+	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/z80"
 	"github.com/laullon/b2t80s/data"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/ay8912"
 	"github.com/laullon/b2t80s/emulator/storage/cassette"
-	"github.com/laullon/b2t80s/machines"
 	"github.com/laullon/b2t80s/machines/msx/cartridge"
 	"github.com/laullon/b2t80s/ui"
 	"github.com/laullon/b2t80s/utils"
@@ -21,9 +21,9 @@ const (
 )
 
 type msx struct {
-	bus      emulator.Bus
-	cpu      emulator.CPU
-	mem      emulator.Memory
+	bus      z80.Bus
+	cpu      z80.Z80
+	mem      z80.Memory
 	cassette cassette.Cassette
 	sound    emulator.SoundSystem
 	debugger emulator.Debugger
@@ -37,16 +37,16 @@ type msx struct {
 	vdp *tms9918
 }
 
-func NewMSX() machines.Machine {
+func NewMSX() emulator.Machine {
 	rom := data.MustAsset("data/roms/msx/cbios_main_msx1_eu.rom")
 	rom = append(rom, data.MustAsset("data/roms/msx/cbios_logo_msx1.rom")...)
 	// rom := data.MustAsset("data/roms/msx/MSX System v1.0 + MSX BASIC (1983)(Microsoft)[MSX.ROM].rom")
 
 	mem := NewMemory(rom)
 
-	if len(*machines.RomFile) > 0 {
+	if len(*emulator.RomFile) > 0 {
 		romType := "plain"
-		romFile := *machines.RomFile
+		romFile := *emulator.RomFile
 		if strings.Contains(romFile, "::") {
 			romInfo := strings.Split(romFile, "::")
 			romType = romInfo[0]
@@ -67,10 +67,10 @@ func NewMSX() machines.Machine {
 
 	clock := emulator.NewCLock(speed, 50)
 
-	bus := emulator.NewBus(mem)
+	bus := z80.NewBus(mem)
 
-	cpu := z80.NewZ80(bus)
-	clock.AddTicker(0, cpu)
+	z80 := z80.NewZ80(bus)
+	clock.AddTicker(0, z80)
 
 	sound := emulator.NewSoundSystem(speed / 80)
 
@@ -79,7 +79,7 @@ func NewMSX() machines.Machine {
 	ppi := newPPI(mem, cas)
 	sound.AddSource(ppi)
 
-	vdp := newTMS9918(cpu)
+	vdp := newTMS9918(z80)
 	clock.AddTicker(2, vdp)
 
 	ay8912 := ay8912.New()
@@ -89,18 +89,17 @@ func NewMSX() machines.Machine {
 	clock.AddTicker(80, sound)
 
 	msx := &msx{
-		bus:      bus,
-		cpu:      cpu,
-		mem:      mem,
-		sound:    sound,
-		clock:    clock,
-		ppi:      ppi,
-		vdp:      vdp,
-		ay8912:   ay8912,
-		debugger: z80.NewDebugger(cpu, mem, clock),
+		bus:    bus,
+		cpu:    z80,
+		mem:    mem,
+		sound:  sound,
+		clock:  clock,
+		ppi:    ppi,
+		vdp:    vdp,
+		ay8912: ay8912,
 	}
 
-	bus.RegisterPort(emulator.PortMask{Mask: 0x0000, Value: 0x0000}, msx)
+	bus.RegisterPort(cpu.PortMask{Mask: 0x0000, Value: 0x0000}, msx)
 
 	return msx
 }
@@ -183,10 +182,13 @@ func (msx *msx) Clock() emulator.Clock {
 
 func (msx *msx) UIControls() []ui.Control {
 	var res []ui.Control
-	res = append(res, ui.NewVolumenControl(msx.sound))
+	res = append(res, ui.NewVolumenControl(msx.sound.SetVolume))
 	res = append(res, newSpriteControl(msx.vdp, msx.debugger))
 	return res
 }
+
+func (msx *msx) CPUControl() ui.Control               { return ui.NewZ80UI(msx.cpu.Registers()) }
+func (msx *msx) SetDebugger(db cpu.DebuggerCallbacks) { msx.cpu.SetDebugger(db) }
 
 func (msx *msx) GetVolumeControl() func(float64) {
 	return msx.sound.SetVolume

@@ -1,28 +1,28 @@
 package ui
 
 import (
-	"fyne.io/fyne"
-	"fyne.io/fyne/widget"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/layout"
+	widget "fyne.io/fyne/v2/widget"
 	"github.com/laullon/b2t80s/data"
-	"github.com/laullon/b2t80s/emulator"
 )
 
 type VolumenControl struct {
 	ui     fyne.CanvasObject
 	sel    *widget.Button
 	slider *widget.Slider
-	sound  emulator.SoundSystem
 }
 
-func NewVolumenControl(sound emulator.SoundSystem) *VolumenControl {
-	vc := &VolumenControl{sound: sound}
+func NewVolumenControl(setVolume func(float64)) *VolumenControl {
+	vc := &VolumenControl{}
 
 	vc.sel = widget.NewButtonWithIcon("", fyne.NewStaticResource("pp", data.MustAsset("data/icons/volume-control-full.png")), vc.do)
 	vc.slider = widget.NewSlider(0, 1)
 	vc.slider.Step = 0.05
-	vc.slider.OnChanged = vc.sound.SetVolume
+	vc.slider.OnChanged = setVolume
 
-	vc.ui = widget.NewHBox(
+	vc.ui = container.New(layout.NewHBoxLayout(),
 		widget.NewToolbarSeparator().ToolbarObject(),
 		vc.sel,
 		vc.slider,
@@ -36,4 +36,7 @@ func (vc *VolumenControl) Widget() fyne.CanvasObject {
 }
 
 func (vc *VolumenControl) do() {
+}
+
+func (vc *VolumenControl) Update() {
 }

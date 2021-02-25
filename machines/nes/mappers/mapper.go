@@ -3,8 +3,8 @@ package mappers
 import (
 	"fmt"
 
+	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/m6502"
-	"github.com/laullon/b2t80s/emulator"
 )
 
 type Mapper interface {
@@ -50,17 +50,17 @@ func setPPUMemory(file *nesFile, ppuBus m6502.Bus) {
 		nt3 = nt2
 	}
 
-	ppuBus.RegisterPort("NameTable_0", emulator.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0010_0000_0000_0000}, nt0)
-	ppuBus.RegisterPort("NameTable_1", emulator.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0010_0100_0000_0000}, nt1)
-	ppuBus.RegisterPort("NameTable_2", emulator.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0010_1000_0000_0000}, nt2)
-	ppuBus.RegisterPort("NameTable_3", emulator.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0010_1100_0000_0000}, nt3)
+	ppuBus.RegisterPort("NameTable_0", cpu.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0010_0000_0000_0000}, nt0)
+	ppuBus.RegisterPort("NameTable_1", cpu.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0010_0100_0000_0000}, nt1)
+	ppuBus.RegisterPort("NameTable_2", cpu.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0010_1000_0000_0000}, nt2)
+	ppuBus.RegisterPort("NameTable_3", cpu.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0010_1100_0000_0000}, nt3)
 
-	// ppuBus.RegisterPort("NameTable_0m", emulator.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0011_0000_0000_0000}, nt0)
-	// ppuBus.RegisterPort("NameTable_1m", emulator.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0011_0100_0000_0000}, nt1)
-	// ppuBus.RegisterPort("NameTable_2m", emulator.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0011_1000_0000_0000}, nt2)
-	// ppuBus.RegisterPort("NameTable_3m1", emulator.PortMask{Mask: 0b1111_1111_0000_0000, Value: 0b0011_1100_0000_0000}, nt3)
-	// ppuBus.RegisterPort("NameTable_3m2", emulator.PortMask{Mask: 0b1111_1111_0000_0000, Value: 0b0011_1110_0000_0000}, nt3)
-	// ppuBus.RegisterPort("NameTable_3m3", emulator.PortMask{Mask: 0b1111_1111_0000_0000, Value: 0b0011_1101_0000_0000}, nt3)
+	// ppuBus.RegisterPort("NameTable_0m", cpu.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0011_0000_0000_0000}, nt0)
+	// ppuBus.RegisterPort("NameTable_1m", cpu.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0011_0100_0000_0000}, nt1)
+	// ppuBus.RegisterPort("NameTable_2m", cpu.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0011_1000_0000_0000}, nt2)
+	// ppuBus.RegisterPort("NameTable_3m1", cpu.PortMask{Mask: 0b1111_1111_0000_0000, Value: 0b0011_1100_0000_0000}, nt3)
+	// ppuBus.RegisterPort("NameTable_3m2", cpu.PortMask{Mask: 0b1111_1111_0000_0000, Value: 0b0011_1110_0000_0000}, nt3)
+	// ppuBus.RegisterPort("NameTable_3m3", cpu.PortMask{Mask: 0b1111_1111_0000_0000, Value: 0b0011_1101_0000_0000}, nt3)
 
 }
 

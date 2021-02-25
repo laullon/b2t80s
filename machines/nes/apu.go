@@ -3,13 +3,13 @@ package nes
 import (
 	"fmt"
 
-	"fyne.io/fyne"
+	"fyne.io/fyne/v2"
+	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/m6502"
-	"github.com/laullon/b2t80s/emulator"
 )
 
 type apu struct {
-	cpu emulator.CPU
+	cpu cpu.CPU
 
 	doIRQ bool
 	//
@@ -37,7 +37,7 @@ type apu struct {
 
 type channel [4]byte
 
-func newAPU(cpu emulator.CPU, clock uint) *apu {
+func newAPU(cpu cpu.CPU, clock uint) *apu {
 	return &apu{
 		frameLength: 4,
 		cpu:         cpu,
