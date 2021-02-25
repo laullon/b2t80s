@@ -1,14 +1,16 @@
 package ui
 
 import (
-	"fyne.io/fyne"
-	"fyne.io/fyne/widget"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/widget"
 	"github.com/laullon/b2t80s/data"
 	"github.com/laullon/b2t80s/emulator/storage/cassette"
 )
 
 type CasseteControl struct {
-	ui       fyne.CanvasObject
+	ui       *fyne.Container
 	play     *widget.Button
 	stop     *widget.Button
 	sel      *widget.Button
@@ -22,17 +24,17 @@ func NewCasseteControl(cassette cassette.Cassette, disable bool) *CasseteControl
 	cas.stop = widget.NewButtonWithIcon("", fyne.NewStaticResource("pp", data.MustAsset("data/icons/controls-stop.png")), cas.doStop)
 	cas.sel = widget.NewButtonWithIcon("", fyne.NewStaticResource("pp", data.MustAsset("data/icons/cassette.png")), cas.doName)
 
-	cas.ui = widget.NewHBox(
+	cas.ui = container.New(layout.NewHBoxLayout(),
 		widget.NewToolbarSeparator().ToolbarObject(),
 		cas.sel,
 	)
 
 	if !disable {
-		cas.ui.(*widget.Box).Append(cas.play)
-		cas.ui.(*widget.Box).Append(cas.stop)
+		cas.ui.Add(cas.play)
+		cas.ui.Add(cas.stop)
 	}
 
-	cas.update()
+	cas.Update()
 	return cas
 }
 
@@ -54,7 +56,7 @@ func (cas *CasseteControl) doPlay() {
 		println("play")
 		cas.cassette.Motor(true)
 	}
-	cas.update()
+	cas.Update()
 }
 
 func (cas *CasseteControl) doStop() {
@@ -62,10 +64,10 @@ func (cas *CasseteControl) doStop() {
 		println("stop")
 		cas.cassette.Motor(false)
 	}
-	cas.update()
+	cas.Update()
 }
 
-func (cas *CasseteControl) update() {
+func (cas *CasseteControl) Update() {
 	if cas.cassette.IsMotorON() {
 		cas.play.Disable()
 		cas.stop.Enable()

@@ -1,8 +1,8 @@
 package mappers
 
 import (
+	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/m6502"
-	"github.com/laullon/b2t80s/emulator"
 )
 
 type nrom struct {
@@ -41,13 +41,13 @@ func newNROM(file *nesFile) Mapper {
 }
 
 func (m *nrom) ConnectToPPU(bus m6502.Bus) {
-	bus.RegisterPort("cart.pattern0", emulator.PortMask{Mask: 0b1111_0000_0000_0000, Value: 0b0000_0000_0000_0000}, m.pattern0)
-	bus.RegisterPort("cart.pattern1", emulator.PortMask{Mask: 0b1111_0000_0000_0000, Value: 0b0001_0000_0000_0000}, m.pattern1)
+	bus.RegisterPort("cart.pattern0", cpu.PortMask{Mask: 0b1111_0000_0000_0000, Value: 0b0000_0000_0000_0000}, m.pattern0)
+	bus.RegisterPort("cart.pattern1", cpu.PortMask{Mask: 0b1111_0000_0000_0000, Value: 0b0001_0000_0000_0000}, m.pattern1)
 	setPPUMemory(m.file, bus)
 }
 
 func (m *nrom) ConnectToCPU(bus m6502.Bus) {
-	bus.RegisterPort("cart.ram", emulator.PortMask{Mask: 0b1110_0000_0000_0000, Value: 0b0110_0000_0000_0000}, m.ram)
-	bus.RegisterPort("cart.rom0", emulator.PortMask{Mask: 0b1100_0000_0000_0000, Value: 0b1000_0000_0000_0000}, m.rom0)
-	bus.RegisterPort("cart.rom1", emulator.PortMask{Mask: 0b1100_0000_0000_0000, Value: 0b1100_0000_0000_0000}, m.rom1)
+	bus.RegisterPort("cart.ram", cpu.PortMask{Mask: 0b1110_0000_0000_0000, Value: 0b0110_0000_0000_0000}, m.ram)
+	bus.RegisterPort("cart.rom0", cpu.PortMask{Mask: 0b1100_0000_0000_0000, Value: 0b1000_0000_0000_0000}, m.rom0)
+	bus.RegisterPort("cart.rom1", cpu.PortMask{Mask: 0b1100_0000_0000_0000, Value: 0b1100_0000_0000_0000}, m.rom1)
 }

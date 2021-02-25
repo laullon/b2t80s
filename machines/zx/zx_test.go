@@ -11,19 +11,19 @@ import (
 	"os"
 	"testing"
 
-	"fyne.io/fyne/canvas"
-	"github.com/laullon/b2t80s/machines"
+	canvas "fyne.io/fyne/v2/canvas"
+	"github.com/laullon/b2t80s/emulator"
 	"github.com/stretchr/testify/assert"
 )
 
 var borderTrix = new(string)
 
 func TestBorderTrix(t *testing.T) {
-	machines.TapFile = new(string)
-	*machines.TapFile = "test/BorderTrix.tap"
+	emulator.TapFile = new(string)
+	*emulator.TapFile = "test/BorderTrix.tap"
 
-	machines.LoadSlow = new(bool)
-	machines.Debug = new(bool)
+	emulator.LoadSlow = new(bool)
+	emulator.Debug = new(bool)
 
 	zx := NewZX48K().(*zx)
 

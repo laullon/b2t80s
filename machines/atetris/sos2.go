@@ -4,11 +4,12 @@ import (
 	"image"
 	"image/color"
 
+	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/emulator"
 )
 
 type sos2 struct {
-	cpu     emulator.CPU
+	cpu     cpu.CPU
 	v, h    int
 	vram    []byte
 	color   *colorRam

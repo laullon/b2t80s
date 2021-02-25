@@ -1,6 +1,6 @@
 package msx
 
-import "fyne.io/fyne"
+import "fyne.io/fyne/v2"
 
 func (ppi *ppi) OnKeyEvent(key *fyne.KeyEvent) {
 	println("key:", key.Name)

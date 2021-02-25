@@ -4,11 +4,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/laullon/b2t80s/cpu/z80"
-	"github.com/laullon/b2t80s/machines"
+	"github.com/laullon/b2t80s/emulator"
 )
 
-func LoadZ80File(fileName string) machines.Machine {
+func LoadZ80File(fileName string) emulator.Machine {
 	fi, err := os.Stat(fileName)
 	if err != nil {
 		panic(err)
@@ -56,7 +55,7 @@ func LoadZ80File(fileName string) machines.Machine {
 		machine = NewZX128K().(*zx)
 	}
 
-	regs := machine.cpu.Registers().(*z80.Z80Registers)
+	regs := machine.cpu.Registers()
 	// TODO: byte 12
 	regs.A = file[0]
 	regs.F.SetByte(file[1])

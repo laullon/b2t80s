@@ -1,15 +1,13 @@
 package cartridge
 
-import (
-	"github.com/laullon/b2t80s/emulator"
-)
+import "github.com/laullon/b2t80s/cpu/z80"
 
 type plain struct {
 	rom []byte
 	off uint16
 }
 
-func NewPlain(rom []byte) emulator.Memory {
+func NewPlain(rom []byte) z80.Memory {
 	cart := &plain{
 		rom: rom,
 	}

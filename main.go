@@ -10,33 +10,39 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"fyne.io/fyne"
-	"fyne.io/fyne/app"
-	"fyne.io/fyne/driver/desktop"
-	"fyne.io/fyne/layout"
-	"fyne.io/fyne/theme"
-	"fyne.io/fyne/widget"
-	"github.com/laullon/b2t80s/machines"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/driver/desktop"
+	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
+
+	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/machines/atetris"
 	"github.com/laullon/b2t80s/machines/cpc"
 	"github.com/laullon/b2t80s/machines/msx"
 	"github.com/laullon/b2t80s/machines/nes"
 	"github.com/laullon/b2t80s/machines/zx"
+	"github.com/laullon/b2t80s/ui"
 
 	_ "net/http/pprof"
 )
 
 func main() {
-	machines.TapFile = flag.String("tap", "", "tap file to load")
-	machines.RomFile = flag.String("rom", "", "msx1 rom file to load - format: [mapper::]filename - Mappers:konami")
+	nes.CartFile = flag.String("cart", "", "NESncart file to load")
+	emulator.TapFile = flag.String("tap", "", "tap file to load")
+	emulator.RomFile = flag.String("rom", "", "msx1 rom file to load - format: [mapper::]filename - Mappers:konami")
 	z80File := flag.String("z80", "", "z80 file to load")
 	mode := flag.String("mode", "48k", "Spectrum model to emulate [48k|128k|plus3|cpc464|cpc6128|msx1]")
-	machines.Debug = flag.Bool("debug", false, "shows debugger")
+	emulator.Debug = flag.Bool("debug", false, "shows debugger")
 	// turbo := flag.Bool("turbo", false, "run faster")
 
-	// breaks := flag.String("bp", "", "Breakpoints [0xXXXX[,0xXXXX,...]]")
-	machines.LoadSlow = flag.Bool("slow", false, "Real Spectrum loading process")
-	machines.DskAFile = flag.String("dskA", "", "disc file to load on drive A")
+	emulator.Breaks = flag.String("bp", "", "Breakpoints [0xXXXX[,0xXXXX,...]]")
+	emulator.WatchPoints = flag.String("wp", "", "Memory Watch Points [0xXXXX[,0xXXXX,...]]")
+
+	emulator.LoadSlow = flag.Bool("slow", false, "Real Spectrum loading process")
+	emulator.DskAFile = flag.String("dskA", "", "disc file to load on drive A")
 
 	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to `file`")
 	var memprofile = flag.String("memprofile", "", "write memory profile to `file`")
@@ -55,7 +61,7 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	var machine machines.Machine
+	var machine emulator.Machine
 	var name string
 
 	if len(*z80File) > 0 {
@@ -99,22 +105,22 @@ func main() {
 	// 		if err != nil {
 	// 			panic(err)
 	// 		}
-	// 		machine.Debugger().SetBreakPoint(uint16(n))
+	// 		emulator.DebuggerCTL.SetBreakPoint(uint16(n))
 	// 	}
 	// }
 
-	machines.App = app.New()
-	machines.App.Settings().SetTheme(theme.LightTheme())
+	emulator.App = app.New()
+	emulator.App.Settings().SetTheme(theme.LightTheme())
 
-	w := machines.App.NewWindow(name + " - b2t80s Emulator")
+	w := emulator.App.NewWindow(name + " - b2t80s Emulator")
 
 	debugger := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
 
 	status := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
 
-	controls := widget.NewHBox()
+	controls := container.New(layout.NewHBoxLayout())
 	for _, control := range machine.UIControls() {
-		controls.Append(control.Widget())
+		controls.Add(control.Widget())
 	}
 
 	statusBar := fyne.NewContainerWithLayout(
@@ -125,29 +131,36 @@ func main() {
 
 	display := machine.Monitor().Canvas()
 
-	if *machines.Debug {
-		debugger := widget.NewVBox(
+	var cpuCtl ui.Control
+
+	if *emulator.Debug {
+		db := emulator.NewDebugger(machine.Clock())
+		machine.SetDebugger(db)
+		cpuCtl = machine.CPUControl()
+
+		debugger := container.New(layout.NewVBoxLayout(),
 			widget.NewLabel("Debugger"),
 			fyne.NewContainerWithLayout(
 				layout.NewGridLayoutWithColumns(3),
 				widget.NewButton("Stop", func() {
-					machine.Debugger().Stop()
+					db.Stop()
 				}),
 				widget.NewButton("Continue", func() {
-					machine.Debugger().Continue()
+					db.Continue()
 				}),
 				widget.NewButton("Step", func() {
-					machine.Debugger().Step()
+					db.Step()
 				}),
 				widget.NewButton("Stop Next Frame", func() {
-					machine.Debugger().StopNextFrame()
+					db.StopNextFrame()
 				}),
 				widget.NewButton("Dump 5 Frames", func() {
 				}),
 				widget.NewCheck("Dump", func(on bool) {
-					machine.Debugger().SetDump(on)
+					panic(-1)
 				}),
 			),
+			cpuCtl.Widget(),
 			debugger,
 		)
 
@@ -176,8 +189,9 @@ func main() {
 	ticker := time.NewTicker(wait)
 	go func() {
 		for range ticker.C {
-			if *machines.Debug {
-				debugger.SetText(machine.Debugger().GetStatus())
+			if *emulator.Debug {
+				debugger.SetText(emulator.MachineStatus.Status())
+				cpuCtl.Update()
 			}
 			status.SetText(fmt.Sprintf("time: %s - FPS: %03.2f", machine.Clock().Stats(), machine.Monitor().FPS()))
 		}

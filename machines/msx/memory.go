@@ -1,16 +1,16 @@
 package msx
 
-import "github.com/laullon/b2t80s/emulator"
+import "github.com/laullon/b2t80s/cpu/z80"
 
 type memory struct {
-	slots []emulator.Memory
+	slots []z80.Memory
 	cfg   []byte
 }
 
 func NewMemory(rom rom) *memory {
 	mem := &memory{cfg: []byte{0, 0, 0, 0}}
 
-	mem.slots = make([]emulator.Memory, 4)
+	mem.slots = make([]z80.Memory, 4)
 
 	mem.slots[0] = rom
 	mem.slots[1] = make(emptySlot, 0)
@@ -20,7 +20,7 @@ func NewMemory(rom rom) *memory {
 	return mem
 }
 
-func (mem *memory) setCartridge1(cart emulator.Memory) {
+func (mem *memory) setCartridge1(cart z80.Memory) {
 	mem.slots[1] = cart
 }
 

@@ -3,14 +3,14 @@ package atetris
 import (
 	"testing"
 
-	"fyne.io/fyne/canvas"
+	canvas "fyne.io/fyne/v2/canvas"
 	"github.com/laullon/b2t80s/cpu/m6502"
-	"github.com/laullon/b2t80s/machines"
+	"github.com/laullon/b2t80s/emulator"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestInit(t *testing.T) {
-	machines.Debug = new(bool)
+	emulator.Debug = new(bool)
 
 	tetris := NewATetris().(*atetris)
 	tetris.sos2.monitor = &dummyMonitor{}

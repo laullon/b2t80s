@@ -1,8 +1,6 @@
 package cartridge
 
-import (
-	"github.com/laullon/b2t80s/emulator"
-)
+import "github.com/laullon/b2t80s/cpu/z80"
 
 type ascii16 struct {
 	rom   []byte
@@ -11,7 +9,7 @@ type ascii16 struct {
 	offB2 uint32
 }
 
-func NewAscii16(rom []byte) emulator.Memory {
+func NewAscii16(rom []byte) z80.Memory {
 	cart := &ascii16{
 		rom:   rom,
 		mask:  byte(len(rom)/0x4000) - 1,

@@ -3,7 +3,7 @@ package cpc
 import (
 	"sync"
 
-	"fyne.io/fyne"
+	"fyne.io/fyne/v2"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/ay8912"
 	"github.com/laullon/b2t80s/emulator/storage/cassette"

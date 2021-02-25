@@ -3,12 +3,10 @@ package cassette
 import (
 	"fmt"
 	"path/filepath"
-
-	"github.com/laullon/b2t80s/emulator"
 )
 
 type Cassette interface {
-	emulator.Ticker
+	Tick()
 
 	LoadTapFile(rom string)
 

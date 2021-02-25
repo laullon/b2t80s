@@ -3,7 +3,7 @@ package atetris
 import (
 	"fmt"
 
-	"fyne.io/fyne"
+	"fyne.io/fyne/v2"
 )
 
 func (t *atetris) OnKeyEvent(key *fyne.KeyEvent) {

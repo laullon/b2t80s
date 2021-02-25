@@ -1,16 +1,16 @@
 package atetris
 
 import (
+	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/m6502"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/pokey"
-	"github.com/laullon/b2t80s/machines"
 	"github.com/laullon/b2t80s/ui"
 )
 
 type atetris struct {
 	clock    emulator.Clock
-	cpu      emulator.CPU
+	cpu      m6502.M6502
 	sos2     *sos2
 	debugger emulator.Debugger
 	monitor  emulator.Monitor
@@ -18,7 +18,7 @@ type atetris struct {
 	pokey2   *pokey.Pokey
 }
 
-func NewATetris() machines.Machine {
+func NewATetris() emulator.Machine {
 	bus := newBus()
 
 	m := &atetris{
@@ -32,19 +32,19 @@ func NewATetris() machines.Machine {
 	m.monitor = emulator.NewMonitor(m.sos2.display)
 	m.sos2.monitor = m.monitor
 
-	bus.RegisterPort("clearIRQ", emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0011100000000000}, &clearIRQ{cpu: m.cpu})
+	bus.RegisterPort("clearIRQ", cpu.PortMask{Mask: 0b1111110000000000, Value: 0b0011100000000000}, &clearIRQ{cpu: m.cpu})
 
-	bus.RegisterPort("vRam", emulator.PortMask{Mask: 0b1111000000000000, Value: 0b0001000000000000}, &ram{mem: m.sos2.vram, mask: 0x0fff})
-	bus.RegisterPort("color", emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0010000000000000}, m.sos2.color)
+	bus.RegisterPort("vRam", cpu.PortMask{Mask: 0b1111000000000000, Value: 0b0001000000000000}, &ram{mem: m.sos2.vram, mask: 0x0fff})
+	bus.RegisterPort("color", cpu.PortMask{Mask: 0b1111110000000000, Value: 0b0010000000000000}, m.sos2.color)
 
 	//POKEY
-	bus.RegisterPort("pokey1", emulator.PortMask{Mask: 0b1111110000110000, Value: 0b0010100000000000}, m.pokey1)
-	bus.RegisterPort("pokey2", emulator.PortMask{Mask: 0b1111110000110000, Value: 0b0010100000010000}, m.pokey2)
+	bus.RegisterPort("pokey1", cpu.PortMask{Mask: 0b1111110000110000, Value: 0b0010100000000000}, m.pokey1)
+	bus.RegisterPort("pokey2", cpu.PortMask{Mask: 0b1111110000110000, Value: 0b0010100000010000}, m.pokey2)
 
 	// Watchdog
 	wd := &watchdog{cpu: m.cpu}
 	wd.start()
-	bus.RegisterPort("watchdog", emulator.PortMask{Mask: 0b1111110000000000, Value: 0b0011000000000000}, wd)
+	bus.RegisterPort("watchdog", cpu.PortMask{Mask: 0b1111110000000000, Value: 0b0011000000000000}, wd)
 
 	m.pokey1.P7 = false
 
@@ -55,11 +55,6 @@ func NewATetris() machines.Machine {
 	m.clock.AddTicker(0, m.cpu)
 	m.clock.AddTicker(2, m.sos2)
 
-	if *machines.Debug {
-		m.debugger = m6502.NewDebugger(m.cpu, nil, m.clock)
-		m.cpu.SetDebuger(m.debugger)
-	}
-
 	return m
 }
 
@@ -69,13 +64,15 @@ func (t *atetris) Monitor() emulator.Monitor {
 	return t.monitor
 }
 
-func (t *atetris) Clock() emulator.Clock           { return t.clock }
-func (t *atetris) UIControls() []ui.Control        { return nil }
-func (t *atetris) GetVolumeControl() func(float64) { return func(f float64) {} }
+func (t *atetris) Clock() emulator.Clock                { return t.clock }
+func (t *atetris) UIControls() []ui.Control             { return nil }
+func (t *atetris) GetVolumeControl() func(float64)      { return func(f float64) {} }
+func (t *atetris) CPUControl() ui.Control               { return ui.NewM6502UI(t.cpu) }
+func (t *atetris) SetDebugger(db cpu.DebuggerCallbacks) { t.cpu.SetDebugger(db) }
 
 // ----------------------------
 type clearIRQ struct {
-	cpu emulator.CPU
+	cpu cpu.CPU
 }
 
 func (s *clearIRQ) ReadPort(addr uint16) (byte, bool) { panic(-1) }

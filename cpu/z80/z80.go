@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/laullon/b2t80s/cpu"
 	cpuUtils "github.com/laullon/b2t80s/cpu"
-	"github.com/laullon/b2t80s/emulator"
 )
 
 var overflowAddTable = []bool{false, false, false, true, true, false, false, false}
@@ -108,10 +108,13 @@ func (d *fetchedData) getMemory() string {
 	return res.String()
 }
 
-type z80 struct {
-	debugger emulator.Debugger
+type Z80 interface {
+	cpu.CPU
+	Registers() *Z80Registers
+}
 
-	bus emulator.Bus
+type z80 struct {
+	bus Bus
 
 	regs      *Z80Registers
 	indexRegs []*cpuUtils.RegPair
@@ -125,7 +128,10 @@ type z80 struct {
 	fetched   *fetchedData
 	scheduler *circularBuffer
 
-	traps map[uint16]emulator.CPUTrap
+	traps map[uint16]cpu.CPUTrap
+
+	log      cpu.CPUTracer
+	debugger cpu.DebuggerCallbacks
 }
 
 func init() {
@@ -149,12 +155,12 @@ func init() {
 
 }
 
-func NewZ80(bus emulator.Bus) emulator.CPU {
+func NewZ80(bus Bus) Z80 {
 	cpu := &z80{
 		bus:       bus,
 		fetched:   &fetchedData{},
 		scheduler: newCircularBuffer(),
-		traps:     make(map[uint16]emulator.CPUTrap),
+		traps:     make(map[uint16]cpu.CPUTrap),
 		regs: &Z80Registers{
 			PC: 0,
 			M1: false,
@@ -193,17 +199,27 @@ func NewZ80(bus emulator.Bus) emulator.CPU {
 	return cpu
 }
 
-func (cpu *z80) CurrentOP() string { panic(-2) }
+func (cpu *z80) Status() string { return cpu.regs.dump() }
 
-func (cpu *z80) SetDebuger(debugger emulator.Debugger) {
-	cpu.debugger = debugger
+func (cpu *z80) FullStatus() string {
+	var res strings.Builder
+	res.WriteString(fmt.Sprintf("  A:0x%02X    F:0x%02X  AF:0x%04X    SP:0x%04X\n", cpu.regs.A, cpu.regs.F.GetByte(), uint16(cpu.regs.A)<<8|uint16(cpu.regs.F.GetByte()), cpu.regs.SP.Get()))
+	res.WriteString(fmt.Sprintf("  B:0x%02X    C:0x%02X  BC:0x%04X    ---------\n", cpu.regs.B, cpu.regs.C, uint16(cpu.regs.B)<<8|uint16(cpu.regs.C)))
+	res.WriteString(fmt.Sprintf("  D:0x%02X    E:0x%02X  DE:0x%04X    0x%04X\n", cpu.regs.D, cpu.regs.E, uint16(cpu.regs.D)<<8|uint16(cpu.regs.E), "-"))         // getWord(debug.memory, cpu.regs.SP.Get()+0)))
+	res.WriteString(fmt.Sprintf("  H:0x%02X    L:0x%02X  HL:0x%04X    0x%04X\n", cpu.regs.H, cpu.regs.L, uint16(cpu.regs.H)<<8|uint16(cpu.regs.L), "-"))         // getWord(debug.memory, cpu.regs.SP.Get()+2)))
+	res.WriteString(fmt.Sprintf("IXH:0x%02X  IXL:0x%02X  IX:0x%04X    0x%04X\n", cpu.regs.IXH, cpu.regs.IXL, uint16(cpu.regs.IXH)<<8|uint16(cpu.regs.IXL), "-")) // getWord(debug.memory, cpu.regs.SP.Get()+4)))
+	res.WriteString(fmt.Sprintf("IYH:0x%02X  IYL:0x%02X  IY:0x%04X    0x%04X\n", cpu.regs.IYH, cpu.regs.IYL, uint16(cpu.regs.IYH)<<8|uint16(cpu.regs.IYL), "-")) // getWord(debug.memory, cpu.regs.SP.Get()+6)))
+	res.WriteString(fmt.Sprintf("SZ5H3PNC            PC:0x%04X\n%08b", cpu.regs.PC, cpu.regs.F.GetByte()))
+	return res.String()
 }
 
-func (cpu *z80) RegisterTrap(pc uint16, trap emulator.CPUTrap) {
+func (cpu *z80) CurrentOP() string { panic(-2) }
+
+func (cpu *z80) RegisterTrap(pc uint16, trap cpu.CPUTrap) {
 	cpu.traps[pc] = trap
 }
 
-func (cpu *z80) Registers() interface{} {
+func (cpu *z80) Registers() *Z80Registers {
 	return cpu.regs
 }
 
@@ -225,6 +241,9 @@ func (cpu *z80) Halt() {
 func (cpu *z80) Reset() {
 	panic(-1)
 }
+
+func (cpu *z80) SetTracer(t cpu.CPUTracer)            { cpu.log = t }
+func (cpu *z80) SetDebugger(db cpu.DebuggerCallbacks) { cpu.debugger = db }
 
 func (cpu *z80) execInterrupt() {
 	cpu.prepareForNewInstruction()
@@ -260,8 +279,8 @@ func (cpu *z80) execInterrupt() {
 }
 
 func (cpu *z80) prepareForNewInstruction() {
-	if cpu.debugger != nil { // TODO: add dummy debuger on the test to remove this IF
-		cpu.debugger.AddInstruction(cpu.fetched.pc, cpu.fetched.getMemory(), cpu.fetched.getInstruction())
+	if cpu.debugger != nil {
+		cpu.debugger.Eval()
 	}
 
 	cpu.fetched.n = 0

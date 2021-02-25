@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/stretchr/testify/assert"
 )
@@ -452,9 +453,9 @@ func (bus *dummyBus) ReadMemory()  { bus.data = bus.mem[bus.addr] }
 func (bus *dummyBus) WriteMemory() { bus.mem[bus.addr] = bus.data }
 func (bus *dummyBus) Release()     {}
 
-func (bus *dummyBus) ReadPort()                                                         { bus.data = uint8(bus.addr >> 8) }
-func (bus *dummyBus) WritePort()                                                        {}
-func (bus *dummyBus) RegisterPort(mask emulator.PortMask, manager emulator.PortManager) {}
+func (bus *dummyBus) ReadPort()                                                    { bus.data = uint8(bus.addr >> 8) }
+func (bus *dummyBus) WritePort()                                                   {}
+func (bus *dummyBus) RegisterPort(mask cpu.PortMask, manager emulator.PortManager) {}
 
 func (bus *dummyBus) GetBlock(addr uint16, l uint16) []byte { return nil }
 

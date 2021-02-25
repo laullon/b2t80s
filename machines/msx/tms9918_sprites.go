@@ -5,10 +5,11 @@ import (
 	"image/color"
 	"image/draw"
 
-	"fyne.io/fyne"
-	"fyne.io/fyne/canvas"
-	"fyne.io/fyne/layout"
-	"fyne.io/fyne/widget"
+	"fyne.io/fyne/v2"
+	canvas "fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/container"
+	layout "fyne.io/fyne/v2/layout"
+	widget "fyne.io/fyne/v2/widget"
 	"github.com/laullon/b2t80s/emulator"
 )
 
@@ -103,7 +104,7 @@ func newSpriteControl(vdp *tms9918, debuger emulator.Debugger) *spriteControl {
 
 	ctrl.show = widget.NewButton("show Sprites", ctrl.doShow)
 
-	ctrl.ui = widget.NewHBox(
+	ctrl.ui = container.New(layout.NewHBoxLayout(),
 		widget.NewToolbarSeparator().ToolbarObject(),
 		ctrl.show,
 	)
@@ -113,6 +114,9 @@ func newSpriteControl(vdp *tms9918, debuger emulator.Debugger) *spriteControl {
 
 func (ctrl *spriteControl) Widget() fyne.CanvasObject {
 	return ctrl.ui
+}
+
+func (ctrl *spriteControl) Update() {
 }
 
 func (ctrl *spriteControl) doShow() {
@@ -137,7 +141,7 @@ func (ctrl *spriteControl) doShow() {
 		}
 
 		img := canvas.NewImageFromImage(display)
-		img.SetMinSize(fyne.NewSize(size*4, size*4))
+		img.SetMinSize(fyne.NewSize(float32(size*4), float32(size*4)))
 		img.ScaleMode = canvas.ImageScalePixels
 
 		container.AddObject(img)

@@ -4,8 +4,8 @@ import (
 	"image"
 	"time"
 
-	"fyne.io/fyne"
-	"fyne.io/fyne/canvas"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
 )
 
 type Monitor interface {

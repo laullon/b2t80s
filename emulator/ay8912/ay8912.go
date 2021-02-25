@@ -4,11 +4,12 @@ import (
 	"math/rand"
 	"sync"
 
+	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/emulator"
 )
 
 type AY8912 interface {
-	emulator.PortManager
+	cpu.PortManager
 	emulator.Ticker
 	emulator.SoundSource
 	ReadRegister(reg byte) byte

@@ -5,11 +5,12 @@ import (
 	"image/draw"
 	"time"
 
-	"fyne.io/fyne"
-	"fyne.io/fyne/canvas"
-	"fyne.io/fyne/layout"
-	"fyne.io/fyne/widget"
-	"github.com/laullon/b2t80s/machines"
+	"fyne.io/fyne/v2"
+	canvas "fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/container"
+	layout "fyne.io/fyne/v2/layout"
+	widget "fyne.io/fyne/v2/widget"
+	"github.com/laullon/b2t80s/emulator"
 )
 
 type ppuDebugControl struct {
@@ -28,7 +29,7 @@ func newPalleteControl(ppu *ppu) *ppuDebugControl {
 
 	ctrl.show = widget.NewButton("ppu debug", ctrl.doShow)
 
-	ctrl.ui = widget.NewHBox(
+	ctrl.ui = container.New(layout.NewHBoxLayout(),
 		widget.NewToolbarSeparator().ToolbarObject(),
 		ctrl.show,
 	)
@@ -47,7 +48,7 @@ func (ctrl *ppuDebugControl) Widget() fyne.CanvasObject {
 }
 
 func (ctrl *ppuDebugControl) doShow() {
-	secondaryWindow := machines.App.NewWindow("secondary")
+	secondaryWindow := emulator.App.NewWindow("secondary")
 	secondaryWindow.SetContent(ctrl.container)
 	secondaryWindow.Show()
 
@@ -55,14 +56,14 @@ func (ctrl *ppuDebugControl) doShow() {
 	ticker := time.NewTicker(wait)
 	go func() {
 		for range ticker.C {
-			ctrl.update()
+			ctrl.Update()
 			ctrl.container.Refresh()
 		}
 	}()
 
 }
 
-func (ctrl *ppuDebugControl) update() {
+func (ctrl *ppuDebugControl) Update() {
 	draw.Draw(ctrl.display, image.Rect((64*8)+4, 0, (64*8)+4+84, 20), &image.Uniform{colors[ctrl.ppu.bus.Read(0x3f00)&0x3f]}, image.ZP, draw.Src)
 	for palette := uint16(0); palette < 6; palette++ {
 		for color := 0; color < 4; color++ {

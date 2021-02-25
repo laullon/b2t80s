@@ -3,7 +3,7 @@ package cpc
 import (
 	"fmt"
 
-	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/cpu"
 )
 
 var (
@@ -25,7 +25,7 @@ type crtcCounters struct {
 }
 
 type crtc struct {
-	cpu emulator.CPU
+	cpu cpu.CPU
 
 	status   *crtcStatus
 	counters *crtcCounters
@@ -39,7 +39,7 @@ type crtc struct {
 	hSyncOn, hSyncOff int
 }
 
-func newCRTC(cpu emulator.CPU) *crtc {
+func newCRTC(cpu cpu.CPU) *crtc {
 	crtc := &crtc{
 		regs:     []byte{63, 40, 46, 0x8E, 38, 0, 25, 30, 0, 7, 0, 0, 0x20, 0, 0, 0},
 		cpu:      cpu,
