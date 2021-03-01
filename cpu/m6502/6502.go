@@ -170,13 +170,13 @@ func (cpu *m6502) Tick() {
 	if done {
 		if cpu.log != nil {
 			cpu.log.AppendLastOP(cpu.op.String())
+			cpu.log.SetNextOP(cpu.nextOp.String())
 		}
 		if cpu.nextOp != nil {
 			if cpu.debugger != nil {
-				cpu.debugger.Eval()
+				cpu.debugger.Eval(cpu.nextOp.getPC())
 			}
 			cpu.op = cpu.nextOp
-			cpu.op.reset()
 			cpu.nextOp = nil
 		} else {
 			fmt.Printf("no nextOp after -> %-30v \n", cpu.op)
@@ -196,11 +196,11 @@ func (cpu *m6502) preFetch() {
 		newOp = &brk{imm: true}
 		newOp.setPC(0)
 		cpu.onNMI = true
-		// cpu.doNMI = false
+		cpu.doNMI = false
 	} else if cpu.doIRQ && !cpu.regs.PS.I {
 		newOp = &brk{irq: true}
 		newOp.setPC(0)
-		// cpu.doIRQ = false
+		cpu.doIRQ = false
 	} else {
 		opCode := cpu.bus.Read(cpu.regs.PC)
 		newOp = ops[opCode]
@@ -208,6 +208,7 @@ func (cpu *m6502) preFetch() {
 			newOp = &unsupported{}
 			newOp.setup(opCode)
 		}
+		newOp = newOp.Clone()
 		newOp.setPC(cpu.regs.PC)
 		cpu.regs.PC++
 	}

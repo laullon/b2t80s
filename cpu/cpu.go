@@ -1,7 +1,5 @@
 package cpu
 
-type CPUTrap func()
-
 type CPU interface {
 	Interrupt(bool)
 	NMI(bool)
@@ -10,8 +8,6 @@ type CPU interface {
 	Reset()
 	Tick()
 
-	// RegisterTrap(pc uint16, trap CPUTrap)
-
 	CurrentOP() string
 
 	SetTracer(CPUTracer)
@@ -19,7 +15,7 @@ type CPU interface {
 }
 
 type DebuggerCallbacks interface {
-	Eval()
+	Eval(pc uint16)
 	EvalInterrupt()
 }
 
@@ -35,4 +31,5 @@ type PortManager interface {
 
 type CPUTracer interface {
 	AppendLastOP(string)
+	SetNextOP(string)
 }

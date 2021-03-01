@@ -10,11 +10,11 @@ import (
 
 type operation interface {
 	tick(cpu *m6502) (done bool)
-	reset()
 	setup(opCode uint8)
 	setPC(pc uint16)
 	getPC() uint16
 	String() string
+	Clone() operation
 }
 
 type basicop struct {
@@ -23,10 +23,6 @@ type basicop struct {
 
 	pc uint16
 	t  uint
-}
-
-func (op *basicop) reset() {
-	op.t = 0
 }
 
 func (op *basicop) setPC(pc uint16) {
@@ -39,6 +35,10 @@ func (op *basicop) getPC() uint16 {
 
 type reset struct {
 	basicop
+}
+
+func (op *reset) Clone() operation {
+	return &reset{}
 }
 
 func (op *reset) tick(cpu *m6502) (done bool) {
@@ -78,10 +78,15 @@ type brk struct {
 	irq, imm bool
 }
 
+func (op *brk) Clone() operation {
+	return &brk{}
+}
+
 func (op *brk) tick(cpu *m6502) (done bool) {
 	switch op.t {
 	case 0:
 		if !op.imm && !op.irq {
+			cpu.preFetch()
 			cpu.regs.PC++
 		}
 	case 1:
@@ -141,6 +146,10 @@ type indirectX struct {
 	addrZ    uint8
 }
 
+func (op *indirectX) Clone() operation {
+	return &indirectX{basicop: op.basicop, f: op.f, r: op.r, w: op.w, rw: op.rw}
+}
+
 func (op *indirectX) tick(cpu *m6502) (done bool) {
 	switch op.t {
 	case 0:
@@ -169,7 +178,7 @@ func (op *indirectX) String() string {
 	sb := &strings.Builder{}
 	writePC(sb, op.pc)
 	writeMemory(sb, op.opCode, op.addrZ)
-	writeOP(sb, op.ins, " (0x", toHex8(op.addrZ), ", X)")
+	writeOP(sb, op.ins, " ($", toHex8(op.addrZ), ", X)")
 	return sb.String()
 }
 
@@ -180,6 +189,10 @@ type indirectY struct {
 	f        interface{}
 	addr     uint16
 	addrZ    uint8
+}
+
+func (op *indirectY) Clone() operation {
+	return &indirectY{basicop: op.basicop, f: op.f, r: op.r, w: op.w, rw: op.rw}
 }
 
 func (op *indirectY) tick(cpu *m6502) (done bool) {
@@ -211,7 +224,7 @@ func (op *indirectY) String() string {
 	sb := &strings.Builder{}
 	writePC(sb, op.pc)
 	writeMemory(sb, op.opCode, op.addrZ)
-	writeOP(sb, op.ins, " (0x", toHex8(op.addrZ), "), Y")
+	writeOP(sb, op.ins, " ($", toHex8(op.addrZ), "), Y")
 	return sb.String()
 }
 
@@ -219,6 +232,10 @@ func (op *indirectY) String() string {
 type implicit struct {
 	basicop
 	f func(cpu *m6502)
+}
+
+func (op *implicit) Clone() operation {
+	return &implicit{basicop: op.basicop, f: op.f}
 }
 
 func (op *implicit) tick(cpu *m6502) (done bool) {
@@ -253,6 +270,10 @@ type immediate struct {
 	data uint8
 }
 
+func (op *immediate) Clone() operation {
+	return &immediate{basicop: op.basicop, f: op.f}
+}
+
 func (op *immediate) tick(cpu *m6502) (done bool) {
 	switch op.t {
 	case 1:
@@ -275,7 +296,7 @@ func (op *immediate) String() string {
 	sb := &strings.Builder{}
 	writePC(sb, op.pc)
 	writeMemory(sb, op.opCode, op.data)
-	writeOP(sb, op.ins, toHex8(op.data))
+	writeOP(sb, op.ins, " #$", toHex8(op.data))
 	return sb.String()
 }
 
@@ -288,17 +309,21 @@ type relative struct {
 	target uint16
 }
 
+func (op *relative) Clone() operation {
+	return &relative{basicop: op.basicop, f: op.f}
+}
+
 func (op *relative) tick(cpu *m6502) (done bool) {
 	switch op.t {
 	case 1:
-		done = !op.f(cpu)
 		op.off = int8(cpu.bus.Read(cpu.regs.PC))
 		cpu.regs.PC++
+		op.target = cpu.regs.PC + uint16(op.off)
+		done = !op.f(cpu)
 		if done {
 			cpu.preFetch()
 		}
 	case 2:
-		op.target = cpu.regs.PC + uint16(op.off)
 		if (cpu.regs.PC & 0xff00) == (op.target & 0xff00) { // no page change
 			cpu.regs.PC = op.target
 			cpu.preFetch()
@@ -322,7 +347,7 @@ func (op *relative) String() string {
 	sb := &strings.Builder{}
 	writePC(sb, op.pc)
 	writeMemory(sb, op.opCode, uint8(op.off))
-	writeOP(sb, op.ins, toHex8(uint8(op.off)))
+	writeOP(sb, op.ins, " $", toHex16(op.target))
 	return sb.String()
 }
 
@@ -331,6 +356,10 @@ func (op *relative) String() string {
 type absoluteJMP struct {
 	basicop
 	readAddr uint16
+}
+
+func (op *absoluteJMP) Clone() operation {
+	return &absoluteJMP{}
 }
 
 func (op *absoluteJMP) tick(cpu *m6502) (done bool) {
@@ -356,7 +385,7 @@ func (op *absoluteJMP) String() string {
 	sb := &strings.Builder{}
 	writePC(sb, op.pc)
 	writeMemory(sb, op.opCode, uint8(op.readAddr&0x0ff), uint8(op.readAddr>>8))
-	writeOP(sb, "jmp 0x", toHex16(op.readAddr))
+	writeOP(sb, "jmp $", toHex16(op.readAddr))
 	return sb.String()
 }
 
@@ -365,6 +394,10 @@ func (op *absoluteJMP) String() string {
 type absoluteJSR struct {
 	basicop
 	readAddr uint16
+}
+
+func (op *absoluteJSR) Clone() operation {
+	return &absoluteJSR{}
 }
 
 func (op *absoluteJSR) tick(cpu *m6502) (done bool) {
@@ -395,7 +428,7 @@ func (op *absoluteJSR) String() string {
 	sb := &strings.Builder{}
 	writePC(sb, op.pc)
 	writeMemory(sb, op.opCode, uint8(op.readAddr&0x0ff), uint8(op.readAddr>>8))
-	writeOP(sb, "jsr 0x", toHex16(op.readAddr))
+	writeOP(sb, "jsr $", toHex16(op.readAddr))
 	return sb.String()
 }
 
@@ -404,6 +437,10 @@ func (op *absoluteJSR) String() string {
 type indirectJMP struct {
 	basicop
 	readAddr uint16
+}
+
+func (op *indirectJMP) Clone() operation {
+	return &indirectJMP{}
 }
 
 func (op *indirectJMP) tick(cpu *m6502) (done bool) {
@@ -436,7 +473,7 @@ func (op *indirectJMP) String() string {
 	sb := &strings.Builder{}
 	writePC(sb, op.pc)
 	writeMemory(sb, op.opCode, uint8(op.readAddr&0x0ff), uint8(op.readAddr>>8))
-	writeOP(sb, op.ins, " 0x", toHex16(op.readAddr))
+	writeOP(sb, op.ins, " $", toHex16(op.readAddr))
 	return sb.String()
 }
 
@@ -449,6 +486,10 @@ type absolute struct {
 	f          interface{}
 	readAddr   uint16
 	targetAddr uint16
+}
+
+func (op *absolute) Clone() operation {
+	return &absolute{basicop: op.basicop, f: op.f, x: op.x, y: op.y, r: op.r, w: op.w, rw: op.rw}
 }
 
 func (op *absolute) tick(cpu *m6502) (done bool) {
@@ -495,7 +536,7 @@ func (op *absolute) String() string {
 	sb := &strings.Builder{}
 	writePC(sb, op.pc)
 	writeMemory(sb, op.opCode, uint8(op.readAddr&0x0ff), uint8(op.readAddr>>8))
-	writeOP(sb, op.ins, " 0x", toHex16(op.readAddr), mod)
+	writeOP(sb, op.ins, " $", toHex16(op.readAddr), mod)
 	return sb.String()
 }
 
@@ -507,6 +548,10 @@ type zeropage struct {
 	r, w, rw bool
 	f        interface{}
 	addr     uint8
+}
+
+func (op *zeropage) Clone() operation {
+	return &zeropage{basicop: op.basicop, f: op.f, x: op.x, y: op.y, r: op.r, w: op.w, rw: op.rw}
 }
 
 func (op *zeropage) tick(cpu *m6502) (done bool) {
@@ -534,7 +579,7 @@ func (op *zeropage) setup(opCode uint8) {
 	op.r, op.w, op.rw = getRWRW(op.f)
 }
 
-func (op *zeropage) String() string {
+func (op zeropage) String() string {
 	mod := ""
 	if op.x {
 		mod = ", X"
@@ -544,7 +589,7 @@ func (op *zeropage) String() string {
 	sb := &strings.Builder{}
 	writePC(sb, op.pc)
 	writeMemory(sb, op.opCode, op.addr)
-	writeOP(sb, op.ins, " 0x", toHex8(op.addr), mod)
+	writeOP(sb, op.ins, " $", toHex8(op.addr), mod)
 	return sb.String()
 }
 
@@ -566,6 +611,10 @@ func getRWRW(f interface{}) (r, w, rw bool) {
 
 type unsupported struct {
 	basicop
+}
+
+func (op *unsupported) Clone() operation {
+	return &unsupported{}
 }
 
 func (op *unsupported) tick(cpu *m6502) (done bool) {
@@ -614,22 +663,21 @@ func exec(cpu *m6502, f interface{}, addr uint16, r, w, rw bool) {
 //-----------
 
 func writePC(sb *strings.Builder, pc uint16) {
-	sb.WriteString("0x")
-	sb.WriteString(toHex16(pc))
-	sb.WriteString(":")
+	sb.WriteString(strings.ToUpper(toHex16(pc)))
+	sb.WriteString(": ")
 }
 
 func writeMemory(sb *strings.Builder, bytes ...uint8) {
-	for _, b := range bytes {
-		sb.WriteString(" ")
-		sb.WriteString(toHex8(b))
-	}
-	sb.WriteString("             "[:10-(len(bytes)*3)+1])
+	// for _, b := range bytes {
+	// 	sb.WriteString(" ")
+	// 	sb.WriteString(toHex8(b))
+	// }
+	// sb.WriteString("             "[:10-(len(bytes)*3)+1])
 }
 
 func writeOP(sb *strings.Builder, strs ...string) {
 	for _, str := range strs {
-		sb.WriteString(str)
+		sb.WriteString(strings.ToLower(str))
 	}
 }
 

@@ -13,3 +13,4 @@ trace.out
 *.test
 *.map
 cpu/m6502/**/*.o
+*_err.png

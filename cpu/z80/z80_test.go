@@ -19,9 +19,9 @@ import (
 
 func TestRegPair(t *testing.T) {
 	cpu := NewZ80(nil)
-	cpu.Registers().(*Z80Registers).B = 0x0A
-	cpu.Registers().(*Z80Registers).C = 0x0B
-	assert.Equal(t, uint16(0x0A0B), cpu.Registers().(*Z80Registers).BC.Get())
+	cpu.Registers().B = 0x0A
+	cpu.Registers().C = 0x0B
+	assert.Equal(t, uint16(0x0A0B), cpu.Registers().BC.Get())
 }
 
 type cpuTest struct {
@@ -99,7 +99,7 @@ func TestOPCodes(t *testing.T) {
 			continue
 		}
 
-		setRegistersStr(cpu.Registers().(*Z80Registers), test.registers, test.otherRegs)
+		setRegistersStr(cpu.Registers(), test.registers, test.otherRegs)
 
 		for _, mem := range test.memory {
 			for i, b := range mem.bytes {
@@ -117,7 +117,7 @@ func TestOPCodes(t *testing.T) {
 		for i := 0; i < result.otherRegs.TS; i++ {
 			cpu.Tick()
 		}
-		regs := cpu.Registers().(*Z80Registers)
+		regs := cpu.Registers()
 
 		ko := false
 		ko = ko || !assert.Equal(t, result.endPC, regs.PC, "test '%s' cpu.PC fail", test.name)
@@ -372,14 +372,14 @@ func TestZEXDoc(t *testing.T) {
 
 	cpu := NewZ80(&dummyBus{mem: mem})
 	// cpu.SetDebuger(&dumpDebbuger{cpu: cpu.(*z80)})
-	cpu.Registers().(*Z80Registers).PC = uint16(0x100)
+	cpu.Registers().PC = uint16(0x100)
 	cpu.RegisterTrap(0x5, func() {
-		printChar(cpu.Registers().(*Z80Registers), mem)
+		printChar(cpu.Registers(), mem)
 	})
 
 	for {
 		cpu.Tick()
-		if cpu.Registers().(*Z80Registers).PC == 0 {
+		if cpu.Registers().PC == 0 {
 			assert.NotContains(t, cpmScreen, "ERROR")
 			return
 		}
@@ -453,9 +453,9 @@ func (bus *dummyBus) ReadMemory()  { bus.data = bus.mem[bus.addr] }
 func (bus *dummyBus) WriteMemory() { bus.mem[bus.addr] = bus.data }
 func (bus *dummyBus) Release()     {}
 
-func (bus *dummyBus) ReadPort()                                                    { bus.data = uint8(bus.addr >> 8) }
-func (bus *dummyBus) WritePort()                                                   {}
-func (bus *dummyBus) RegisterPort(mask cpu.PortMask, manager emulator.PortManager) {}
+func (bus *dummyBus) ReadPort()                                               { bus.data = uint8(bus.addr >> 8) }
+func (bus *dummyBus) WritePort()                                              {}
+func (bus *dummyBus) RegisterPort(mask cpu.PortMask, manager cpu.PortManager) {}
 
 func (bus *dummyBus) GetBlock(addr uint16, l uint16) []byte { return nil }
 

@@ -1,42 +1,35 @@
 package nes
 
 import (
-	"image"
 	"image/png"
 	"os"
 	"testing"
+
+	"fyne.io/fyne/v2/app"
+	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/utils"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestDumpPages(t *testing.T) {
-	// cartridge := mappers.CreateMapper("games/nes/Donkey Kong Classics (U).nes")
+func Test_test_cpu_exec_space_ppuio(t *testing.T) {
+	emulator.Debug = new(bool)
+	CartFile = new(string)
+	emulator.App = app.NewWithID("io.fyne.test")
 
-	// cpuBus := m6502.NewBus()
-	// cpu := m6502.MewM6502(cpuBus)
+	*CartFile = string("tests/test_cpu_exec_space_ppuio.nes")
+	nes := NewNES().(*nes)
 
-	// ppuBus := m6502.NewBus()
-	// ppu := newPPU(ppuBus, cpu)
+	nes.Clock().RunFor(1)
 
-	// cartridge.ConnectToPPU(ppuBus)
-
-}
-func TestDumpPallete(t *testing.T) {
-
-	img := image.NewRGBA(image.Rect(0, 0, 160, 40))
-	for y := 0; y < 4; y++ {
-		for x := 0; x < 0x10; x++ {
-			c := colors[y<<4|x]
-			for dx := 0; dx < 10; dx++ {
-				for dy := 0; dy < 10; dy++ {
-					img.Set(x*10+dx, y*10+dy, c)
-				}
-			}
+	result, _, _ := utils.ImgCompare("tests/test_cpu_exec_space_ppuio_ok.png", nes.ppu.display)
+	if result != 0 {
+		f, err := os.Create("tests/test_cpu_exec_space_ppuio_err.png")
+		if err != nil {
+			panic(err)
 		}
+		png.Encode(f, nes.ppu.display)
+		assert.FailNow(t, "Error on CPU test")
 	}
-
-	f, err := os.Create("tests/palette.png")
-	if err != nil {
-		panic(err)
-	}
-	png.Encode(f, img)
-
 }
+
+// }

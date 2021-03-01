@@ -8,6 +8,8 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
+	"strconv"
+	"strings"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -98,17 +100,6 @@ func main() {
 		}
 	}
 
-	// if len(*breaks) > 0 {
-	// 	bps := strings.Split(*breaks, ",")
-	// 	for _, bp := range bps {
-	// 		n, err := strconv.ParseUint(bp, 0, 16)
-	// 		if err != nil {
-	// 			panic(err)
-	// 		}
-	// 		emulator.DebuggerCTL.SetBreakPoint(uint16(n))
-	// 	}
-	// }
-
 	emulator.App = app.New()
 	emulator.App.Settings().SetTheme(theme.LightTheme())
 
@@ -134,7 +125,19 @@ func main() {
 	var cpuCtl ui.Control
 
 	if *emulator.Debug {
-		db := emulator.NewDebugger(machine.Clock())
+		var breaks []uint16
+		if len(*emulator.Breaks) > 0 {
+			bps := strings.Split(*emulator.Breaks, ",")
+			for _, bp := range bps {
+				n, err := strconv.ParseUint(bp, 0, 16)
+				if err != nil {
+					panic(err)
+				}
+				breaks = append(breaks, uint16(n))
+			}
+		}
+
+		db := emulator.NewDebugger(machine.Clock(), breaks)
 		machine.SetDebugger(db)
 		cpuCtl = machine.CPUControl()
 
