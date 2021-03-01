@@ -112,13 +112,13 @@ func NewCPC(cpc464 bool) emulator.Machine {
 		cpc.clock.AddTicker(0, cas)
 	}
 
-	// if !*emulator.LoadSlow {
-	// 	if cpc464 {
-	// 		z80.RegisterTrap(0x2836, cpc.loadTapeBlockCPC464)
-	// 	} else {
-	// 		z80.RegisterTrap(0x29A6, cpc.loadTapeBlockCPC6128)
-	// 	}
-	// }
+	if !*emulator.LoadSlow {
+		if cpc464 {
+			z80.RegisterTrap(0x2836, cpc.loadTapeBlockCPC464)
+		} else {
+			z80.RegisterTrap(0x29A6, cpc.loadTapeBlockCPC6128)
+		}
+	}
 
 	return cpc
 }
@@ -176,7 +176,7 @@ func (m *cpc) GetVolumeControl() func(float64) {
 	return m.sound.SetVolume
 }
 
-func (m *cpc) CPUControl() ui.Control               { return ui.NewZ80UI(m.cpu.Registers()) }
+func (m *cpc) CPUControl() ui.Control               { return ui.NewZ80UI(m.cpu) }
 func (m *cpc) SetDebugger(db cpu.DebuggerCallbacks) { m.cpu.SetDebugger(db) }
 
 type dummyPortsManager struct{}

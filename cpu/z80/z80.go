@@ -312,6 +312,9 @@ func (cpu *z80) Tick() {
 	if cpu.scheduler.first().isDone() {
 		cpu.scheduler.next()
 		if cpu.scheduler.isEmpty() {
+			if cpu.log != nil {
+				cpu.log.AppendLastOP(cpu.fetched.getInstruction())
+			}
 			if cpu.doInterrupt {
 				cpu.execInterrupt()
 			} else {

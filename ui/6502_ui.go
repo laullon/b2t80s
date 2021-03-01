@@ -76,11 +76,9 @@ func (ui *m6502UI) Update() {
 	ui.pc.update(toHex16(ui.regs.PC))
 	ui.ps.update(ui.regs.PS.String())
 	ui.logTxt.Text = strings.Join(append(ui.log, "\n", ui.nextOP), "\n")
-	ui.widget.Refresh()
 }
 
 func (ui *m6502UI) AppendLastOP(op string) {
-	println(op)
 	log := append(ui.log, op)
 	if len(log) > 10 {
 		ui.log = log[1:]

@@ -12,10 +12,10 @@ func NewZX128K() emulator.Machine {
 	mem.LoadRom(1, data.MustAsset("data/roms/128-1.rom"))
 
 	zx := NewZX(mem, true, true, true)
-	// if !*emulator.LoadSlow {
-	// 	zx.cpu.RegisterTrap(0x056b, zx.loadDataBlock)
-	// 	zx.cpu.RegisterTrap(0x3683, zx.ula.LoadCommand128)
-	// }
+	if !*emulator.LoadSlow {
+		zx.cpu.RegisterTrap(0x056b, zx.loadDataBlock)
+		zx.cpu.RegisterTrap(0x3683, zx.ula.LoadCommand128)
+	}
 
 	zx.ula.tsPerRow = 228
 	zx.ula.scanlines = 311
