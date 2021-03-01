@@ -187,7 +187,7 @@ func (msx *msx) UIControls() []ui.Control {
 	return res
 }
 
-func (msx *msx) CPUControl() ui.Control               { return ui.NewZ80UI(msx.cpu.Registers()) }
+func (msx *msx) CPUControl() ui.Control               { return ui.NewZ80UI(msx.cpu) }
 func (msx *msx) SetDebugger(db cpu.DebuggerCallbacks) { msx.cpu.SetDebugger(db) }
 
 func (msx *msx) GetVolumeControl() func(float64) {

@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/laullon/b2t80s/cpu"
-	"github.com/laullon/b2t80s/emulator"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -73,8 +72,8 @@ func (l *logger) Dump() {
 }
 
 func TestOPCodes(t *testing.T) {
-	readTests()
-	readTestsResults()
+	readTests(t)
+	readTestsResults(t)
 
 	logger := &logger{}
 	log.SetOutput(logger)
@@ -89,7 +88,7 @@ func TestOPCodes(t *testing.T) {
 
 		result, ok := results[test.name]
 		if !ok {
-			panic(fmt.Sprintf("result for test '%s' not found", test.name))
+			assert.FailNowf(t, "error", "result for test '%s' not found", test.name)
 		}
 
 		logger.Clear()
@@ -198,10 +197,10 @@ func parseMemory(str string) (pos uint16, b []byte) {
 	return
 }
 
-func readTests() {
-	file, err := os.Open("tests.in")
+func readTests(t *testing.T) {
+	file, err := os.Open("tests/tests.in")
 	if err != nil {
-		panic(err)
+		assert.FailNowf(t, "error!!", "%v", err)
 	}
 	defer file.Close()
 
@@ -245,10 +244,10 @@ func readTests() {
 	}
 }
 
-func readTestsResults() {
-	file, err := os.Open("tests.out")
+func readTestsResults(t *testing.T) {
+	file, err := os.Open("tests/tests.out")
 	if err != nil {
-		panic(err)
+		assert.FailNowf(t, "error!!", "%v", err)
 	}
 	defer file.Close()
 
@@ -357,13 +356,13 @@ func TestZEXDoc(t *testing.T) {
 		t.Skip("skipping test in short mode.")
 	}
 
-	f, err := os.Open("../tests/zout/zexdocsmall.cim")
+	f, err := os.Open("tests/zexdocsmall.cim")
 	if err != nil {
-		log.Fatal(err)
+		assert.FailNowf(t, "error!!", "%v", err)
 	}
 	zexdoc, err := ioutil.ReadAll(f)
 	if err != nil {
-		log.Fatal(err)
+		assert.FailNowf(t, "error!!", "%v", err)
 	}
 
 	mem := make([]byte, 0x0100)
@@ -458,16 +457,3 @@ func (bus *dummyBus) WritePort()                                              {}
 func (bus *dummyBus) RegisterPort(mask cpu.PortMask, manager cpu.PortManager) {}
 
 func (bus *dummyBus) GetBlock(addr uint16, l uint16) []byte { return nil }
-
-// ***
-// ***
-
-type dummyClock struct {
-	stopAtTSate uint
-	ts          uint
-}
-
-func (c *dummyClock) AddTStates(ts uint)                    { c.ts += ts }
-func (c *dummyClock) GetTStates() uint                      { return c.ts }
-func (c *dummyClock) FrameDone() bool                       { return c.ts >= c.stopAtTSate }
-func (c *dummyClock) AddTicker(mod uint, t emulator.Ticker) {}

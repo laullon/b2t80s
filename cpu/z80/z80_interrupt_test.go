@@ -7,13 +7,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/laullon/b2t80s/cpu"
 	"github.com/stretchr/testify/assert"
 )
 
 var start time.Time
 
 func TestInterrupt(t *testing.T) {
-	f, err := os.Open("Interrupt_test.z80.bin")
+	f, err := os.Open("tests/Interrupt_test.z80.bin")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,8 +29,8 @@ func TestInterrupt(t *testing.T) {
 
 	tester := &counterHardware{}
 
-	bus := z80.NewBus(&basicMemory{memory: mem})
-	cpu := NewZ80(bus)
+	bus := NewBus(&basicMemory{memory: mem})
+	z80 := NewZ80(bus)
 	// cpu.SetDebuger(&dumpDebbuger{cpu: cpu.(*z80)})
 	bus.RegisterPort(cpu.PortMask{Mask: 0, Value: 0}, tester)
 
@@ -39,14 +40,14 @@ func TestInterrupt(t *testing.T) {
 	ticker := time.NewTicker(wait)
 	go func() {
 		for range ticker.C {
-			cpu.Interrupt(true)
+			z80.Interrupt(true)
 			count++
 		}
 	}()
 
 	start = time.Now()
 	for count <= 5 {
-		cpu.Tick()
+		z80.Tick()
 	}
 
 	assert.Equal(t, 5, tester.c)
