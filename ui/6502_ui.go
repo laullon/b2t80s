@@ -22,6 +22,7 @@ type m6502UI struct {
 
 	logTxt *widget.Label
 	log    []string
+	nextOP string
 }
 
 func NewM6502UI(cpu m6502.M6502) Control {
@@ -74,17 +75,22 @@ func (ui *m6502UI) Update() {
 	ui.sp.update(toHex8(ui.regs.SP))
 	ui.pc.update(toHex16(ui.regs.PC))
 	ui.ps.update(ui.regs.PS.String())
-	ui.logTxt.Text = strings.Join(ui.log, "\n")
+	ui.logTxt.Text = strings.Join(append(ui.log, "\n", ui.nextOP), "\n")
 	ui.widget.Refresh()
 }
 
 func (ui *m6502UI) AppendLastOP(op string) {
+	println(op)
 	log := append(ui.log, op)
 	if len(log) > 10 {
 		ui.log = log[1:]
 	} else {
 		ui.log = log
 	}
+}
+
+func (ui *m6502UI) SetNextOP(op string) {
+	ui.nextOP = op
 }
 
 func toHex8(v uint8) string {

@@ -23,20 +23,26 @@ type debugger struct {
 
 	doStop          bool
 	doStopInterrupt bool
+	breaks          []uint16
 }
 
-func NewDebugger(clock Clock) Debugger {
+func NewDebugger(clock Clock, breaks []uint16) Debugger {
+
 	debug := &debugger{
-		clock: clock,
+		clock:  clock,
+		breaks: breaks,
+		doStop: true,
 	}
 	return debug
 }
 
-func (debug *debugger) StopNextFrame() {
-	debug.doStopInterrupt = true
-}
+func (debug *debugger) Eval(pc uint16) {
+	for _, brk := range debug.breaks {
+		if brk == pc {
+			debug.Stop()
+		}
+	}
 
-func (debug *debugger) Eval() {
 	if debug.doStop {
 		debug.doStop = false
 		debug.clock.Pause()
@@ -52,6 +58,10 @@ func (debug *debugger) EvalInterrupt() {
 
 func (debug *debugger) Stop() {
 	debug.doStop = true
+}
+
+func (debug *debugger) StopNextFrame() {
+	debug.doStopInterrupt = true
 }
 
 func (debug *debugger) StepNextFrame() {

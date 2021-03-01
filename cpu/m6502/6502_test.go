@@ -8,8 +8,6 @@ import (
 	"testing"
 
 	"github.com/laullon/b2t80s/cpu"
-	cpuUtils "github.com/laullon/b2t80s/cpu"
-	"github.com/laullon/b2t80s/emulator"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,24 +29,23 @@ func TestFunctionalTests(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	emulator.Debug = new(bool)
-
 	mem, err := ioutil.ReadAll(f)
 	if err != nil {
 		log.Fatal(err)
 	}
+	ticks := 0
 
 	cpu := MewM6502(&simpleBus{mem: mem}).(*m6502)
 	if testing.Short() {
 		println("skipping logs in short mode.")
 	} else {
-		cpu.log = cpuUtils.NewLogTail()
+		cpu.SetTracer(&logPrinter{ticks: &ticks})
 	}
 
 	defer func() {
 		if r := recover(); r != nil {
 			if cpu.log != nil {
-				println(cpu.log.Print())
+				println(cpu.log.(*logPrinter).Print())
 			}
 			assert.FailNow(t, "Panic", r)
 			panic(r)
@@ -59,25 +56,22 @@ func TestFunctionalTests(t *testing.T) {
 	cpu.preFetch()
 	cpu.op = cpu.nextOp
 	for i := 0; ; i++ {
+		ticks++
 		cpu.Tick()
-		if cpu.regs.PC == 0x0000 {
-			if cpu.log != nil {
-				println(cpu.log.Print())
-			}
-			assert.FailNow(t, "Error detected!!!!")
-		} else if cpu.regs.PC == 0xFFFF {
+		if cpu.regs.PC > 0xfff0 {
+			assert.FailNow(t, "error")
+			return
+		} else if cpu.regs.PC == 0 {
 			return
 		}
 	}
 }
 
-func _TestInterrup(t *testing.T) {
+func TestInterrup(t *testing.T) {
 	f, err := os.Open("functional_test/6502_interrupt_test.bin")
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	emulator.Debug = new(bool)
 
 	mem, err := ioutil.ReadAll(f)
 	if err != nil {
@@ -91,11 +85,12 @@ func _TestInterrup(t *testing.T) {
 	bus.interrupt = true
 	cpu := MewM6502(bus).(*m6502)
 	bus.cpu = cpu
+	ticks := 0
 
 	if testing.Short() {
 		println("skipping logs in short mode.")
 	} else {
-		cpu.log = cpuUtils.NewLogTail()
+		cpu.SetTracer(&logPrinter{ticks: &ticks})
 	}
 
 	cpu.regs.PC = 0x0400
@@ -104,7 +99,7 @@ func _TestInterrup(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			if cpu.log != nil {
-				println(cpu.log.Print())
+				println(cpu.log.(*logPrinter).Print())
 			}
 			panic(r)
 		}
@@ -114,13 +109,12 @@ func _TestInterrup(t *testing.T) {
 	cpu.preFetch()
 	cpu.op = cpu.nextOp
 	for i := 0; ; i++ {
+		ticks++
 		cpu.Tick()
 		if cpu.regs.PC > 0xfff0 {
-			if !assert.NotEqual(t, uint16(0xffff), cpu.regs.PC, "ERROR !!!") {
-				if cpu.log != nil {
-					println(cpu.log.Print())
-				}
-			}
+			assert.FailNow(t, "error")
+			return
+		} else if cpu.regs.PC == 0 {
 			return
 		}
 	}
@@ -131,8 +125,6 @@ func TestTiming(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	emulator.Debug = new(bool)
 
 	mem, err := ioutil.ReadAll(f)
 	if err != nil {
@@ -151,7 +143,7 @@ func TestTiming(t *testing.T) {
 	if testing.Short() {
 		println("skipping logs in short mode.")
 	} else {
-		cpu.log = &logPrinter{ticks: &ticks}
+		cpu.SetTracer(&logPrinter{ticks: &ticks})
 	}
 
 	for i := 0; ; i++ {
@@ -160,9 +152,9 @@ func TestTiming(t *testing.T) {
 		if cpu.regs.PC == 0x126A {
 			// TODO: review
 			// assert.Equal(t, 1141, ticks, "wrong number of ticks: %d", ticks)
-			assert.Equal(t, 1058, ticks, "wrong number of ticks: %d", ticks)
+			assert.Equal(t, 962, ticks, "wrong number of ticks: %d", ticks)
 			if cpu.log != nil {
-				println(cpu.log.Print())
+				println(cpu.log.(*logPrinter).Print())
 			}
 			return
 		}
@@ -178,11 +170,12 @@ type logPrinter struct {
 	prevTicks int
 }
 
-func (log *logPrinter) AddEntry(entry string) {
+func (log *logPrinter) AppendLastOP(entry string) {
 	fmt.Printf("%5d (%d) - %s\n", *log.ticks, *log.ticks-log.prevTicks, entry)
 	log.prevTicks = *log.ticks
 }
-func (log *logPrinter) Print() string { return "" }
+func (log *logPrinter) Print() string    { return "" }
+func (log *logPrinter) SetNextOP(string) {}
 
 type simpleBus struct {
 	mem       []byte
@@ -209,6 +202,6 @@ func (bus *simpleBus) Read(addr uint16) uint8 {
 	// }
 	return bus.mem[addr]
 }
-func (bus *simpleBus) RegisterPort(name string, mask cpu.PortMask, manager emulator.PortManager) {
-}
+func (bus *simpleBus) RegisterPort(name string, mask cpu.PortMask, manager cpu.PortManager) {}
+
 func (bus *simpleBus) DumpMap() string { return "" }

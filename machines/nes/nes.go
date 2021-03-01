@@ -13,9 +13,11 @@ var palClock = uint(1_662_607)
 var CartFile *string
 
 type nes struct {
-	cpu m6502.M6502
-	ppu *ppu
-	apu *apu
+	cpu    m6502.M6502
+	ppu    *ppu
+	apu    *apu
+	cpuBus m6502.Bus
+	ppuBus m6502.Bus
 
 	clock    emulator.Clock
 	debugger emulator.Debugger
@@ -27,20 +29,20 @@ func NewNES() emulator.Machine {
 	cartridge := mappers.CreateMapper(*CartFile)
 
 	clock := emulator.NewCLock(palClock, 50)
-	cpuBus := m6502.NewBus()
+	m.cpuBus = m6502.NewBus()
 	if *emulator.Debug {
-		cpuBus = m6502.NewWatchableBus(cpuBus)
+		m.cpuBus = m6502.NewWatchableBus(m.cpuBus)
 	}
 
-	m6805 := m6502.MewM6502(cpuBus)
+	m6805 := m6502.MewM6502(m.cpuBus)
 
 	apu := newAPU(m6805, palClock)
 
-	ppuBus := m6502.NewBus()
-	ppu := newPPU(ppuBus, m6805)
+	m.ppuBus = m6502.NewBus()
+	ppu := newPPU(m.ppuBus, m6805)
 
 	// DMA
-	apu.cpuBus = cpuBus
+	apu.cpuBus = m.cpuBus
 	apu.ppu = ppu
 
 	clock.AddTicker(0, m6805)
@@ -48,24 +50,24 @@ func NewNES() emulator.Machine {
 	clock.AddTicker(5, ppu)
 
 	// RAM
-	cpuBus.RegisterPort("ram", cpu.PortMask{Mask: 0b1110_0000_0000_0000, Value: 0b0000_0000_0000_0000}, &m6502.BasicRam{Data: make([]byte, 0x800), Mask: 0x7ff})
+	m.cpuBus.RegisterPort("ram", cpu.PortMask{Mask: 0b1110_0000_0000_0000, Value: 0b0000_0000_0000_0000}, &m6502.BasicRam{Data: make([]byte, 0x800), Mask: 0x7ff})
 
 	// PPU
-	cpuBus.RegisterPort("ppu", cpu.PortMask{Mask: 0b1110_0000_0000_0000, Value: 0b0010_0000_0000_0000}, ppu)
+	m.cpuBus.RegisterPort("ppu", cpu.PortMask{Mask: 0b1110_0000_0000_0000, Value: 0b0010_0000_0000_0000}, ppu)
 
 	// APU
-	cpuBus.RegisterPort("apu", cpu.PortMask{Mask: 0b1111_1111_1110_0000, Value: 0b0100_0000_0000_0000}, apu)
+	m.cpuBus.RegisterPort("apu", cpu.PortMask{Mask: 0b1111_1111_1110_0000, Value: 0b0100_0000_0000_0000}, apu)
 
-	cartridge.ConnectToCPU(cpuBus)
-	cartridge.ConnectToPPU(ppuBus)
+	cartridge.ConnectToCPU(m.cpuBus)
+	cartridge.ConnectToPPU(m.ppuBus)
 
 	m.cpu = m6805
 	m.ppu = ppu
 	m.apu = apu
 	m.clock = clock
 
-	print("cpu bus:\n", cpuBus.DumpMap(), "\n")
-	print("ppu bus:\n", ppuBus.DumpMap(), "\n")
+	// print("cpu bus:\n", m.cpuBus.DumpMap(), "\n")
+	// print("ppu bus:\n", m.ppuBus.DumpMap(), "\n")
 
 	return m
 }

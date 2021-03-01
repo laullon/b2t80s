@@ -1,7 +1,6 @@
 package nes
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"math/bits"
@@ -20,10 +19,12 @@ type ppu struct {
 
 	mask byte
 
+	writeAddr  uint16
 	writeLacht byte
 
-	addr    uint16
-	addrInc uint16
+	vRAMAddr    uint16
+	vRAMAddrInc uint16
+	buff        byte
 
 	scrollXv uint8
 	scrollYv uint8
@@ -267,20 +268,28 @@ func (ppu *ppu) ReadPort(addr uint16) (res byte, skip bool) {
 		res = ppu.oam[ppu.oamAddr]
 
 	case 6:
-		res = uint8(ppu.addr)
+		res = uint8(ppu.vRAMAddr)
 
 	case 7:
-		// fmt.Printf("[ppu] write -> addr:0x%04X data:%v  \n", ppu.addr, data)
-		res = ppu.bus.Read(ppu.addr & 0x3FFF)
-		ppu.addr += ppu.addrInc
+		if (ppu.vRAMAddr & 0x3FFF) < 0x3F00 {
+			res = ppu.buff
+			ppu.buff = ppu.bus.Read(ppu.vRAMAddr & 0x3FFF)
+		} else {
+			res = ppu.bus.Read(ppu.vRAMAddr & 0x3FFF)
+		}
+		// fmt.Printf("[ppu] read -> vram addr:0x%04X data:0x%02x  \n", ppu.vRAMAddr, res)
+		ppu.vRAMAddr += ppu.vRAMAddrInc
 
 	default:
+		res = ppu.lastWrite
 		// panic(fmt.Sprintf("[ppu] read register %d (0x%04X)\n", addr&0x7, addr))
 	}
+	// fmt.Printf("[ppu] read -> addr:0x%04X data:0x%02x  \n", addr, res)
 	return
 }
 
 func (ppu *ppu) WritePort(addr uint16, data byte) {
+	// fmt.Printf("[ppu] write addr:0x%04X data:0x%02x  w:%d\n", addr, data, ppu.writeLacht)
 	ppu.lastWrite = data
 	switch addr & 0xff {
 	case 0:
@@ -290,9 +299,9 @@ func (ppu *ppu) WritePort(addr uint16, data byte) {
 		// fmt.Printf("[ppu] write -> nameTableBase:0x%04X data:%08b  \n", ppu.nameTableBase, data)
 		ppu.enableNMI = data&0x80 == 0x80
 		if data&0x04 == 0 {
-			ppu.addrInc = 1
+			ppu.vRAMAddrInc = 1
 		} else {
-			ppu.addrInc = 32
+			ppu.vRAMAddrInc = 32
 		}
 
 	case 1:
@@ -319,18 +328,21 @@ func (ppu *ppu) WritePort(addr uint16, data byte) {
 
 	case 6:
 		if ppu.writeLacht == 0 {
-			ppu.addr = (uint16(data) << 8) | (ppu.addr & 0x00ff)
+			ppu.writeAddr = (uint16(data) << 8) | (ppu.writeAddr & 0x00ff)
 			ppu.writeLacht = 1
 		} else {
-			ppu.addr = (ppu.addr & 0xff00) | uint16(data)
+			ppu.writeAddr = (ppu.writeAddr & 0xff00) | uint16(data)
 			ppu.writeLacht = 0
+			ppu.vRAMAddr = ppu.writeAddr
 		}
+		// fmt.Printf("[ppu] -> vram addr:0x%04X (data:0x%02x)  \n", ppu.vRAMAddr, data)
 
 	case 7:
-		ppu.bus.Write(ppu.addr&0x3FFF, data)
-		ppu.addr += ppu.addrInc
+		// fmt.Printf("[ppu] write -> addr:0x%04X data:0x%02x  \n", ppu.vRAMAddr, data)
+		ppu.bus.Write(ppu.vRAMAddr&0x3FFF, data)
+		ppu.vRAMAddr += ppu.vRAMAddrInc
 
 	default:
-		panic(fmt.Sprintf("[ppu] write 0x%04X 0x%02x\n", addr, data))
+		// panic(fmt.Sprintf("[ppu] write 0x%04X 0x%02x\n", addr, data))
 	}
 }

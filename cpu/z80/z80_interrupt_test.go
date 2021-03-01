@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/laullon/b2t80s/emulator"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,7 +28,7 @@ func TestInterrupt(t *testing.T) {
 
 	tester := &counterHardware{}
 
-	bus := emulator.NewBus(&basicMemory{memory: mem})
+	bus := z80.NewBus(&basicMemory{memory: mem})
 	cpu := NewZ80(bus)
 	// cpu.SetDebuger(&dumpDebbuger{cpu: cpu.(*z80)})
 	bus.RegisterPort(cpu.PortMask{Mask: 0, Value: 0}, tester)

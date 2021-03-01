@@ -108,9 +108,12 @@ func (d *fetchedData) getMemory() string {
 	return res.String()
 }
 
+type CPUTrap func()
+
 type Z80 interface {
 	cpu.CPU
 	Registers() *Z80Registers
+	RegisterTrap(pc uint16, trap CPUTrap)
 }
 
 type z80 struct {
@@ -128,7 +131,7 @@ type z80 struct {
 	fetched   *fetchedData
 	scheduler *circularBuffer
 
-	traps map[uint16]cpu.CPUTrap
+	traps map[uint16]CPUTrap
 
 	log      cpu.CPUTracer
 	debugger cpu.DebuggerCallbacks
@@ -160,7 +163,7 @@ func NewZ80(bus Bus) Z80 {
 		bus:       bus,
 		fetched:   &fetchedData{},
 		scheduler: newCircularBuffer(),
-		traps:     make(map[uint16]cpu.CPUTrap),
+		traps:     make(map[uint16]CPUTrap),
 		regs: &Z80Registers{
 			PC: 0,
 			M1: false,
@@ -215,7 +218,7 @@ func (cpu *z80) FullStatus() string {
 
 func (cpu *z80) CurrentOP() string { panic(-2) }
 
-func (cpu *z80) RegisterTrap(pc uint16, trap cpu.CPUTrap) {
+func (cpu *z80) RegisterTrap(pc uint16, trap CPUTrap) {
 	cpu.traps[pc] = trap
 }
 
@@ -280,7 +283,7 @@ func (cpu *z80) execInterrupt() {
 
 func (cpu *z80) prepareForNewInstruction() {
 	if cpu.debugger != nil {
-		cpu.debugger.Eval()
+		cpu.debugger.Eval(cpu.regs.PC)
 	}
 
 	cpu.fetched.n = 0
