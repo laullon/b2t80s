@@ -1,8 +1,10 @@
 package atetris
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/laullon/b2t80s/cpu"
-	"github.com/laullon/b2t80s/cpu/m6502"
 )
 
 // 0000-0FFF   R/W   xxxxxxxx    Program RAM
@@ -27,35 +29,6 @@ import (
 // 4000-7FFF   R     xxxxxxxx    Banked program ROM
 // 8000-FFFF   R     xxxxxxxx    Program ROM
 
-func newBus() m6502.Bus {
-	bus := m6502.NewBus()
-
-	rom := loadRom("136066-1100.45f")
-	status := &status{}
-
-	eeprom := &eeprom{
-		mem:    make([]byte, 0x0200),
-		mask:   0x01ff,
-		status: &eepromStatus{},
-	}
-
-	// RAM
-	bus.RegisterPort("ram", cpu.PortMask{Mask: 0b1111000000000000, Value: 0b0000000000000000}, &ram{mem: make([]byte, 0x1000), mask: 0x0fff})
-
-	// ROM
-	bus.RegisterPort("slapstic", cpu.PortMask{Mask: 0b1100000000000000, Value: 0b0100000000000000}, newSlapstic(rom))
-	bus.RegisterPort("rom", cpu.PortMask{Mask: 0b1000000000000000, Value: 0b1000000000000000}, &fixedROM{rom: rom})
-
-	// EEPROM
-	bus.RegisterPort("eeprom.status", cpu.PortMask{Mask: 0b1111110000000000, Value: 0b0011010000000000}, eeprom.status)
-	bus.RegisterPort("eeprom", cpu.PortMask{Mask: 0b1111110000000000, Value: 0b0010010000000000}, eeprom)
-
-	// STATUS
-	bus.RegisterPort("status", cpu.PortMask{Mask: 0b1111110000000000, Value: 0b0011110000000000}, status)
-
-	return bus
-}
-
 type status struct {
 	romPage byte
 }
@@ -65,13 +38,29 @@ func (s *status) WritePort(addr uint16, data byte)  { s.romPage = data & 0b00000
 
 // ----------------------------
 type ram struct {
-	mem  []byte
-	mask uint16
-	cpu  cpu.CPU
+	mem   []byte
+	mask  uint16
+	cpu   cpu.CPU
+	trace bool
 }
 
-func (ram *ram) ReadPort(addr uint16) (byte, bool) { return ram.mem[addr&ram.mask], false }
-func (ram *ram) WritePort(addr uint16, data byte)  { ram.mem[addr&ram.mask] = data }
+func (ram *ram) ReadPort(addr uint16) (byte, bool) {
+	if ram.trace {
+		fmt.Printf("-> read  0x%04X = 0x%02x\n", addr&ram.mask, ram.mem[addr&ram.mask])
+	}
+	return ram.mem[addr&ram.mask], false
+}
+
+func (ram *ram) WritePort(addr uint16, data byte) {
+	if ram.trace {
+		fmt.Printf("-> write 0x%04X = 0x%02x\n", addr&ram.mask, data)
+	}
+	ram.mem[addr&ram.mask] = data
+}
+
+func (ram *ram) Memory() []byte {
+	return ram.mem
+}
 
 // ----------------------------
 type eepromStatus struct {
@@ -79,7 +68,9 @@ type eepromStatus struct {
 }
 
 func (s *eepromStatus) ReadPort(addr uint16) (byte, bool) { panic(-1) }
-func (s *eepromStatus) WritePort(addr uint16, data byte)  { s.lock = false }
+func (s *eepromStatus) WritePort(addr uint16, data byte) {
+	s.lock = true
+}
 
 // ----------------------------
 type eeprom struct {
@@ -88,13 +79,56 @@ type eeprom struct {
 	status *eepromStatus
 }
 
-func (eeprom *eeprom) ReadPort(addr uint16) (byte, bool) { return eeprom.mem[addr&eeprom.mask], false }
-func (eeprom *eeprom) WritePort(addr uint16, data byte) {
-	if !eeprom.status.lock {
-		println("----")
-		eeprom.mem[addr&eeprom.mask] = data
-		eeprom.status.lock = true
+func newEERPROM() *eeprom {
+	data := make([]byte, 0x0200)
+	f, err := os.Open("nvram.tetris")
+	defer f.Close()
+	if err != nil {
+		for i := 0; i < len(data); i++ {
+			data[i] = 0xff
+		}
+	} else {
+		_, err := f.Read(data)
+		if err != nil {
+			panic(err)
+		}
 	}
+
+	println("data:", data)
+	if len(data) != 0x0200 {
+	}
+	eeprom := &eeprom{
+		mem:    data,
+		mask:   0x01ff,
+		status: &eepromStatus{},
+	}
+	return eeprom
+}
+
+func (eeprom *eeprom) ReadPort(addr uint16) (byte, bool) {
+	if eeprom.status.lock {
+		return 0, false
+	}
+	return eeprom.mem[addr&eeprom.mask], false
+}
+
+func (eeprom *eeprom) WritePort(addr uint16, data byte) {
+	if eeprom.status.lock {
+		eeprom.mem[addr&eeprom.mask] = data
+		eeprom.status.lock = false
+		f, err := os.Create("nvram.tetris")
+		if err != nil {
+			panic(err)
+		}
+		_, err = f.Write(eeprom.mem)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func (eeprom *eeprom) Memory() []byte {
+	return eeprom.mem
 }
 
 // ----------------------------
@@ -104,3 +138,11 @@ type fixedROM struct {
 
 func (rom *fixedROM) ReadPort(addr uint16) (byte, bool) { return rom.rom[addr], false }
 func (rom *fixedROM) WritePort(addr uint16, data byte)  { panic(-1) }
+
+// ----------------------------
+type clearIRQ struct {
+	cpu cpu.CPU
+}
+
+func (s *clearIRQ) ReadPort(addr uint16) (byte, bool) { panic(-1) }
+func (s *clearIRQ) WritePort(addr uint16, data byte)  { s.cpu.Interrupt(false) }

@@ -8,6 +8,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/ui"
 	"github.com/laullon/b2t80s/utils"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,7 +16,7 @@ import (
 func init() {
 	emulator.Debug = new(bool)
 	CartFile = new(string)
-	emulator.App = app.NewWithID("io.fyne.test")
+	ui.App = app.NewWithID("io.fyne.test")
 }
 
 func TestCPU(t *testing.T) {

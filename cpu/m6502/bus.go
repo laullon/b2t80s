@@ -7,11 +7,16 @@ import (
 	"github.com/laullon/b2t80s/cpu"
 )
 
+type Dumpable interface {
+	Memory() []byte
+}
+
 type Bus interface {
 	Write(addr uint16, data uint8)
 	Read(addr uint16) uint8
 	RegisterPort(name string, mask cpu.PortMask, manager cpu.PortManager)
 	DumpMap() string
+	GetDumplables() map[string]Dumpable
 }
 
 type busEntry struct {
@@ -34,7 +39,7 @@ func NewBus() Bus {
 }
 
 func (bus *bus) Write(addr uint16, data uint8) {
-	// fmt.Printf("[writePort]-> port:0x%04X data:%v  \n", addr, data)
+	// fmt.Printf("[writePort]-> port:0x%04X data:0x%02X  \n", addr, data)
 	for _, entry := range bus.ports {
 		if (addr & entry.mask.Mask) == entry.mask.Value {
 			// println(reflect.TypeOf(portManager).String())
@@ -46,12 +51,12 @@ func (bus *bus) Write(addr uint16, data uint8) {
 }
 
 func (bus *bus) Read(addr uint16) uint8 {
-	// fmt.Printf(fmt.Sprintf("[readPort]-> port:0x%04X pc:0x%04X \n", port, cpu.regs.PC))
 	for _, entry := range bus.ports {
 		if (addr & entry.mask.Mask) == entry.mask.Value {
 			// fmt.Printf("[readPort] port:0x%04X (0x%04X)(0x%04X) \n", addr, addr&portMask.Mask, portMask.Value)
 			// println(reflect.TypeOf(portManager).Elem().Name())
 			data, _ := entry.manager.ReadPort(addr)
+			// fmt.Printf(fmt.Sprintf("[readPort]-> port:0x%04X data:0x%02X \n", addr, data))
 			return data
 		}
 	}
@@ -96,6 +101,16 @@ func (bus *bus) DumpMap() string {
 	}
 	res.WriteString(fmt.Sprintf("0x%04X - 0x%04X = %s\n", firstAddr, lastAddr, actualName))
 	return res.String()
+}
+
+func (bus *bus) GetDumplables() map[string]Dumpable {
+	res := make(map[string]Dumpable)
+	for _, entry := range bus.ports {
+		if d, ok := entry.manager.(Dumpable); ok {
+			res[entry.name] = d
+		}
+	}
+	return res
 }
 
 //-----------------------------------------------
@@ -174,4 +189,9 @@ func (bus *watchableBus) RegisterPort(name string, mask cpu.PortMask, manager cp
 
 func (bus *watchableBus) DumpMap() string {
 	return bus.bus.DumpMap()
+}
+
+func (bus *watchableBus) GetDumplables() map[string]Dumpable {
+	return bus.bus.GetDumplables()
+
 }

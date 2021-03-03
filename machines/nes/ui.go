@@ -10,7 +10,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	layout "fyne.io/fyne/v2/layout"
 	widget "fyne.io/fyne/v2/widget"
-	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/ui"
 )
 
 type ppuDebugControl struct {
@@ -48,7 +48,7 @@ func (ctrl *ppuDebugControl) Widget() fyne.CanvasObject {
 }
 
 func (ctrl *ppuDebugControl) doShow() {
-	secondaryWindow := emulator.App.NewWindow("secondary")
+	secondaryWindow := ui.App.NewWindow("secondary")
 	secondaryWindow.SetContent(ctrl.container)
 	secondaryWindow.Show()
 

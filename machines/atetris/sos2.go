@@ -1,12 +1,24 @@
 package atetris
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/emulator"
 )
+
+var irqPerScanline = map[int]bool{
+	16:  false,
+	48:  true,
+	80:  false,
+	112: true,
+	144: false,
+	176: true,
+	208: false,
+	240: true,
+}
 
 type sos2 struct {
 	cpu     cpu.CPU
@@ -21,6 +33,7 @@ type sos2 struct {
 }
 
 func newSOS2() *sos2 {
+	fmt.Printf("%v\n", irqPerScanline)
 	return &sos2{
 		vram: make([]byte, 0x1000),
 		color: &colorRam{
@@ -62,14 +75,13 @@ func (d *sos2) Tick() {
 		}
 	}
 
-	if d.v&32 == 32 {
-		d.cpu.Interrupt(true)
-	}
-
 	d.h += 8
 	if d.h == 456 {
 		d.h = 0
 		d.v++
+		if irq, ok := irqPerScanline[d.v]; ok {
+			d.cpu.Interrupt(irq)
+		}
 		if d.v == 262 {
 			d.v = 0
 			d.monitor.FrameDone()

@@ -8,7 +8,7 @@ func init() {
 	ops[0x00] = &brk{}
 	ops[0x06] = &zeropage{f: aslM}
 	ops[0x08] = &implicit{f: php}
-	ops[0x0a] = &implicit{f: asl}
+	ops[0x0a] = &implicit{f: asl, a: true}
 	ops[0x0e] = &absolute{f: aslM}
 	ops[0x10] = &relative{f: bpl}
 	ops[0x16] = &zeropage{f: aslM, x: true}
@@ -18,7 +18,7 @@ func init() {
 	ops[0x24] = &zeropage{f: bit}
 	ops[0x26] = &zeropage{f: rolM}
 	ops[0x28] = &implicit{f: plp}
-	ops[0x2a] = &implicit{f: rol}
+	ops[0x2a] = &implicit{f: rol, a: true}
 	ops[0x2c] = &absolute{f: bit}
 	ops[0x2e] = &absolute{f: rolM}
 	ops[0x30] = &relative{f: bmi}
@@ -33,7 +33,7 @@ func init() {
 	ops[0x60] = &implicit{f: rts}
 	ops[0x66] = &zeropage{f: rorM}
 	ops[0x68] = &implicit{f: pla}
-	ops[0x6a] = &implicit{f: ror}
+	ops[0x6a] = &implicit{f: ror, a: true}
 	ops[0x6c] = &indirectJMP{}
 	ops[0x6e] = &absolute{f: rorM}
 	ops[0x70] = &relative{f: bvs}
@@ -61,7 +61,7 @@ func init() {
 	ops[0xf0] = &relative{f: beq}
 	ops[0xf8] = &implicit{f: sed}
 
-	ops[0x4a] = &implicit{f: lsr}
+	ops[0x4a] = &implicit{f: lsr, a: true}
 	ops[0x46] = &zeropage{f: lsrM}
 	ops[0x56] = &zeropage{f: lsrM, x: true}
 	ops[0x4e] = &absolute{f: lsrM}

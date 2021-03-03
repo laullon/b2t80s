@@ -85,7 +85,9 @@ func (op *brk) Clone() operation {
 func (op *brk) tick(cpu *m6502) (done bool) {
 	switch op.t {
 	case 0:
-		if !op.imm && !op.irq {
+		if op.imm || op.irq {
+			cpu.bus.Read(cpu.regs.PC)
+		} else {
 			cpu.preFetch()
 			cpu.regs.PC++
 		}
@@ -232,10 +234,11 @@ func (op *indirectY) String() string {
 type implicit struct {
 	basicop
 	f func(cpu *m6502)
+	a bool
 }
 
 func (op *implicit) Clone() operation {
-	return &implicit{basicop: op.basicop, f: op.f}
+	return &implicit{basicop: op.basicop, f: op.f, a: op.a}
 }
 
 func (op *implicit) tick(cpu *m6502) (done bool) {
@@ -255,10 +258,14 @@ func (op *implicit) setup(opCode uint8) {
 }
 
 func (op *implicit) String() string {
+	mod := ""
+	if op.a {
+		mod = " a"
+	}
 	sb := &strings.Builder{}
 	writePC(sb, op.pc)
 	writeMemory(sb, op.opCode)
-	writeOP(sb, op.ins)
+	writeOP(sb, op.ins, mod)
 	return sb.String()
 }
 
@@ -548,6 +555,7 @@ type zeropage struct {
 	r, w, rw bool
 	f        interface{}
 	addr     uint8
+	tagert   uint8
 }
 
 func (op *zeropage) Clone() operation {
@@ -561,12 +569,14 @@ func (op *zeropage) tick(cpu *m6502) (done bool) {
 		cpu.regs.PC++
 	case 1:
 		if op.x {
-			op.addr += cpu.regs.X
+			op.tagert = op.addr + cpu.regs.X
 		} else if op.y {
-			op.addr += cpu.regs.Y
+			op.tagert = op.addr + cpu.regs.Y
+		} else {
+			op.tagert = op.addr
 		}
 	case 2:
-		exec(cpu, op.f, uint16(op.addr), op.r, op.w, op.rw)
+		exec(cpu, op.f, uint16(op.tagert), op.r, op.w, op.rw)
 		done = true
 	}
 	op.t++
