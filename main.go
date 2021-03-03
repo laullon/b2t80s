@@ -100,10 +100,10 @@ func main() {
 		}
 	}
 
-	emulator.App = app.New()
-	emulator.App.Settings().SetTheme(theme.LightTheme())
+	ui.App = app.New()
+	ui.App.Settings().SetTheme(theme.LightTheme())
 
-	w := emulator.App.NewWindow(name + " - b2t80s Emulator")
+	w := ui.App.NewWindow(name + " - b2t80s Emulator")
 
 	debugger := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
 

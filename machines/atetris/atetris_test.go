@@ -1,34 +1,40 @@
 package atetris
 
 import (
+	"image/png"
+	"os"
 	"testing"
 
-	canvas "fyne.io/fyne/v2/canvas"
-	"github.com/laullon/b2t80s/cpu/m6502"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
 	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/ui"
+	"github.com/laullon/b2t80s/utils"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInit(t *testing.T) {
+func init() {
 	emulator.Debug = new(bool)
+	ui.App = app.NewWithID("io.fyne.test")
+}
+
+func TestTestMode(t *testing.T) {
 
 	tetris := NewATetris().(*atetris)
-	tetris.sos2.monitor = &dummyMonitor{}
+	tetris.pokey1.P7 = true
 
-	if testing.Short() {
-		println("skipping logs in short mode.")
-	} else {
-		tetris.cpu.SetDebuger(m6502.NewDebugger(tetris.cpu, nil, tetris.clock))
-	}
+	tetris.Clock().RunFor(5)
 
-	defer func() {
-		if r := recover(); r != nil {
-			assert.FailNowf(t, "Panic on '%s'", tetris.cpu.CurrentOP())
+	result, _, err := utils.ImgCompare("tests/testMode_ok.png", tetris.sos2.display)
+	assert.NoError(t, err, "Error on CPU/PPU test")
+	if result != 0 {
+		f, err := os.Create("tests/testMode_err.png")
+		if err != nil {
+			panic(err)
 		}
-	}()
-
-	tetris.Clock().RunFor(1)
-	assert.FailNow(t, "xxx")
+		png.Encode(f, tetris.sos2.display)
+		assert.FailNow(t, "Error on test mode init")
+	}
 }
 
 type dummyMonitor struct{}

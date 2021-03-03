@@ -25,15 +25,27 @@ type Flags struct {
 	N bool
 }
 
+// 7  bit  0
+// ---- ----
+// NVss DIZC
+// |||| ||||
+// |||| |||+- Carry
+// |||| ||+-- Zero
+// |||| |+--- Interrupt Disable
+// |||| +---- Decimal
+// ||++------ No CPU effect, see: the B flag
+// |+-------- Overflow
+// +--------- Negative
+
 func (f *Flags) set(v uint8) {
-	f.C = v&0b00000001 != 0
-	f.Z = v&0b00000010 != 0
-	f.I = v&0b00000100 != 0
-	f.D = v&0b00001000 != 0
-	f.B = v&0b00010000 != 0
-	f.X = v&0b00100000 != 0
-	f.V = v&0b01000000 != 0
-	f.N = v&0b10000000 != 0
+	f.C = v&0b0000_0001 != 0
+	f.Z = v&0b0000_0010 != 0
+	f.I = v&0b0000_0100 != 0
+	f.D = v&0b0000_1000 != 0
+	f.B = v&0b0001_0000 != 0
+	f.X = v&0b0010_0000 != 0
+	f.V = v&0b0100_0000 != 0
+	f.N = v&0b1000_0000 != 0
 }
 
 func (f *Flags) get() uint8 {

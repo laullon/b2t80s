@@ -12,6 +12,8 @@ type Control interface {
 	Update()
 }
 
+var App fyne.App
+
 type regText struct {
 	txt *canvas.Text
 }

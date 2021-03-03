@@ -7,15 +7,18 @@ import (
 
 	"fyne.io/fyne/v2/app"
 	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/ui"
 	"github.com/laullon/b2t80s/utils"
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_test_cpu_exec_space_ppuio(t *testing.T) {
+func init() {
 	emulator.Debug = new(bool)
 	CartFile = new(string)
-	emulator.App = app.NewWithID("io.fyne.test")
+	ui.App = app.NewWithID("io.fyne.test")
+}
 
+func Test_test_cpu_exec_space_ppuio(t *testing.T) {
 	*CartFile = string("tests/test_cpu_exec_space_ppuio.nes")
 	nes := NewNES().(*nes)
 

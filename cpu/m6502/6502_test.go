@@ -204,4 +204,5 @@ func (bus *simpleBus) Read(addr uint16) uint8 {
 }
 func (bus *simpleBus) RegisterPort(name string, mask cpu.PortMask, manager cpu.PortManager) {}
 
-func (bus *simpleBus) DumpMap() string { return "" }
+func (bus *simpleBus) DumpMap() string                    { return "" }
+func (bus *simpleBus) GetDumplables() map[string]Dumpable { return make(map[string]Dumpable) }

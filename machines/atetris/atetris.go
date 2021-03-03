@@ -1,6 +1,11 @@
 package atetris
 
 import (
+	"encoding/hex"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/m6502"
 	"github.com/laullon/b2t80s/emulator"
@@ -10,6 +15,7 @@ import (
 
 type atetris struct {
 	clock    emulator.Clock
+	bus      m6502.Bus
 	cpu      m6502.M6502
 	sos2     *sos2
 	debugger emulator.Debugger
@@ -19,10 +25,11 @@ type atetris struct {
 }
 
 func NewATetris() emulator.Machine {
-	bus := newBus()
+	bus := m6502.NewBus()
 
 	m := &atetris{
 		cpu:    m6502.MewM6502(bus),
+		bus:    bus,
 		clock:  emulator.NewCLock(14318181/8, 60),
 		pokey1: pokey.NewPokey(),
 		pokey2: pokey.NewPokey(),
@@ -32,21 +39,37 @@ func NewATetris() emulator.Machine {
 	m.monitor = emulator.NewMonitor(m.sos2.display)
 	m.sos2.monitor = m.monitor
 
-	bus.RegisterPort("clearIRQ", cpu.PortMask{Mask: 0b1111110000000000, Value: 0b0011100000000000}, &clearIRQ{cpu: m.cpu})
+	rom := loadRom("136066-1100.45f")
+	status := &status{}
 
-	bus.RegisterPort("vRam", cpu.PortMask{Mask: 0b1111000000000000, Value: 0b0001000000000000}, &ram{mem: m.sos2.vram, mask: 0x0fff})
-	bus.RegisterPort("color", cpu.PortMask{Mask: 0b1111110000000000, Value: 0b0010000000000000}, m.sos2.color)
-
-	//POKEY
-	bus.RegisterPort("pokey1", cpu.PortMask{Mask: 0b1111110000110000, Value: 0b0010100000000000}, m.pokey1)
-	bus.RegisterPort("pokey2", cpu.PortMask{Mask: 0b1111110000110000, Value: 0b0010100000010000}, m.pokey2)
-
-	// Watchdog
 	wd := &watchdog{cpu: m.cpu}
 	wd.start()
+
+	eeprom := newEERPROM()
+
+	cpuRAM := &ram{mem: make([]byte, 0x1000), mask: 0x0fff, trace: false}
+
+	bus.RegisterPort("ram", cpu.PortMask{Mask: 0b1111000000000000, Value: 0b0000000000000000}, cpuRAM)
+	bus.RegisterPort("vRam", cpu.PortMask{Mask: 0b1111_0000_0000_0000, Value: 0b0001_0000_0000_0000}, &ram{mem: m.sos2.vram, mask: 0x0fff})
+	bus.RegisterPort("color", cpu.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0010_0000_0000_0000}, m.sos2.color)
+
+	bus.RegisterPort("eeprom", cpu.PortMask{Mask: 0b1111_1110_0000_0000, Value: 0b0010_0100_0000_0000}, eeprom)
+
+	bus.RegisterPort("pokey0", cpu.PortMask{Mask: 0b1111_1100_0011_0000, Value: 0b0010_1000_0000_0000}, m.pokey1)
+	bus.RegisterPort("pokey1", cpu.PortMask{Mask: 0b1111_1100_0011_0000, Value: 0b0010_1000_0001_0000}, m.pokey2)
+
+	bus.RegisterPort("slapstic", cpu.PortMask{Mask: 0b1100_0000_0000_0000, Value: 0b0100_0000_0000_0000}, newSlapstic(rom))
+	bus.RegisterPort("rom", cpu.PortMask{Mask: 0b1000_0000_0000_0000, Value: 0b1000_0000_0000_0000}, &fixedROM{rom: rom})
+
+	bus.RegisterPort("eeprom.status", cpu.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0011_0100_0000_0000}, eeprom.status)
+
+	bus.RegisterPort("status", cpu.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0011_1100_0000_0000}, status)
+
+	bus.RegisterPort("clearIRQ", cpu.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0b0011_1000_0000_0000}, &clearIRQ{cpu: m.cpu})
+
 	bus.RegisterPort("watchdog", cpu.PortMask{Mask: 0b1111110000000000, Value: 0b0011000000000000}, wd)
 
-	m.pokey1.P7 = false
+	m.pokey1.P7 = true
 
 	m.sos2.hBlank = &m.pokey1.P6
 
@@ -55,6 +78,15 @@ func NewATetris() emulator.Machine {
 	m.clock.AddTicker(0, m.cpu)
 	m.clock.AddTicker(2, m.sos2)
 
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc, syscall.SIGALRM)
+	go func() {
+		s := <-sigc
+		println(hex.Dump(cpuRAM.mem))
+		println(s)
+	}()
+
+	print("bus:\n", bus.DumpMap(), "\n")
 	return m
 }
 
@@ -65,15 +97,7 @@ func (t *atetris) Monitor() emulator.Monitor {
 }
 
 func (t *atetris) Clock() emulator.Clock                { return t.clock }
-func (t *atetris) UIControls() []ui.Control             { return nil }
+func (t *atetris) UIControls() []ui.Control             { return []ui.Control{ui.NewM6502BusUI(t.bus)} }
 func (t *atetris) GetVolumeControl() func(float64)      { return func(f float64) {} }
 func (t *atetris) CPUControl() ui.Control               { return ui.NewM6502UI(t.cpu) }
 func (t *atetris) SetDebugger(db cpu.DebuggerCallbacks) { t.cpu.SetDebugger(db) }
-
-// ----------------------------
-type clearIRQ struct {
-	cpu cpu.CPU
-}
-
-func (s *clearIRQ) ReadPort(addr uint16) (byte, bool) { panic(-1) }
-func (s *clearIRQ) WritePort(addr uint16, data byte)  { s.cpu.Interrupt(false) }
