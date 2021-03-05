@@ -37,7 +37,7 @@ type apu struct {
 
 type channel [4]byte
 
-func newAPU(cpu cpu.CPU, clock uint) *apu {
+func newAPU(cpu cpu.CPU) *apu {
 	return &apu{
 		frameLength: 4,
 		cpu:         cpu,

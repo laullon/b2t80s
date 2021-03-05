@@ -12,16 +12,17 @@ type Mapper interface {
 	ConnectToPPU(bus m6502.Bus)
 }
 
-func CreateMapper(fileName string) Mapper {
+func CreateMapper(fileName string) (Mapper, bool) {
 	file := loadFile(fileName)
+	ntsc := file.header.flags[3]&1 == 0
 
 	switch file.header.mapper {
 	case 0:
-		return newNROM(file)
+		return newNROM(file), ntsc
 	case 1:
-		return newMMC1(file)
+		return newMMC1(file), ntsc
 	case 3:
-		return newCNROM(file)
+		return newCNROM(file), ntsc
 
 	default:
 		panic(fmt.Sprintf("mapper type '%d' not supported", file.header.mapper))
