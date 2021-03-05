@@ -32,4 +32,5 @@ type PortManager interface {
 type CPUTracer interface {
 	AppendLastOP(string)
 	SetNextOP(string)
+	DoTrace(bool)
 }

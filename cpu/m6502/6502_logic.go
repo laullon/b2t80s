@@ -7,7 +7,7 @@ func init() {
 
 	ops[0x00] = &brk{}
 	ops[0x06] = &zeropage{f: aslM}
-	ops[0x08] = &implicit{f: php}
+	ops[0x08] = &push{f: php}
 	ops[0x0a] = &implicit{f: asl, a: true}
 	ops[0x0e] = &absolute{f: aslM}
 	ops[0x10] = &relative{f: bpl}
@@ -17,7 +17,7 @@ func init() {
 	ops[0x20] = &absoluteJSR{}
 	ops[0x24] = &zeropage{f: bit}
 	ops[0x26] = &zeropage{f: rolM}
-	ops[0x28] = &implicit{f: plp}
+	ops[0x28] = &pull{f: plp}
 	ops[0x2a] = &implicit{f: rol, a: true}
 	ops[0x2c] = &absolute{f: bit}
 	ops[0x2e] = &absolute{f: rolM}
@@ -25,14 +25,14 @@ func init() {
 	ops[0x36] = &zeropage{f: rolM, x: true}
 	ops[0x38] = &implicit{f: sec}
 	ops[0x3e] = &absolute{f: rolM, x: true}
-	ops[0x40] = &implicit{f: rti}
-	ops[0x48] = &implicit{f: pha}
+	ops[0x40] = &rti{}
+	ops[0x48] = &push{f: pha}
 	ops[0x4c] = &absoluteJMP{}
 	ops[0x50] = &relative{f: bvc}
 	ops[0x58] = &implicit{f: cli}
-	ops[0x60] = &implicit{f: rts}
+	ops[0x60] = &rts{}
 	ops[0x66] = &zeropage{f: rorM}
-	ops[0x68] = &implicit{f: pla}
+	ops[0x68] = &pull{f: pla}
 	ops[0x6a] = &implicit{f: ror, a: true}
 	ops[0x6c] = &indirectJMP{}
 	ops[0x6e] = &absolute{f: rorM}
@@ -181,15 +181,6 @@ func init() {
 	}
 }
 
-func rti(cpu *m6502) {
-	plp(cpu)
-	addr := uint16(cpu.pop())
-	addr |= uint16(cpu.pop()) << 8
-	cpu.regs.PC = addr
-	cpu.onNMI = false
-	cpu.preFetch()
-}
-
 func bne(cpu *m6502) bool { return !cpu.regs.PS.Z }
 func beq(cpu *m6502) bool { return cpu.regs.PS.Z }
 func bcc(cpu *m6502) bool { return !cpu.regs.PS.C }
@@ -198,13 +189,6 @@ func bpl(cpu *m6502) bool { return !cpu.regs.PS.N }
 func bmi(cpu *m6502) bool { return cpu.regs.PS.N }
 func bvc(cpu *m6502) bool { return !cpu.regs.PS.V }
 func bvs(cpu *m6502) bool { return cpu.regs.PS.V }
-
-func rts(cpu *m6502) {
-	addr := uint16(cpu.pop())
-	addr |= uint16(cpu.pop()) << 8
-	cpu.regs.PC = addr + 1
-	cpu.preFetch()
-}
 
 func sta(cpu *m6502) uint8 { return cpu.regs.A }
 func stx(cpu *m6502) uint8 { return cpu.regs.X }
@@ -351,21 +335,22 @@ func sbc(cpu *m6502, data uint8) {
 	setZN(cpu, cpu.regs.A)
 }
 
-func pha(cpu *m6502) {
-	cpu.push(cpu.regs.A)
+func pha(cpu *m6502) uint8 {
+	return cpu.regs.A
 }
 
-func php(cpu *m6502) {
-	cpu.push(cpu.regs.PS.get() | 0b00110000)
+func php(cpu *m6502) uint8 {
+	return cpu.regs.PS.Get() | 0b00110000
 }
 
-func pla(cpu *m6502) {
-	cpu.regs.A = cpu.pop()
+func pla(cpu *m6502, v uint8) {
+	cpu.regs.A = v
 	setZN(cpu, cpu.regs.A)
 }
 
-func plp(cpu *m6502) {
-	cpu.regs.PS.set(cpu.pop() & 0b11001111)
+func plp(cpu *m6502, v uint8) {
+	print("") // without this go will no create this fuction and will use ps.set instead
+	cpu.regs.PS.set(v & 0b11001111)
 }
 
 func lsrM(cpu *m6502, data uint8) uint8 {

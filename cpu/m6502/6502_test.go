@@ -44,9 +44,6 @@ func TestFunctionalTests(t *testing.T) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			if cpu.log != nil {
-				println(cpu.log.(*logPrinter).Print())
-			}
 			assert.FailNow(t, "Panic", r)
 			panic(r)
 		}
@@ -98,9 +95,6 @@ func TestInterrup(t *testing.T) {
 	cpu.op = cpu.nextOp
 	defer func() {
 		if r := recover(); r != nil {
-			if cpu.log != nil {
-				println(cpu.log.(*logPrinter).Print())
-			}
 			panic(r)
 		}
 	}()
@@ -152,10 +146,7 @@ func TestTiming(t *testing.T) {
 		if cpu.regs.PC == 0x126A {
 			// TODO: review
 			// assert.Equal(t, 1141, ticks, "wrong number of ticks: %d", ticks)
-			assert.Equal(t, 962, ticks, "wrong number of ticks: %d", ticks)
-			if cpu.log != nil {
-				println(cpu.log.(*logPrinter).Print())
-			}
+			assert.Equal(t, 1093, ticks, "wrong number of ticks: %d", ticks)
 			return
 		}
 	}
@@ -174,8 +165,8 @@ func (log *logPrinter) AppendLastOP(entry string) {
 	fmt.Printf("%5d (%d) - %s\n", *log.ticks, *log.ticks-log.prevTicks, entry)
 	log.prevTicks = *log.ticks
 }
-func (log *logPrinter) Print() string    { return "" }
 func (log *logPrinter) SetNextOP(string) {}
+func (log *logPrinter) DoTrace(bool)     {}
 
 type simpleBus struct {
 	mem       []byte

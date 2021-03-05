@@ -74,6 +74,7 @@ type rom struct {
 
 func (rom *rom) ReadPort(addr uint16) (byte, bool) { return rom.mem[addr&rom.mask], false }
 func (rom *rom) WritePort(addr uint16, data byte)  { rom.mem[addr&rom.mask] = data }
+func (rom *rom) Memory() []byte                    { return rom.mem }
 
 // ----------------------------
 

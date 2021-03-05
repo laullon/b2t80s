@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"os"
 	"strconv"
 	"strings"
 
@@ -23,6 +24,8 @@ type m6502UI struct {
 	logTxt *widget.Label
 	log    []string
 	nextOP string
+
+	tracefile *os.File
 }
 
 func NewM6502UI(cpu m6502.M6502) Control {
@@ -68,6 +71,19 @@ func (ui *m6502UI) Widget() fyne.CanvasObject {
 	return ui.widget
 }
 
+func (ui *m6502UI) DoTrace(on bool) {
+	if on {
+		f, err := os.Create("trace.out")
+		if err != nil {
+			panic(err)
+		}
+		ui.tracefile = f
+	} else {
+		ui.tracefile.Close()
+		ui.tracefile = nil
+	}
+}
+
 func (ui *m6502UI) Update() {
 	ui.a.update(toHex8(ui.regs.A))
 	ui.x.update(toHex8(ui.regs.X))
@@ -80,7 +96,10 @@ func (ui *m6502UI) Update() {
 }
 
 func (ui *m6502UI) AppendLastOP(op string) {
-	println(op)
+	if ui.tracefile != nil {
+		ui.tracefile.WriteString(op)
+		ui.tracefile.WriteString("\n")
+	}
 	log := append(ui.log, op)
 	if len(log) > 10 {
 		ui.log = log[1:]

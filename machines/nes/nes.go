@@ -72,10 +72,13 @@ func NewNES() emulator.Machine {
 	return m
 }
 
+func (t *nes) UIControls() []ui.Control {
+	return []ui.Control{newPalleteControl(t.ppu), ui.NewM6502BusUI(t.cpuBus)}
+}
+
 func (t *nes) Debugger() emulator.Debugger          { return t.debugger }
 func (t *nes) Monitor() emulator.Monitor            { return t.ppu.monitor }
 func (t *nes) Clock() emulator.Clock                { return t.clock }
-func (t *nes) UIControls() []ui.Control             { return []ui.Control{newPalleteControl(t.ppu)} }
 func (t *nes) GetVolumeControl() func(float64)      { return func(f float64) {} }
 func (t *nes) OnKeyEvent(key *fyne.KeyEvent)        { t.apu.onKeyEvent(key) }
 func (t *nes) CPUControl() ui.Control               { return ui.NewM6502UI(t.cpu) }

@@ -48,7 +48,7 @@ func (f *Flags) set(v uint8) {
 	f.N = v&0b1000_0000 != 0
 }
 
-func (f *Flags) get() uint8 {
+func (f *Flags) Get() uint8 {
 	var res uint8
 	if f.C {
 		res |= 0b00000001
@@ -123,7 +123,7 @@ func (f Flags) String() string {
 }
 
 func (r Registers) String() string {
-	return fmt.Sprintf("A:0x%02X X:0x%02X Y:0x%02X SP:0x%02X PC:0x%04X PS:(0x%02X)%v", r.A, r.X, r.Y, r.SP, r.PC, r.PS.get(), r.PS)
+	return fmt.Sprintf("A:0x%02X X:0x%02X Y:0x%02X SP:0x%02X PC:0x%04X PS:(0x%02X)%v", r.A, r.X, r.Y, r.SP, r.PC, r.PS.Get(), r.PS)
 }
 
 type M6502 interface {

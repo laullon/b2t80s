@@ -43,15 +43,10 @@ func (op *reset) Clone() operation {
 
 func (op *reset) tick(cpu *m6502) (done bool) {
 	switch op.t {
-	case 0:
-		cpu.regs.SP = 0
-	case 3, 4, 5:
-		cpu.regs.SP--
-	case 6:
-		cpu.regs.PC = uint16(cpu.bus.Read(0xff00+uint16(cpu.regs.SP)))<<8 | (cpu.regs.PC & 0x00ff)
-		cpu.regs.SP--
 	case 7:
-		cpu.regs.PC = (cpu.regs.PC & 0xff00) | uint16(cpu.bus.Read(0xff00+uint16(cpu.regs.SP)))
+		cpu.regs.PC = uint16(cpu.bus.Read(0xfffc))
+		cpu.regs.PC |= uint16(cpu.bus.Read(0xfffd)) << 8
+		cpu.regs.SP = 0xfd
 		cpu.preFetch()
 		done = true
 	}
@@ -85,6 +80,9 @@ func (op *brk) Clone() operation {
 func (op *brk) tick(cpu *m6502) (done bool) {
 	switch op.t {
 	case 0:
+		if cpu.debugger != nil {
+			cpu.debugger.EvalInterrupt()
+		}
 		if op.imm || op.irq {
 			cpu.bus.Read(cpu.regs.PC)
 		} else {
@@ -107,7 +105,7 @@ func (op *brk) tick(cpu *m6502) (done bool) {
 			cpu.regs.PS.B = false
 		}
 		cpu.regs.PS.X = true
-		cpu.push(cpu.regs.PS.get())
+		cpu.push(cpu.regs.PS.Get())
 		cpu.regs.PS.X = false
 	case 4:
 		cpu.regs.PC = uint16(cpu.bus.Read(op.vector))
@@ -154,15 +152,16 @@ func (op *indirectX) Clone() operation {
 
 func (op *indirectX) tick(cpu *m6502) (done bool) {
 	switch op.t {
-	case 0:
-		op.addrZ = cpu.bus.Read(cpu.regs.PC)
-		op.addrZ += cpu.regs.X
-		cpu.regs.PC++
 	case 1:
-		op.addr = uint16(cpu.bus.Read(uint16(op.addrZ)))
+		op.addrZ = cpu.bus.Read(cpu.regs.PC)
+		cpu.regs.PC++
 	case 2:
-		op.addr |= uint16(cpu.bus.Read(uint16(op.addrZ+1))) << 8
+		op.addrZ += cpu.regs.X
 	case 3:
+		op.addr = uint16(cpu.bus.Read(uint16(op.addrZ)))
+	case 4:
+		op.addr |= uint16(cpu.bus.Read(uint16(op.addrZ+1))) << 8
+	case 5:
 		exec(cpu, op.f, op.addr, op.r, op.w, op.rw)
 		done = true
 	}
@@ -187,10 +186,11 @@ func (op *indirectX) String() string {
 // -----
 type indirectY struct {
 	basicop
-	r, w, rw bool
-	f        interface{}
-	addr     uint16
-	addrZ    uint8
+	r, w, rw   bool
+	f          interface{}
+	addr       uint16
+	targetAddr uint16
+	addrZ      uint8
 }
 
 func (op *indirectY) Clone() operation {
@@ -199,17 +199,21 @@ func (op *indirectY) Clone() operation {
 
 func (op *indirectY) tick(cpu *m6502) (done bool) {
 	switch op.t {
-	case 0:
+	case 1:
 		op.addrZ = cpu.bus.Read(cpu.regs.PC)
 		cpu.regs.PC++
-	case 1:
-		op.addr = uint16(cpu.bus.Read(uint16(op.addrZ)))
 	case 2:
-		op.addr |= uint16(cpu.bus.Read(uint16(op.addrZ+1))) << 8
+		op.addr = uint16(cpu.bus.Read(uint16(op.addrZ)))
 	case 3:
-		op.addr += uint16(cpu.regs.Y)
+		op.addr |= uint16(cpu.bus.Read(uint16(op.addrZ+1))) << 8
 	case 4:
-		exec(cpu, op.f, op.addr, op.r, op.w, op.rw)
+		op.targetAddr = op.addr + uint16(cpu.regs.Y)
+		if (op.targetAddr&0xff00 == op.addr&0xff00) && !op.w { // no page change
+			exec(cpu, op.f, op.targetAddr, op.r, op.w, op.rw)
+			done = true
+		}
+	case 5:
+		exec(cpu, op.f, op.targetAddr, op.r, op.w, op.rw)
 		done = true
 	}
 	op.t++
@@ -366,15 +370,15 @@ type absoluteJMP struct {
 }
 
 func (op *absoluteJMP) Clone() operation {
-	return &absoluteJMP{}
+	return &absoluteJMP{basicop: op.basicop}
 }
 
 func (op *absoluteJMP) tick(cpu *m6502) (done bool) {
 	switch op.t {
-	case 0:
+	case 1:
 		op.readAddr = uint16(cpu.bus.Read(cpu.regs.PC))
 		cpu.regs.PC++
-	case 1:
+	case 2:
 		op.readAddr |= uint16(cpu.bus.Read(cpu.regs.PC)) << 8
 		cpu.regs.PC = op.readAddr
 		cpu.preFetch()
@@ -404,7 +408,7 @@ type absoluteJSR struct {
 }
 
 func (op *absoluteJSR) Clone() operation {
-	return &absoluteJSR{}
+	return &absoluteJSR{basicop: op.basicop}
 }
 
 func (op *absoluteJSR) tick(cpu *m6502) (done bool) {
@@ -413,12 +417,13 @@ func (op *absoluteJSR) tick(cpu *m6502) (done bool) {
 		op.readAddr = uint16(cpu.bus.Read(cpu.regs.PC))
 		cpu.regs.PC++
 	case 2:
-		op.readAddr |= uint16(cpu.bus.Read(cpu.regs.PC)) << 8
-		cpu.regs.PC++
+		cpu.bus.Read(uint16(cpu.regs.SP))
 	case 3:
-		cpu.push(uint8((cpu.regs.PC - 1) >> 8))
+		cpu.push(uint8((cpu.regs.PC) >> 8))
+	case 4:
+		cpu.push(uint8((cpu.regs.PC)))
 	case 5:
-		cpu.push(uint8((cpu.regs.PC - 1)))
+		op.readAddr |= uint16(cpu.bus.Read(cpu.regs.PC)) << 8
 		cpu.regs.PC = op.readAddr
 		cpu.preFetch()
 		done = true
@@ -441,25 +446,187 @@ func (op *absoluteJSR) String() string {
 
 // -----
 
+type rts struct {
+	basicop
+	targetAddr uint16
+}
+
+func (op *rts) Clone() operation {
+	return &rts{basicop: op.basicop}
+}
+
+func (op *rts) tick(cpu *m6502) (done bool) {
+	switch op.t {
+	case 1:
+		cpu.bus.Read(cpu.regs.PC)
+	case 2:
+		cpu.bus.Read(uint16(cpu.regs.SP))
+	case 3:
+		op.targetAddr = uint16(cpu.pop())
+	case 4:
+		op.targetAddr |= uint16(cpu.pop()) << 8
+	case 5:
+		cpu.regs.PC = op.targetAddr + 1
+		cpu.preFetch()
+		done = true
+	}
+	op.t++
+	return
+}
+
+func (op *rts) setup(opCode uint8) {
+	op.opCode = opCode
+}
+
+func (op *rts) String() string {
+	sb := &strings.Builder{}
+	writePC(sb, op.pc)
+	writeMemory(sb, op.opCode)
+	writeOP(sb, "rts")
+	return sb.String()
+}
+
+// -----
+
+type rti struct {
+	basicop
+}
+
+func (op *rti) Clone() operation {
+	return &rti{basicop: op.basicop}
+}
+
+func (op *rti) tick(cpu *m6502) (done bool) {
+	switch op.t {
+	case 0:
+		cpu.bus.Read(cpu.regs.PC)
+	case 1:
+		cpu.bus.Read(uint16(cpu.regs.SP))
+	case 2:
+		plp(cpu, cpu.pop())
+	case 3:
+		cpu.regs.PC = uint16(cpu.pop())
+	case 4:
+		cpu.regs.PC |= uint16(cpu.pop()) << 8
+	case 5:
+		cpu.onNMI = false
+		cpu.preFetch()
+		done = true
+	}
+	op.t++
+	return
+}
+
+func (op *rti) setup(opCode uint8) {
+	op.opCode = opCode
+}
+
+func (op *rti) String() string {
+	sb := &strings.Builder{}
+	writePC(sb, op.pc)
+	writeMemory(sb, op.opCode)
+	writeOP(sb, "rti")
+	return sb.String()
+}
+
+// -----
+
+type push struct {
+	basicop
+	targetAddr uint16
+	f          func(*m6502) byte
+}
+
+func (op *push) Clone() operation {
+	return &push{basicop: op.basicop, f: op.f}
+}
+
+func (op *push) tick(cpu *m6502) (done bool) {
+	switch op.t {
+	case 1:
+		cpu.bus.Read(cpu.regs.PC)
+	case 2:
+		cpu.push(op.f(cpu))
+		cpu.preFetch()
+		done = true
+	}
+	op.t++
+	return
+}
+
+func (op *push) setup(opCode uint8) {
+	op.opCode = opCode
+	op.ins = getFunctionName(op.f)
+}
+
+func (op *push) String() string {
+	sb := &strings.Builder{}
+	writePC(sb, op.pc)
+	writeMemory(sb, op.opCode)
+	writeOP(sb, op.ins)
+	return sb.String()
+}
+
+// -----
+
+type pull struct {
+	basicop
+	f func(*m6502, uint8)
+}
+
+func (op *pull) Clone() operation {
+	return &pull{basicop: op.basicop, f: op.f}
+}
+
+func (op *pull) tick(cpu *m6502) (done bool) {
+	switch op.t {
+	case 1:
+		cpu.bus.Read(cpu.regs.PC)
+	case 2:
+		cpu.bus.Read(uint16(cpu.regs.SP))
+	case 3:
+		cpu.preFetch()
+		op.f(cpu, cpu.pop())
+		done = true
+	}
+	op.t++
+	return
+}
+
+func (op *pull) setup(opCode uint8) {
+	op.opCode = opCode
+	op.ins = getFunctionName(op.f)
+}
+
+func (op *pull) String() string {
+	sb := &strings.Builder{}
+	writePC(sb, op.pc)
+	writeMemory(sb, op.opCode)
+	writeOP(sb, op.ins)
+	return sb.String()
+}
+
+// -----
+
 type indirectJMP struct {
 	basicop
 	readAddr uint16
 }
 
 func (op *indirectJMP) Clone() operation {
-	return &indirectJMP{}
+	return &indirectJMP{basicop: op.basicop}
 }
 
 func (op *indirectJMP) tick(cpu *m6502) (done bool) {
 	switch op.t {
-	case 0:
+	case 1:
 		op.readAddr = uint16(cpu.bus.Read(cpu.regs.PC))
 		cpu.regs.PC++
-	case 1:
-		op.readAddr |= uint16(cpu.bus.Read(cpu.regs.PC)) << 8
 	case 2:
-		cpu.regs.PC = uint16(cpu.bus.Read(op.readAddr))
+		op.readAddr |= uint16(cpu.bus.Read(cpu.regs.PC)) << 8
 	case 3:
+		cpu.regs.PC = uint16(cpu.bus.Read(op.readAddr))
+	case 4:
 		if op.readAddr&0x00ff == 0xff {
 			cpu.regs.PC |= uint16(cpu.bus.Read(op.readAddr&0xff00)) << 8
 		} else {
@@ -480,7 +647,7 @@ func (op *indirectJMP) String() string {
 	sb := &strings.Builder{}
 	writePC(sb, op.pc)
 	writeMemory(sb, op.opCode, uint8(op.readAddr&0x0ff), uint8(op.readAddr>>8))
-	writeOP(sb, op.ins, " $", toHex16(op.readAddr))
+	writeOP(sb, "jmp ($", toHex16(op.readAddr), ")")
 	return sb.String()
 }
 
@@ -506,20 +673,29 @@ func (op *absolute) tick(cpu *m6502) (done bool) {
 		cpu.regs.PC++
 	case 2:
 		op.readAddr |= uint16(cpu.bus.Read(cpu.regs.PC)) << 8
+		op.targetAddr = op.readAddr
 		cpu.regs.PC++
 	case 3:
 		if op.x {
 			op.targetAddr = op.readAddr + uint16(cpu.regs.X)
 		} else if op.y {
 			op.targetAddr = op.readAddr + uint16(cpu.regs.Y)
-		} else {
-			op.targetAddr = op.readAddr
 		}
-		if (op.targetAddr & 0xff00) == (op.readAddr & 0xff00) { // page change ?
+		if op.w || op.r {
 			exec(cpu, op.f, op.targetAddr, op.r, op.w, op.rw)
 			done = true
 		}
-	case 4:
+	case 5:
+		if op.y || op.x {
+			if (op.targetAddr & 0xff00) == (op.readAddr & 0xff00) { // page change ?
+				exec(cpu, op.f, op.targetAddr, op.r, op.w, op.rw)
+				done = true
+			}
+		} else {
+			exec(cpu, op.f, op.targetAddr, op.r, op.w, op.rw)
+			done = true
+		}
+	case 6:
 		exec(cpu, op.f, op.targetAddr, op.r, op.w, op.rw)
 		done = true
 	}
@@ -564,10 +740,10 @@ func (op *zeropage) Clone() operation {
 
 func (op *zeropage) tick(cpu *m6502) (done bool) {
 	switch op.t {
-	case 0:
+	case 1:
 		op.addr = cpu.bus.Read(cpu.regs.PC)
 		cpu.regs.PC++
-	case 1:
+	case 2:
 		if op.x {
 			op.tagert = op.addr + cpu.regs.X
 		} else if op.y {
@@ -575,7 +751,26 @@ func (op *zeropage) tick(cpu *m6502) (done bool) {
 		} else {
 			op.tagert = op.addr
 		}
-	case 2:
+		if op.w {
+			f := op.f.(func(*m6502) uint8)
+			cpu.bus.Write(uint16(op.tagert), f(cpu))
+			cpu.preFetch()
+			done = true
+		} else if op.r {
+			f := op.f.(func(*m6502, uint8))
+			f(cpu, cpu.bus.Read(uint16(op.tagert)))
+			cpu.preFetch()
+			done = true
+		}
+	case 3:
+		if op.x {
+			op.tagert = op.addr + cpu.regs.X
+		} else if op.y {
+			op.tagert = op.addr + cpu.regs.Y
+		} else {
+			op.tagert = op.addr
+		}
+	case 4:
 		exec(cpu, op.f, uint16(op.tagert), op.r, op.w, op.rw)
 		done = true
 	}

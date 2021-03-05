@@ -1,8 +1,10 @@
 package nes
 
 import (
+	"fmt"
 	"image/png"
 	"os"
+	"strings"
 	"testing"
 
 	"fyne.io/fyne/v2"
@@ -24,7 +26,7 @@ func TestCPU(t *testing.T) {
 	nes := NewNES().(*nes)
 
 	nes.apu.onKeyEvent(&fyne.KeyEvent{Name: fyne.Key2})
-	nes.Clock().RunFor(1)
+	nes.Clock().RunFor(4)
 
 	result, _, err := utils.ImgCompare("tests/nestest_ok.png", nes.ppu.display)
 	assert.NoError(t, err, "Error on CPU/PPU test")
@@ -42,7 +44,7 @@ func TestInterrupts(t *testing.T) {
 	*CartFile = string("tests/cpu_interrupts.nes")
 	nes := NewNES().(*nes)
 
-	nes.Clock().RunFor(2)
+	nes.Clock().RunFor(4)
 
 	result, _, err := utils.ImgCompare("tests/cpu_interrupts_ok.png", nes.ppu.display)
 	assert.NoError(t, err, "Error on CPU/PPU test")
@@ -54,4 +56,55 @@ func TestInterrupts(t *testing.T) {
 		png.Encode(f, nes.ppu.display)
 		assert.FailNow(t, "Error on CPU/PPU test")
 	}
+}
+
+func TestCPU2(t *testing.T) {
+	*CartFile = string("tests/nestest.nes")
+	nes := NewNES().(*nes)
+
+	f, err := os.Create("tests/nestest.out")
+	if err != nil {
+		assert.FailNowf(t, "Error on CPU 2 test", "%v", err)
+	}
+
+	tracer := &tracer{nes, f, 0, ""}
+	nes.cpu.SetTracer(tracer)
+	nes.cpuBus.Write(0xfffc, 0x00)
+	nes.cpuBus.Write(0xfffd, 0xc0)
+
+	nes.Clock().AddTicker(0, tracer)
+
+	assert.Panics(t, func() {
+		nes.Clock().RunFor(1)
+	})
+
+	// assert.FailNow(t, "Error on CPU 2 test")
+}
+
+type tracer struct {
+	nes            *nes
+	f              *os.File
+	ticks          int
+	regsStatusNext string
+}
+
+func (t *tracer) AppendLastOP(op string) {
+	if len(t.regsStatusNext) > 0 {
+		t.f.WriteString(strings.ToUpper(op))
+		t.f.WriteString("                                                 "[len(op):])
+		t.f.WriteString(t.regsStatusNext)
+		t.f.WriteString("\n")
+	}
+
+	t.regsStatusNext = fmt.Sprintf("A:%02X X:%02X Y:%02X SP:%02X CYC:%d",
+		t.nes.cpu.Registers().A, t.nes.cpu.Registers().X, t.nes.cpu.Registers().Y,
+		t.nes.cpu.Registers().SP, t.ticks,
+	)
+}
+
+func (t *tracer) SetNextOP(string) {}
+func (t *tracer) DoTrace(bool)     {}
+
+func (t *tracer) Tick() {
+	t.ticks++
 }
