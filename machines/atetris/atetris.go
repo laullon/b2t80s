@@ -69,7 +69,7 @@ func NewATetris() emulator.Machine {
 
 	bus.RegisterPort("watchdog", cpu.PortMask{Mask: 0b1111110000000000, Value: 0b0011000000000000}, wd)
 
-	m.pokey1.P7 = true
+	m.pokey1.P7 = false
 
 	m.sos2.hBlank = &m.pokey1.P6
 

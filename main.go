@@ -20,6 +20,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
+	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/machines/atetris"
 	"github.com/laullon/b2t80s/machines/cpc"
@@ -160,7 +161,7 @@ func main() {
 				widget.NewButton("Dump 5 Frames", func() {
 				}),
 				widget.NewCheck("Dump", func(on bool) {
-					panic(-1)
+					cpuCtl.(cpu.CPUTracer).DoTrace(on)
 				}),
 			),
 			cpuCtl.Widget(),

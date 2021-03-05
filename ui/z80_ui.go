@@ -143,6 +143,9 @@ func (ui *z80UI) Update() {
 	ui.widget.Refresh()
 }
 
+func (ui *z80UI) DoTrace(on bool) { // TODO: implement
+}
+
 func (ui *z80UI) AppendLastOP(op string) {
 	log := append(ui.log, op)
 	if len(log) > 10 {

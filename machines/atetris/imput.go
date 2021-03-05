@@ -1,13 +1,11 @@
 package atetris
 
 import (
-	"fmt"
-
 	"fyne.io/fyne/v2"
 )
 
 func (t *atetris) OnKeyEvent(key *fyne.KeyEvent) {
-	fmt.Println("key:", key.Name)
+	// fmt.Println("key:", key.Name)
 	switch key.Name {
 
 	case fyne.Key1:

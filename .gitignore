@@ -14,3 +14,5 @@ trace.out
 *.map
 cpu/m6502/**/*.o
 *_err.png
+nvram.*
+*.out

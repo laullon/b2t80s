@@ -41,14 +41,14 @@ func newSOS2() *sos2 {
 			mem:    make([]byte, 0x0100),
 		},
 		rom:     loadRom("136066-1101.35a"),
-		display: image.NewRGBA(image.Rect(0, 0, 320, 240)),
+		display: image.NewRGBA(image.Rect(0, 0, 336, 245)),
 	}
 }
 
 func (d *sos2) Tick() {
 	col := d.h >> 3
 	row := d.v >> 3
-	if row < 30 && col < 40 {
+	if row < 30 && col < 42 {
 		y := d.v & 7
 
 		charAddr := uint16(row) << 6
@@ -87,7 +87,7 @@ func (d *sos2) Tick() {
 			d.monitor.FrameDone()
 		}
 	}
-	*d.hBlank = !(d.v > 240)
+	*d.hBlank = (d.v > 240)
 }
 
 type colorRam struct {

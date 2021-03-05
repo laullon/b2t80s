@@ -64,12 +64,14 @@ func (ui *m6502BusUI) doShow() {
 		ui.win.SetContent(container)
 		ui.win.Show()
 
-		wait := time.Duration(time.Second)
+		wait := time.Duration(3 * time.Second)
 		ticker := time.NewTicker(wait)
 		go func() {
 			for range ticker.C {
-				dump.Text = hex.Dump(ui.bus.GetDumplables()[ui.selected].Memory())
-				container.Refresh()
+				if len(ui.selected) != 0 {
+					dump.Text = hex.Dump(ui.bus.GetDumplables()[ui.selected].Memory())
+					container.Refresh()
+				}
 			}
 		}()
 	}
