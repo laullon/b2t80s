@@ -15,7 +15,12 @@ type ppu struct {
 	bus     m6502.Bus
 	display *image.RGBA
 	monitor emulator.Monitor
-	h, v    int
+
+	scanLineW int
+	scanLineH int
+	h, v      int
+
+	pixelsPerTicks int
 
 	mask byte
 
@@ -54,9 +59,6 @@ type ppu struct {
 	attrAddrs [][]uint16
 	blocks    [][]byte
 }
-
-// 1662607*3,2 / 50 / 341 = 312,043542522
-// 32 x 30 = 256 x 240
 
 func newPPU(bus m6502.Bus, m6805 cpu.CPU) *ppu {
 	display := image.NewRGBA(image.Rect(0, 0, 256, 240))
@@ -116,7 +118,7 @@ func (ppu *ppu) Tick() {
 	if int(ppu.oam[sY]) == ppu.v {
 		ppu.sprite0hit = true
 	}
-	for i := 0; i < 16; i++ {
+	for i := 0; i < ppu.pixelsPerTicks; i++ {
 		ppu.h++
 
 		if ppu.v == 241 && ppu.h == 1 {
@@ -128,7 +130,8 @@ func (ppu *ppu) Tick() {
 		if ppu.h == 257 {
 			ppu.scrollX = ppu.scrollXv
 		}
-		if ppu.h == 342 {
+
+		if ppu.h == ppu.scanLineW {
 			ppu.drawLine()
 
 			ppu.h = 0
@@ -140,7 +143,7 @@ func (ppu *ppu) Tick() {
 				// fmt.Printf("0x%02x 0b%08b %03d\n", ppu.scrollY, ppu.scrollY, ppu.scrollY)
 			}
 
-			if ppu.v == 312 {
+			if ppu.v == ppu.scanLineH {
 				ppu.v = 0
 				ppu.drawSprites()
 				ppu.monitor.FrameDone()

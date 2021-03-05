@@ -9,6 +9,7 @@ import (
 	"github.com/laullon/b2t80s/ui"
 )
 
+var ntscClock = uint(1_789_773)
 var palClock = uint(1_662_607)
 var CartFile *string
 
@@ -26,9 +27,8 @@ type nes struct {
 func NewNES() emulator.Machine {
 	m := &nes{}
 
-	cartridge := mappers.CreateMapper(*CartFile)
+	cartridge, ntsc := mappers.CreateMapper(*CartFile)
 
-	clock := emulator.NewCLock(palClock, 50)
 	m.cpuBus = m6502.NewBus()
 	if *emulator.Debug {
 		m.cpuBus = m6502.NewWatchableBus(m.cpuBus)
@@ -36,7 +36,7 @@ func NewNES() emulator.Machine {
 
 	m6805 := m6502.MewM6502(m.cpuBus)
 
-	apu := newAPU(m6805, palClock)
+	apu := newAPU(m6805)
 
 	m.ppuBus = m6502.NewBus()
 	ppu := newPPU(m.ppuBus, m6805)
@@ -45,9 +45,25 @@ func NewNES() emulator.Machine {
 	apu.cpuBus = m.cpuBus
 	apu.ppu = ppu
 
-	clock.AddTicker(0, m6805)
-	clock.AddTicker(2, apu)
-	clock.AddTicker(5, ppu)
+	if ntsc {
+		clock := emulator.NewCLock(ntscClock, 60)
+		clock.AddTicker(0, m6805)
+		clock.AddTicker(2, apu)
+		clock.AddTicker(0, ppu)
+		m.clock = clock
+		ppu.pixelsPerTicks = 3
+		ppu.scanLineW = 341
+		ppu.scanLineH = 261
+	} else {
+		clock := emulator.NewCLock(palClock, 50)
+		clock.AddTicker(0, m6805)
+		clock.AddTicker(2, apu)
+		clock.AddTicker(5, ppu)
+		m.clock = clock
+		ppu.pixelsPerTicks = 16
+		ppu.scanLineW = 341
+		ppu.scanLineH = 312
+	}
 
 	// RAM
 	m.cpuBus.RegisterPort("ram", cpu.PortMask{Mask: 0b1110_0000_0000_0000, Value: 0b0000_0000_0000_0000}, &m6502.BasicRam{Data: make([]byte, 0x800), Mask: 0x7ff})
@@ -64,7 +80,6 @@ func NewNES() emulator.Machine {
 	m.cpu = m6805
 	m.ppu = ppu
 	m.apu = apu
-	m.clock = clock
 
 	// print("cpu bus:\n", m.cpuBus.DumpMap(), "\n")
 	// print("ppu bus:\n", m.ppuBus.DumpMap(), "\n")
