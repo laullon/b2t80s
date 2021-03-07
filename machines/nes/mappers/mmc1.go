@@ -25,7 +25,7 @@ func newMMC1(file *nesFile) Mapper {
 	m.ram = &ram{mem: make([]byte, 0x2000), mask: 0x1fff}
 	m.rom = []*rom{
 		{mem: file.prg[:0x4000], mask: 0x3fff, write: m.write},
-		{mem: file.prg[0x4000*uint16(file.header.prgSize-1):], mask: 0x3fff, write: m.write},
+		{mem: file.prg[0x4000*uint64(file.header.prgSize-1):], mask: 0x3fff, write: m.write},
 	}
 	return m
 }
@@ -46,7 +46,7 @@ func (m *mmc1) ConnectToCPU(bus m6502.Bus) {
 }
 
 func (m *mmc1) write(addr uint16, data byte) {
-	fmt.Printf("0x%02X => 0x%02X (%08b) \n", addr, data, data)
+	fmt.Printf("[mmc1 write] 0x%02X => 0x%02X (%08b) \n", addr, data, data)
 	if data&0x80 != 0 {
 		m.sr.reset()
 		m.writeControl(m.control | 0xc0)
@@ -54,7 +54,7 @@ func (m *mmc1) write(addr uint16, data byte) {
 		if m.sr.tick(data&0x01 != 0) == 5 {
 			// fmt.Printf("sr: %v\n", m.sr)
 			v := (m.sr.data & 0b11111000) >> 3
-			fmt.Printf("v: %05b\n", v)
+			fmt.Printf("add:0x%04X v: %05b\n", addr&0xe000, v)
 			m.sr.reset()
 
 			switch addr & 0xe000 {
@@ -77,19 +77,20 @@ func (m *mmc1) writeControl(data byte) {
 }
 
 func (m *mmc1) writePRG(data byte) {
+	fmt.Printf("[mmc1 writePRG] prgmod:%d data:%d\n", m.prgmod, data)
 	switch m.prgmod {
 	case 0, 1:
-		b := uint16(data>>1) * 0x8000
+		b := uint64(data>>1) * 0x8000
 		m.rom[0].mem = m.file.prg[b : b+0x4000]
 		m.rom[1].mem = m.file.prg[b+0x4000 : b+0x8000]
 	case 2:
-		b := uint16(data>>1) * 0x4000
+		b := uint64(data) * 0x4000
 		m.rom[0].mem = m.file.prg[:0x4000]
 		m.rom[1].mem = m.file.prg[b : b+0x4000]
 	case 3:
-		b := uint16(data>>1) * 0x4000
+		b := uint64(data) * 0x4000
 		m.rom[0].mem = m.file.prg[b : b+0x4000]
-		m.rom[1].mem = m.file.prg[0x4000*uint16(m.file.header.prgSize-1):]
+		m.rom[1].mem = m.file.prg[0x4000*uint64(m.file.header.prgSize-1):]
 	}
 }
 

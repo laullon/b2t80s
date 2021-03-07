@@ -47,7 +47,7 @@ func (bus *bus) Write(addr uint16, data uint8) {
 			return
 		}
 	}
-	panic(fmt.Sprintf("[writePort]-(no PM)-> port:0x%04X data:%v\n", addr, data))
+	// panic(fmt.Sprintf("[writePort]-(no PM)-> port:0x%04X data:%v\n", addr, data))
 }
 
 func (bus *bus) Read(addr uint16) uint8 {
@@ -133,6 +133,10 @@ func (ram *BasicRam) WritePort(addr uint16, data byte) {
 		fmt.Printf("[ram] write 0x%04X 0x%02x\n", addr, data)
 	}
 	ram.Data[addr&ram.Mask] = data
+}
+
+func (ram *BasicRam) Memory() []byte {
+	return ram.Data
 }
 
 //-----------------------------------------------

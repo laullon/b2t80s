@@ -176,7 +176,10 @@ func (m *cpc) GetVolumeControl() func(float64) {
 	return m.sound.SetVolume
 }
 
-func (m *cpc) CPUControl() ui.Control               { return ui.NewZ80UI(m.cpu) }
+func (m *cpc) Control() map[string]ui.Control {
+	return map[string]ui.Control{"CPU": ui.NewZ80UI(m.cpu)}
+}
+
 func (m *cpc) SetDebugger(db cpu.DebuggerCallbacks) { m.cpu.SetDebugger(db) }
 
 type dummyPortsManager struct{}

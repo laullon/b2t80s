@@ -109,7 +109,10 @@ func (zx *zx) Clock() emulator.Clock {
 	return zx.clock
 }
 
-func (zx *zx) CPUControl() ui.Control               { return ui.NewZ80UI(zx.cpu) }
+func (zx *zx) Control() map[string]ui.Control {
+	return map[string]ui.Control{"CPU": ui.NewZ80UI(zx.cpu)}
+}
+
 func (zx *zx) SetDebugger(db cpu.DebuggerCallbacks) { zx.cpu.SetDebugger(db) }
 
 func (zx *zx) loadDataBlock() {

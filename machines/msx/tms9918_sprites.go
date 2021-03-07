@@ -10,7 +10,6 @@ import (
 	"fyne.io/fyne/v2/container"
 	layout "fyne.io/fyne/v2/layout"
 	widget "fyne.io/fyne/v2/widget"
-	"github.com/laullon/b2t80s/emulator"
 )
 
 type sprite struct {
@@ -93,14 +92,13 @@ func (sprt *sprite) drawSprite(yPos int, si bool, sg uint16, vram []byte, displa
 }
 
 type spriteControl struct {
-	ui      fyne.CanvasObject
-	show    *widget.Button
-	vdp     *tms9918
-	debuger emulator.Debugger
+	ui   fyne.CanvasObject
+	show *widget.Button
+	vdp  *tms9918
 }
 
-func newSpriteControl(vdp *tms9918, debuger emulator.Debugger) *spriteControl {
-	ctrl := &spriteControl{vdp: vdp, debuger: debuger}
+func newSpriteControl(vdp *tms9918) *spriteControl {
+	ctrl := &spriteControl{vdp: vdp}
 
 	ctrl.show = widget.NewButton("show Sprites", ctrl.doShow)
 
@@ -120,8 +118,6 @@ func (ctrl *spriteControl) Update() {
 }
 
 func (ctrl *spriteControl) doShow() {
-	ctrl.debuger.Stop()
-
 	container := fyne.NewContainerWithLayout(layout.NewGridLayout(8))
 
 	for idx := uint16(0); idx < 32; idx++ {

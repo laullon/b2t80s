@@ -166,7 +166,6 @@ func (log *logPrinter) AppendLastOP(entry string) {
 	log.prevTicks = *log.ticks
 }
 func (log *logPrinter) SetNextOP(string) {}
-func (log *logPrinter) DoTrace(bool)     {}
 
 type simpleBus struct {
 	mem       []byte

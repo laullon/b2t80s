@@ -11,10 +11,11 @@ import (
 )
 
 type ppu struct {
-	cpu     cpu.CPU
-	bus     m6502.Bus
-	display *image.RGBA
-	monitor emulator.Monitor
+	cpu      cpu.CPU
+	bus      m6502.Bus
+	display  *image.RGBA
+	monitor  emulator.Monitor
+	debugger cpu.DebuggerCallbacks
 
 	scanLineW int
 	scanLineH int
@@ -136,19 +137,22 @@ func (ppu *ppu) Tick() {
 
 			ppu.h = 0
 			ppu.v++
+			if ppu.debugger != nil {
+				ppu.debugger.EvalLine()
+			}
 
 			if ppu.v == 261 {
 				ppu.sprite0hit = false
 				ppu.scrollY = ppu.scrollYv
-				// fmt.Printf("0x%02x 0b%08b %03d\n", ppu.scrollY, ppu.scrollY, ppu.scrollY)
 			}
 
 			if ppu.v == ppu.scanLineH {
 				ppu.v = 0
 				ppu.drawSprites()
 				ppu.monitor.FrameDone()
-				// println("----")
-				// panic(-1)
+				if ppu.debugger != nil {
+					ppu.debugger.EvalFrame()
+				}
 			}
 		}
 

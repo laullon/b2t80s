@@ -14,11 +14,11 @@ type z80UI struct {
 	regs   *z80.Z80Registers
 	widget *fyne.Container
 
-	a, f, b, c, d, e, h, l *regText
-	af, bc, de, hl         *regText
-	ixh, ixl, iyh, iyl     *regText
-	ix, iy                 *regText
-	sp, pc, flag           *regText
+	a, f, b, c, d, e, h, l *RegText
+	af, bc, de, hl         *RegText
+	ixh, ixl, iyh, iyl     *RegText
+	ix, iy                 *RegText
+	sp, pc, flag           *RegText
 
 	logTxt *widget.Label
 	log    []string
@@ -29,76 +29,54 @@ func NewZ80UI(cpu z80.Z80) Control {
 	ui := &z80UI{regs: cpu.Registers()}
 	cpu.SetTracer(ui)
 
-	ui.a = NewRegText("ui.a")
-	ui.f = NewRegText("ui.f")
-	ui.b = NewRegText("ui.b")
-	ui.c = NewRegText("ui.c")
-	ui.d = NewRegText("ui.d")
-	ui.e = NewRegText("ui.e")
-	ui.h = NewRegText("ui.h")
-	ui.l = NewRegText("ui.l")
-	ui.af = NewRegText("ui.af")
-	ui.bc = NewRegText("ui.bc")
-	ui.de = NewRegText("ui.de")
-	ui.hl = NewRegText("ui.hl")
-	ui.ixh = NewRegText("ui.ixh")
-	ui.ixl = NewRegText("ui.ixl")
-	ui.iyh = NewRegText("ui.iyh")
-	ui.iyl = NewRegText("ui.iyl")
-	ui.ix = NewRegText("ui.ix")
-	ui.iy = NewRegText("ui.iy")
-	ui.sp = NewRegText("ui.sp")
-	ui.pc = NewRegText("ui.pc")
-	ui.flag = NewRegText("ui.flag")
-
-	a := NewRegText("  A:")
-	f := NewRegText("  F:")
-	b := NewRegText("  B:")
-	c := NewRegText("  C:")
-	d := NewRegText("  D:")
-	e := NewRegText("  E:")
-	h := NewRegText("  H:")
-	l := NewRegText("  L:")
-	af := NewRegText("  AF:")
-	bc := NewRegText("  BC:")
-	de := NewRegText("  DE:")
-	hl := NewRegText("  HL:")
-	ixh := NewRegText("IXH:")
-	ixl := NewRegText("IXL:")
-	iyh := NewRegText("IYH:")
-	iyl := NewRegText("IYL:")
-	ix := NewRegText("  IX:")
-	iy := NewRegText("  IY:")
-	sp := NewRegText(" SP:")
-	pc := NewRegText(" PC:")
-	flag := NewRegText("FLAG:")
+	ui.a = NewRegText("A:")
+	ui.f = NewRegText("F:")
+	ui.b = NewRegText("B:")
+	ui.c = NewRegText("C:")
+	ui.d = NewRegText("D:")
+	ui.e = NewRegText("E:")
+	ui.h = NewRegText("H:")
+	ui.l = NewRegText("L:")
+	ui.af = NewRegText("AF:")
+	ui.bc = NewRegText("BC:")
+	ui.de = NewRegText("DE:")
+	ui.hl = NewRegText("HL:")
+	ui.ixh = NewRegText("IXH:")
+	ui.ixl = NewRegText("IXL:")
+	ui.iyh = NewRegText("IYH:")
+	ui.iyl = NewRegText("IYL:")
+	ui.ix = NewRegText("IX:")
+	ui.iy = NewRegText("IY:")
+	ui.sp = NewRegText("SP:")
+	ui.pc = NewRegText("PC:")
+	ui.flag = NewRegText("FLAG:")
 
 	c1 := container.New(layout.NewFormLayout(),
-		a.txt, ui.a.txt,
-		b.txt, ui.b.txt,
-		d.txt, ui.d.txt,
-		h.txt, ui.h.txt,
-		ixh.txt, ui.ixh.txt,
-		iyh.txt, ui.iyh.txt,
-		pc.txt, ui.pc.txt,
+		ui.a.Label, ui.a.Value,
+		ui.b.Label, ui.b.Value,
+		ui.d.Label, ui.d.Value,
+		ui.h.Label, ui.h.Value,
+		ui.ixh.Label, ui.ixh.Value,
+		ui.iyh.Label, ui.iyh.Value,
+		ui.pc.Label, ui.pc.Value,
 	)
 	c2 := container.New(layout.NewFormLayout(),
-		f.txt, ui.f.txt,
-		c.txt, ui.c.txt,
-		e.txt, ui.e.txt,
-		l.txt, ui.l.txt,
-		ixl.txt, ui.ixl.txt,
-		iyl.txt, ui.iyl.txt,
-		sp.txt, ui.sp.txt,
+		ui.f.Label, ui.f.Value,
+		ui.c.Label, ui.c.Value,
+		ui.e.Label, ui.e.Value,
+		ui.l.Label, ui.l.Value,
+		ui.ixl.Label, ui.ixl.Value,
+		ui.iyl.Label, ui.iyl.Value,
+		ui.sp.Label, ui.sp.Value,
 	)
 	c3 := container.New(layout.NewFormLayout(),
-		af.txt, ui.af.txt,
-		bc.txt, ui.bc.txt,
-		de.txt, ui.de.txt,
-		hl.txt, ui.hl.txt,
-		ix.txt, ui.ix.txt,
-		iy.txt, ui.iy.txt,
-		flag.txt, ui.flag.txt,
+		ui.af.Label, ui.af.Value,
+		ui.bc.Label, ui.bc.Value,
+		ui.de.Label, ui.de.Value,
+		ui.hl.Label, ui.hl.Value,
+		ui.ix.Label, ui.ix.Value,
+		ui.iy.Label, ui.iy.Value,
+		ui.flag.Label, ui.flag.Value,
 	)
 
 	regs := container.New(layout.NewGridLayoutWithColumns(3), c1, c2, c3)
@@ -116,27 +94,27 @@ func (ui *z80UI) Widget() fyne.CanvasObject {
 
 func (ui *z80UI) Update() {
 	af := toHex16(uint16(ui.regs.A)<<8 | uint16(ui.regs.F.GetByte()))
-	ui.a.update(toHex8(ui.regs.A))
-	ui.f.update(toHex8(ui.regs.F.GetByte()))
-	ui.b.update(toHex8(ui.regs.B))
-	ui.c.update(toHex8(ui.regs.C))
-	ui.d.update(toHex8(ui.regs.D))
-	ui.e.update(toHex8(ui.regs.E))
-	ui.h.update(toHex8(ui.regs.H))
-	ui.l.update(toHex8(ui.regs.L))
-	ui.ixh.update(toHex8(ui.regs.IXH))
-	ui.ixl.update(toHex8(ui.regs.IXL))
-	ui.iyh.update(toHex8(ui.regs.IYH))
-	ui.iyl.update(toHex8(ui.regs.IYL))
-	ui.af.update(af)
-	ui.bc.update(toHex16(ui.regs.BC.Get()))
-	ui.de.update(toHex16(ui.regs.DE.Get()))
-	ui.hl.update(toHex16(ui.regs.HL.Get()))
-	ui.ix.update(toHex16(ui.regs.IX.Get()))
-	ui.iy.update(toHex16(ui.regs.IY.Get()))
-	ui.sp.update(toHex16(ui.regs.SP.Get()))
-	ui.pc.update(toHex16(ui.regs.PC))
-	ui.flag.update(af)
+	ui.a.Update(toHex8(ui.regs.A))
+	ui.f.Update(toHex8(ui.regs.F.GetByte()))
+	ui.b.Update(toHex8(ui.regs.B))
+	ui.c.Update(toHex8(ui.regs.C))
+	ui.d.Update(toHex8(ui.regs.D))
+	ui.e.Update(toHex8(ui.regs.E))
+	ui.h.Update(toHex8(ui.regs.H))
+	ui.l.Update(toHex8(ui.regs.L))
+	ui.ixh.Update(toHex8(ui.regs.IXH))
+	ui.ixl.Update(toHex8(ui.regs.IXL))
+	ui.iyh.Update(toHex8(ui.regs.IYH))
+	ui.iyl.Update(toHex8(ui.regs.IYL))
+	ui.af.Update(af)
+	ui.bc.Update(toHex16(ui.regs.BC.Get()))
+	ui.de.Update(toHex16(ui.regs.DE.Get()))
+	ui.hl.Update(toHex16(ui.regs.HL.Get()))
+	ui.ix.Update(toHex16(ui.regs.IX.Get()))
+	ui.iy.Update(toHex16(ui.regs.IY.Get()))
+	ui.sp.Update(toHex16(ui.regs.SP.Get()))
+	ui.pc.Update(toHex16(ui.regs.PC))
+	ui.flag.Update(af)
 
 	ui.logTxt.Text = strings.Join(append(ui.log, "\n", ui.nextOP), "\n")
 
