@@ -2,7 +2,6 @@ package ui
 
 import (
 	"encoding/hex"
-	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -15,15 +14,20 @@ type m6502BusUI struct {
 	widget   *fyne.Container
 	bus      m6502.Bus
 	win      fyne.Window
+	text     *widget.Label
 	selected string
 }
 
-func NewM6502BusUI(bus m6502.Bus) Control {
+func NewM6502BusUI(name string, bus m6502.Bus) Control {
 	ctrl := &m6502BusUI{
 		bus: bus,
 	}
 
-	show := widget.NewButton("memory", ctrl.doShow)
+	if len(name) > 0 {
+		name += " "
+	}
+
+	show := widget.NewButton(name+"mem.", ctrl.doShow)
 
 	ctrl.widget = container.New(layout.NewHBoxLayout(),
 		widget.NewToolbarSeparator().ToolbarObject(),
@@ -42,10 +46,10 @@ func (ui *m6502BusUI) Update() {
 
 func (ui *m6502BusUI) doShow() {
 	if ui.win == nil {
-		dump := &widget.Label{}
+		ui.text = &widget.Label{}
 		// dump.Color = color.Black
 		// dump.TextSize = fyne.CurrentApp().Settings().Theme().Size("text")
-		dump.TextStyle = fyne.TextStyle{Monospace: true}
+		ui.text.TextStyle = fyne.TextStyle{Monospace: true}
 
 		keys := []string{}
 		for k := range ui.bus.GetDumplables() {
@@ -58,24 +62,26 @@ func (ui *m6502BusUI) doShow() {
 			ui.selected = keys[0]
 		}
 
-		container := container.New(layout.NewBorderLayout(selector, nil, nil, nil), selector, container.NewVScroll(dump))
+		container := container.New(layout.NewBorderLayout(selector, nil, nil, nil), selector, container.NewVScroll(ui.text))
 
 		ui.win = App.NewWindow("Memory")
 		ui.win.SetContent(container)
 		ui.win.Show()
 
-		wait := time.Duration(3 * time.Second)
-		ticker := time.NewTicker(wait)
-		go func() {
-			for range ticker.C {
-				if len(ui.selected) != 0 {
-					dump.Text = hex.Dump(ui.bus.GetDumplables()[ui.selected].Memory())
-					container.Refresh()
-				}
-			}
-		}()
+		// wait := time.Duration(3 * time.Second)
+		// ticker := time.NewTicker(wait)
+		// go func() {
+		// 	for range ticker.C {
+		// 		if len(ui.selected) != 0 {
+		// 			ui.text.Text = hex.Dump(ui.bus.GetDumplables()[ui.selected].Memory())
+		// 			container.Refresh()
+		// 		}
+		// 	}
+		// }()
 	}
 }
 func (ui *m6502BusUI) dumplableChanged(name string) {
 	ui.selected = name
+	ui.text.Text = hex.Dump(ui.bus.GetDumplables()[ui.selected].Memory())
+	ui.widget.Refresh()
 }

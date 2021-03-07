@@ -14,24 +14,34 @@ type Control interface {
 
 var App fyne.App
 
-type regText struct {
-	txt *canvas.Text
+type RegText struct {
+	Label *canvas.Text
+	Value *canvas.Text
 }
 
-func NewRegText(txt string) *regText {
-	rt := &regText{txt: &canvas.Text{}}
-	rt.txt.Text = txt
-	rt.txt.Color = color.Black
-	rt.txt.TextSize = fyne.CurrentApp().Settings().Theme().Size("text")
-	rt.txt.TextStyle = fyne.TextStyle{Monospace: true}
+func NewRegText(label string) *RegText {
+	rt := &RegText{
+		Label: &canvas.Text{},
+		Value: &canvas.Text{},
+	}
+	rt.Label.Text = label
+	rt.Label.Color = color.Black
+	rt.Label.TextSize = fyne.CurrentApp().Settings().Theme().Size("text")
+	rt.Label.TextStyle = fyne.TextStyle{Monospace: true}
+	rt.Label.Alignment = fyne.TextAlignTrailing
+
+	rt.Value.Color = color.Black
+	rt.Value.TextSize = fyne.CurrentApp().Settings().Theme().Size("text")
+	rt.Value.TextStyle = fyne.TextStyle{Monospace: true}
+
 	return rt
 }
 
-func (rt *regText) update(text string) {
-	if rt.txt.Text != text {
-		rt.txt.Text = text
-		rt.txt.Color = color.RGBA{0x00, 0x00, 0xff, 0xff}
+func (rt *RegText) Update(text string) {
+	if rt.Value.Text != text {
+		rt.Value.Text = text
+		rt.Value.Color = color.RGBA{0x00, 0x00, 0xff, 0xff}
 	} else {
-		rt.txt.Color = color.Black
+		rt.Value.Color = color.Black
 	}
 }

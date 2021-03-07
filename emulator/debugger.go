@@ -1,21 +1,16 @@
 package emulator
 
 import (
-	"strings"
-	"sync"
-
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/widget"
 	"github.com/laullon/b2t80s/cpu"
 )
 
 type Debugger interface {
 	cpu.DebuggerCallbacks
-	Stop()
-	StopNextFrame()
 
-	Step()
-	StepNextFrame()
-
-	Continue()
+	UI() *fyne.Container
 }
 
 type debugger struct {
@@ -23,7 +18,11 @@ type debugger struct {
 
 	doStop          bool
 	doStopInterrupt bool
+	doStopLine      bool
+	doStopFrame     bool
 	breaks          []uint16
+
+	ui, stop, step *fyne.Container
 }
 
 func NewDebugger(clock Clock, breaks []uint16) Debugger {
@@ -31,8 +30,41 @@ func NewDebugger(clock Clock, breaks []uint16) Debugger {
 	debug := &debugger{
 		clock:  clock,
 		breaks: breaks,
-		doStop: true,
 	}
+
+	debug.stop = fyne.NewContainerWithLayout(
+		layout.NewGridLayoutWithColumns(2),
+		widget.NewButton("Stop", func() {
+			debug.Stop()
+		}),
+		widget.NewButton("Stop on Interrup", func() {
+			debug.StopNextFrame()
+		}),
+	)
+
+	debug.step = fyne.NewContainerWithLayout(
+		layout.NewGridLayoutWithColumns(4),
+		widget.NewButton("Continue", func() {
+			debug.Continue()
+		}),
+		widget.NewButton("Step", func() {
+			debug.Step()
+		}),
+		widget.NewButton("Step Line", func() {
+			debug.StepLine()
+		}),
+		widget.NewButton("Step Frame", func() {
+			debug.StepFrame()
+		}),
+	)
+
+	debug.ui = fyne.NewContainerWithLayout(
+		layout.NewVBoxLayout(),
+		debug.stop,
+		debug.step,
+	)
+
+	debug.pause()
 	return debug
 }
 
@@ -45,14 +77,28 @@ func (debug *debugger) Eval(pc uint16) {
 
 	if debug.doStop {
 		debug.doStop = false
-		debug.clock.Pause()
+		debug.pause()
 	}
 }
 
 func (debug *debugger) EvalInterrupt() {
 	if debug.doStopInterrupt {
 		debug.doStopInterrupt = false
-		debug.clock.Pause()
+		debug.pause()
+	}
+}
+
+func (debug *debugger) EvalLine() {
+	if debug.doStopLine {
+		debug.doStopLine = false
+		debug.pause()
+	}
+}
+
+func (debug *debugger) EvalFrame() {
+	if debug.doStopFrame {
+		debug.doStopFrame = false
+		debug.pause()
 	}
 }
 
@@ -60,70 +106,58 @@ func (debug *debugger) Stop() {
 	debug.doStop = true
 }
 
-func (debug *debugger) StopNextFrame() {
+func (debug *debugger) StopNextInterrupt() {
 	debug.doStopInterrupt = true
+	debug.Continue()
 }
 
-func (debug *debugger) StepNextFrame() {
+func (debug *debugger) StopNextLine() {
+	debug.doStopLine = true
+	debug.Continue()
+}
+
+func (debug *debugger) StopNextFrame() {
+	debug.doStopFrame = true
+	debug.Continue()
 }
 
 func (debug *debugger) Step() {
 	debug.doStop = true
-	debug.clock.Resume()
+	debug.Continue()
+}
+
+func (debug *debugger) StepLine() {
+	debug.doStopLine = true
+	debug.Continue()
+}
+
+func (debug *debugger) StepFrame() {
+	debug.doStopFrame = true
+	debug.Continue()
+}
+
+func (debug *debugger) UI() *fyne.Container {
+	return debug.ui
 }
 
 func (debug *debugger) Continue() {
+	for _, b := range debug.step.Objects {
+		b.(*widget.Button).Disable()
+	}
+	for _, b := range debug.stop.Objects {
+		b.(*widget.Button).Enable()
+	}
+	debug.ui.Refresh()
 	debug.clock.Resume()
 }
 
-type Log interface {
-	AddEntry(entry string)
-	Print() string
-}
-
-type logTail struct {
-	idx     uint8
-	entries []string
-	mask    uint8
-	mu      sync.Mutex
-}
-
-func NewShorLogTail() Log {
-	return &logTail{
-		entries: make([]string, 0x8),
-		mask:    0x07,
+func (debug *debugger) pause() {
+	for _, b := range debug.step.Objects {
+		b.(*widget.Button).Enable()
 	}
-}
-
-func NewLogTail() Log {
-	return &logTail{
-		entries: make([]string, 0x10),
-		mask:    0x0f,
+	for _, b := range debug.stop.Objects {
+		b.(*widget.Button).Disable()
 	}
-}
-
-func NewLongLogTail() Log {
-	return &logTail{
-		entries: make([]string, 0x100),
-		mask:    0xff,
-	}
-}
-
-func (log *logTail) AddEntry(entry string) {
-	log.mu.Lock()
-	defer log.mu.Unlock()
-
-	log.entries[log.idx] = entry
-	log.idx = (log.idx + 1) & log.mask
-}
-
-func (log *logTail) Print() string {
-	log.mu.Lock()
-	defer log.mu.Unlock()
-
-	var sb strings.Builder
-	sb.WriteString(strings.Join(log.entries[log.idx:], "\n"))
-	sb.WriteString("\n")
-	sb.WriteString(strings.Join(log.entries[:log.idx], "\n"))
-	return strings.Trim(sb.String(), "\n")
+	debug.ui.Refresh()
+	debug.clock.Pause()
 }

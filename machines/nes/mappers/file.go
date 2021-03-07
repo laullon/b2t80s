@@ -60,3 +60,7 @@ func loadFile(fileName string) *nesFile {
 
 	return file
 }
+
+func (f nesFile) String() string {
+	return fmt.Sprintf("type:%d prg:%d chr:%d vMirror:%v", f.header.mapper, f.header.prgSize, f.header.chrSize, f.header.vMirror)
+}

@@ -96,8 +96,11 @@ func (t *atetris) Monitor() emulator.Monitor {
 	return t.monitor
 }
 
+func (t *atetris) Control() map[string]ui.Control {
+	return map[string]ui.Control{"CPU": ui.NewM6502UI(t.cpu)}
+}
+
 func (t *atetris) Clock() emulator.Clock                { return t.clock }
-func (t *atetris) UIControls() []ui.Control             { return []ui.Control{ui.NewM6502BusUI(t.bus)} }
+func (t *atetris) UIControls() []ui.Control             { return []ui.Control{ui.NewM6502BusUI("", t.bus)} }
 func (t *atetris) GetVolumeControl() func(float64)      { return func(f float64) {} }
-func (t *atetris) CPUControl() ui.Control               { return ui.NewM6502UI(t.cpu) }
 func (t *atetris) SetDebugger(db cpu.DebuggerCallbacks) { t.cpu.SetDebugger(db) }

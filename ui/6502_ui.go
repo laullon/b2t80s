@@ -16,10 +16,10 @@ type m6502UI struct {
 	regs   *m6502.Registers
 	widget *fyne.Container
 
-	a, x, y *regText
-	sp      *regText
-	pc      *regText
-	ps      *regText
+	a, x, y *RegText
+	sp      *RegText
+	pc      *RegText
+	ps      *RegText
 
 	logTxt *widget.Label
 	log    []string
@@ -34,35 +34,32 @@ func NewM6502UI(cpu m6502.M6502) Control {
 
 	ui.logTxt = widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
 
-	ui.a = NewRegText("ui.a")
-	ui.x = NewRegText("ui.x")
-	ui.y = NewRegText("ui.y")
-	ui.sp = NewRegText("ui.sp")
-	ui.pc = NewRegText("ui.pc")
-	ui.ps = NewRegText("ui.ps")
-
-	a := NewRegText("A:")
-	x := NewRegText("X:")
-	y := NewRegText("Y:")
-	sp := NewRegText("SP:")
-	pc := NewRegText("PC:")
-	ps := NewRegText("PS:")
+	ui.a = NewRegText("A:")
+	ui.x = NewRegText("X:")
+	ui.y = NewRegText("Y:")
+	ui.sp = NewRegText("SP:")
+	ui.pc = NewRegText("PC:")
+	ui.ps = NewRegText("PS:")
 
 	c1 := container.New(layout.NewFormLayout(),
-		a.txt, ui.a.txt,
-		x.txt, ui.x.txt,
-		y.txt, ui.y.txt,
+		ui.a.Label, ui.a.Value,
+		ui.x.Label, ui.x.Value,
+		ui.y.Label, ui.y.Value,
 	)
 
 	c2 := container.New(layout.NewFormLayout(),
-		sp.txt, ui.sp.txt,
-		pc.txt, ui.pc.txt,
-		ps.txt, ui.ps.txt,
+		ui.sp.Label, ui.sp.Value,
+		ui.pc.Label, ui.pc.Value,
+		ui.ps.Label, ui.ps.Value,
 	)
 
 	regs := container.New(layout.NewGridLayoutWithColumns(2), c1, c2)
 
-	ui.widget = container.New(layout.NewVBoxLayout(), regs, ui.logTxt)
+	dump := widget.NewCheck("Dump", func(on bool) {
+		ui.doTrace(on)
+	})
+
+	ui.widget = container.New(layout.NewVBoxLayout(), dump, regs, ui.logTxt)
 
 	return ui
 }
@@ -71,7 +68,7 @@ func (ui *m6502UI) Widget() fyne.CanvasObject {
 	return ui.widget
 }
 
-func (ui *m6502UI) DoTrace(on bool) {
+func (ui *m6502UI) doTrace(on bool) {
 	if on {
 		f, err := os.Create("trace.out")
 		if err != nil {
@@ -85,12 +82,12 @@ func (ui *m6502UI) DoTrace(on bool) {
 }
 
 func (ui *m6502UI) Update() {
-	ui.a.update(toHex8(ui.regs.A))
-	ui.x.update(toHex8(ui.regs.X))
-	ui.y.update(toHex8(ui.regs.Y))
-	ui.sp.update(toHex8(ui.regs.SP))
-	ui.pc.update(toHex16(ui.regs.PC))
-	ui.ps.update(ui.regs.PS.String())
+	ui.a.Update(toHex8(ui.regs.A))
+	ui.x.Update(toHex8(ui.regs.X))
+	ui.y.Update(toHex8(ui.regs.Y))
+	ui.sp.Update(toHex8(ui.regs.SP))
+	ui.pc.Update(toHex16(ui.regs.PC))
+	ui.ps.Update(ui.regs.PS.String())
 	ui.logTxt.Text = strings.Join(append(ui.log, "\n", ui.nextOP), "\n")
 	ui.widget.Refresh()
 }

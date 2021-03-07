@@ -20,7 +20,6 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/machines/atetris"
 	"github.com/laullon/b2t80s/machines/cpc"
@@ -102,28 +101,20 @@ func main() {
 	}
 
 	ui.App = app.New()
-	ui.App.Settings().SetTheme(theme.LightTheme())
 
 	w := ui.App.NewWindow(name + " - b2t80s Emulator")
 
-	debugger := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
-
 	status := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
 
-	controls := container.New(layout.NewHBoxLayout())
+	statusControl := container.New(layout.NewHBoxLayout())
 	for _, control := range machine.UIControls() {
-		controls.Add(control.Widget())
+		statusControl.Add(control.Widget())
 	}
-
-	statusBar := fyne.NewContainerWithLayout(
-		layout.NewBorderLayout(nil, nil, status, controls),
-		status,
-		controls,
-	)
 
 	display := machine.Monitor().Canvas()
 
-	var cpuCtl ui.Control
+	var debugTabs *container.AppTabs
+	var controls map[string]ui.Control
 
 	if *emulator.Debug {
 		var breaks []uint16
@@ -140,32 +131,23 @@ func main() {
 
 		db := emulator.NewDebugger(machine.Clock(), breaks)
 		machine.SetDebugger(db)
-		cpuCtl = machine.CPUControl()
+		controls = machine.Control()
 
-		debugger := container.New(layout.NewVBoxLayout(),
-			widget.NewLabel("Debugger"),
-			fyne.NewContainerWithLayout(
-				layout.NewGridLayoutWithColumns(3),
-				widget.NewButton("Stop", func() {
-					db.Stop()
-				}),
-				widget.NewButton("Continue", func() {
-					db.Continue()
-				}),
-				widget.NewButton("Step", func() {
-					db.Step()
-				}),
-				widget.NewButton("Stop Next Frame", func() {
-					db.StopNextFrame()
-				}),
-				widget.NewButton("Dump 5 Frames", func() {
-				}),
-				widget.NewCheck("Dump", func(on bool) {
-					cpuCtl.(cpu.CPUTracer).DoTrace(on)
-				}),
-			),
-			cpuCtl.Widget(),
-			debugger,
+		debugTabs = container.NewAppTabs()
+		for n, ctl := range controls {
+			debugTabs.Append(container.NewTabItem(n, ctl.Widget()))
+		}
+		debugTabs.SelectTabIndex(0)
+
+		debugger := container.New(layout.NewBorderLayout(db.UI(), nil, nil, nil),
+			db.UI(),
+			debugTabs,
+		)
+
+		statusBar := fyne.NewContainerWithLayout(
+			layout.NewBorderLayout(nil, nil, status, statusControl),
+			status,
+			statusControl,
 		)
 
 		w.SetContent(
@@ -176,12 +158,13 @@ func main() {
 				statusBar,
 			),
 		)
+		ui.App.Settings().SetTheme(theme.LightTheme())
 	} else {
+		ui.App.Settings().SetTheme(theme.DarkTheme())
 		w.SetContent(
 			fyne.NewContainerWithLayout(
-				layout.NewBorderLayout(nil, statusBar, nil, nil),
+				layout.NewBorderLayout(nil, nil, nil, nil),
 				display,
-				statusBar,
 			),
 		)
 	}
@@ -189,17 +172,16 @@ func main() {
 	w.Canvas().(desktop.Canvas).SetOnKeyDown(machine.OnKeyEvent)
 	w.Canvas().(desktop.Canvas).SetOnKeyUp(machine.OnKeyEvent)
 
-	wait := time.Duration(20 * time.Millisecond)
-	ticker := time.NewTicker(wait)
-	go func() {
-		for range ticker.C {
-			if *emulator.Debug {
-				debugger.SetText(emulator.MachineStatus.Status())
-				cpuCtl.Update()
+	if *emulator.Debug {
+		wait := time.Duration(20 * time.Millisecond)
+		ticker := time.NewTicker(wait)
+		go func() {
+			for range ticker.C {
+				controls[debugTabs.CurrentTab().Text].Update()
+				status.SetText(fmt.Sprintf("time: %s - FPS: %03.2f", machine.Clock().Stats(), machine.Monitor().FPS()))
 			}
-			status.SetText(fmt.Sprintf("time: %s - FPS: %03.2f", machine.Clock().Stats(), machine.Monitor().FPS()))
-		}
-	}()
+		}()
+	}
 
 	go func() {
 		machine.Clock().Run()

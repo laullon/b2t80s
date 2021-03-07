@@ -26,7 +26,6 @@ type msx struct {
 	mem      z80.Memory
 	cassette cassette.Cassette
 	sound    emulator.SoundSystem
-	debugger emulator.Debugger
 	clock    emulator.Clock
 
 	ay8912 ay8912.AY8912
@@ -164,10 +163,6 @@ func (msx *msx) WritePort(port uint16, data byte) {
 	}
 }
 
-func (msx *msx) Debugger() emulator.Debugger {
-	return msx.debugger
-}
-
 func (msx *msx) OnKeyEvent(event *fyne.KeyEvent) {
 	msx.ppi.OnKeyEvent(event)
 }
@@ -183,11 +178,14 @@ func (msx *msx) Clock() emulator.Clock {
 func (msx *msx) UIControls() []ui.Control {
 	var res []ui.Control
 	res = append(res, ui.NewVolumenControl(msx.sound.SetVolume))
-	res = append(res, newSpriteControl(msx.vdp, msx.debugger))
+	res = append(res, newSpriteControl(msx.vdp))
 	return res
 }
 
-func (msx *msx) CPUControl() ui.Control               { return ui.NewZ80UI(msx.cpu) }
+func (msx *msx) Control() map[string]ui.Control {
+	return map[string]ui.Control{"CPU": ui.NewZ80UI(msx.cpu)}
+}
+
 func (msx *msx) SetDebugger(db cpu.DebuggerCallbacks) { msx.cpu.SetDebugger(db) }
 
 func (msx *msx) GetVolumeControl() func(float64) {

@@ -17,6 +17,9 @@ type CPU interface {
 type DebuggerCallbacks interface {
 	Eval(pc uint16)
 	EvalInterrupt()
+
+	EvalLine()
+	EvalFrame()
 }
 
 type PortMask struct {
@@ -32,5 +35,4 @@ type PortManager interface {
 type CPUTracer interface {
 	AppendLastOP(string)
 	SetNextOP(string)
-	DoTrace(bool)
 }

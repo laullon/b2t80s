@@ -41,7 +41,7 @@ func newSOS2() *sos2 {
 			mem:    make([]byte, 0x0100),
 		},
 		rom:     loadRom("136066-1101.35a"),
-		display: image.NewRGBA(image.Rect(0, 0, 336, 245)),
+		display: image.NewRGBA(image.Rect(0, 0, 336, 240)),
 	}
 }
 

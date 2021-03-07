@@ -103,7 +103,6 @@ func (t *tracer) AppendLastOP(op string) {
 }
 
 func (t *tracer) SetNextOP(string) {}
-func (t *tracer) DoTrace(bool)     {}
 
 func (t *tracer) Tick() {
 	t.ticks++
