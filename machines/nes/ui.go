@@ -95,7 +95,10 @@ func (ctrl *ppuDebugControl) Update() {
 
 				for x := 0; x < 8; x++ {
 					c := uint16(((pattern0 & 0x80) >> 7) | ((pattern1 & 0x80) >> 6))
-					color := uint16(0x3f00) | uint16(palette)<<2 | c
+					color := uint16(0x3f00)
+					if c != 0 {
+						color |= uint16(palette)<<2 | c
+					}
 					pattern0 <<= 1
 					pattern1 <<= 1
 					imgX := int(col*8) + x
