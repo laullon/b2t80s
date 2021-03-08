@@ -20,6 +20,7 @@ type ppu struct {
 	scanLineW int
 	scanLineH int
 	h, v      int
+	row, col  uint8
 
 	pixelsPerTicks int
 
@@ -42,7 +43,7 @@ type ppu struct {
 	nameTableBase byte
 	patternBase   uint16
 
-	palette *m6502.BasicRam
+	palette *palette
 
 	enableNMI bool
 
@@ -68,7 +69,7 @@ func newPPU(bus m6502.Bus, m6805 cpu.CPU) *ppu {
 		bus:     bus,
 		display: display,
 		monitor: emulator.NewMonitor(display),
-		palette: &m6502.BasicRam{Data: make([]byte, 0x20), Mask: 0x1f},
+		palette: &palette{Data: make([]byte, 0x20)},
 		oam:     make([]byte, 0x100),
 	}
 
@@ -116,11 +117,27 @@ var colors = []color.RGBA{
 }
 
 func (ppu *ppu) Tick() {
-	if int(ppu.oam[sY]) == ppu.v {
-		ppu.sprite0hit = true
+	if ppu.oam[sY] < 240 {
+		sprtY := int(ppu.oam[sY])
+		sprtX := int(ppu.oam[sX])
+		if (ppu.v >= sprtY) && (ppu.v < sprtY+8) && (ppu.h >= sprtX) && (ppu.h < sprtX+8) {
+			charAddr := ppu.charAddrs[ppu.col][ppu.row&63]
+			char := uint16(ppu.bus.Read(charAddr))
+
+			yOff := uint16(ppu.v) & 0x007
+			patternAddr := ppu.patternBase | char<<4 | yOff
+			pattern0 := ppu.bus.Read(patternAddr)
+			pattern1 := ppu.bus.Read(patternAddr | 0x08)
+			// fmt.Printf("%d %08b %08b c:%02d r:%02d\n", ppu.v-sprtY, pattern0, pattern1, ppu.col, ppu.row&63)
+			if pattern0|pattern1 != 0 {
+				ppu.sprite0hit = true
+			}
+		}
 	}
+
 	for i := 0; i < ppu.pixelsPerTicks; i++ {
 		ppu.h++
+		ppu.calcuklateCol()
 
 		if ppu.v == 241 && ppu.h == 1 {
 			ppu.vblank = true
@@ -133,6 +150,7 @@ func (ppu *ppu) Tick() {
 		}
 
 		if ppu.h == ppu.scanLineW {
+			ppu.calcuklateRow()
 			ppu.drawLine()
 
 			ppu.h = 0
@@ -162,42 +180,54 @@ func (ppu *ppu) Tick() {
 	}
 }
 
+func (ppu *ppu) calcuklateCol() {
+	col := uint8((int(ppu.scrollX) >> 3)) & 0x3f
+	col += ((ppu.nameTableBase & 1) * 32)
+	ppu.col = col & 0x3f
+}
+
+func (ppu *ppu) calcuklateRow() {
+	row := uint8(ppu.v>>3) & 0x1f
+	rowOff := ppu.scrollY >> 3
+	if rowOff > 30 {
+		rowOff -= 32
+	}
+	row = (rowOff + row)
+	if row > 29 {
+		row += 2
+	}
+
+	ppu.row = row + (ppu.nameTableBase>>1)*32
+}
+
 func (ppu *ppu) drawLine() {
 	if ppu.mask&0x08 == 0 {
 		return
 	}
-	row := uint8(ppu.v>>3) & 0x1f
-	if row >= 31 {
-		return
-	}
-	row = ((ppu.scrollY >> 3) + row)
-	if row > 29 {
-		row += 2
-	}
-	row += (ppu.nameTableBase >> 1) * 32
 
 	yOff := uint16(ppu.v) & 0x007
 
 	for x := -8; x < 256+8; x += 8 {
-		col := uint8((x>>3)+(int(ppu.scrollX)>>3)) & 0x3f
-		col += ((ppu.nameTableBase & 1) * 32)
-		col &= 0x3f
+		col := (ppu.col + uint8(x>>3)) & 0x3f
 
-		charAddr := ppu.charAddrs[col][row&63]
+		charAddr := ppu.charAddrs[col][ppu.row&63]
 		char := uint16(ppu.bus.Read(charAddr))
 
 		patternAddr := ppu.patternBase | char<<4 | yOff
 		pattern0 := ppu.bus.Read(patternAddr)
 		pattern1 := ppu.bus.Read(patternAddr | 0x08)
 
-		attrAddr := ppu.attrAddrs[col][row&63]
-		b := ppu.blocks[col][row&63]
+		attrAddr := ppu.attrAddrs[col][ppu.row&63]
+		b := ppu.blocks[col][ppu.row&63]
 		attr := ppu.bus.Read(attrAddr)
 		palette := (attr >> (b * 2)) & 0x03
 
 		for i := 0; i < 8; i++ {
 			c := uint16(((pattern0 & 0x80) >> 7) | ((pattern1 & 0x80) >> 6))
-			colorIdx := uint16(0x3f00) | (uint16(palette) << 2) | c
+			colorIdx := uint16(0x3f00)
+			if c != 0 {
+				colorIdx |= uint16(palette)<<2 | c
+			}
 			pattern0 <<= 1
 			pattern1 <<= 1
 			imgX := x + i - (int(ppu.scrollX) & 0x07)
@@ -222,9 +252,7 @@ const (
 // TODO:
 //		secondary OAM
 //		priority
-//		V mirror
 //		8x16
-//		Flip sprite vertically
 //		overlap
 func (ppu *ppu) drawSprites() {
 	if ppu.mask&0x10 == 0 {
@@ -234,7 +262,12 @@ func (ppu *ppu) drawSprites() {
 		sprite := ppu.oam[sIdx*4 : (sIdx*4)+4]
 		if sprite[sY] != 0xff {
 			for y := 0; y < 8; y++ {
-				patternAddr := ppu.spriteBase | uint16(sprite[sID])<<4 | uint16(y)
+				patternAddr := ppu.spriteBase | uint16(sprite[sID])<<4
+				if sprite[sAttr]&0x80 == 0x00 {
+					patternAddr |= uint16(y)
+				} else {
+					patternAddr |= uint16(7 - y)
+				}
 				pattern0 := ppu.bus.Read(patternAddr)
 				pattern1 := ppu.bus.Read(patternAddr | 0x08)
 				if sprite[sAttr]&0x40 == 0x40 {
@@ -303,7 +336,7 @@ func (ppu *ppu) WritePort(addr uint16, data byte) {
 		ppu.nameTableBase = data & 0x3
 		ppu.patternBase = 0x1000 * (uint16(data&0x10) >> 4)
 		ppu.spriteBase = 0x1000 * (uint16(data&0x08) >> 3)
-		// fmt.Printf("[ppu] write -> nameTableBase:0x%04X data:%08b  \n", ppu.nameTableBase, data)
+		// fmt.Printf("[ppu] write -> nameTableBase:0x%04X data:%08b  (%03d) \n", ppu.nameTableBase, data, ppu.h)
 		ppu.enableNMI = data&0x80 == 0x80
 		if data&0x04 == 0 {
 			ppu.vRAMAddrInc = 1
@@ -352,4 +385,23 @@ func (ppu *ppu) WritePort(addr uint16, data byte) {
 	default:
 		// panic(fmt.Sprintf("[ppu] write 0x%04X 0x%02x\n", addr, data))
 	}
+}
+
+type palette struct {
+	Data []byte
+}
+
+func (ram *palette) ReadPort(addr uint16) (byte, bool) {
+	return ram.Data[addr&0x1f], false
+}
+
+func (ram *palette) WritePort(addr uint16, data byte) {
+	ram.Data[addr&0x1f] = data
+	if addr&0x13 == 0x10 {
+		ram.Data[addr&0x0f] = data
+	}
+}
+
+func (ram *palette) Memory() []byte {
+	return ram.Data
 }
