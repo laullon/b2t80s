@@ -136,3 +136,7 @@ func (ui *z80UI) AppendLastOP(op string) {
 func (ui *z80UI) SetNextOP(op string) {
 	ui.nextOP = op
 }
+
+func (ui *z80UI) SetDiss(diss string) {
+	panic(-1)
+}
