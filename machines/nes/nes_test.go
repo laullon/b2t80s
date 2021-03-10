@@ -103,6 +103,7 @@ func (t *tracer) AppendLastOP(op string) {
 }
 
 func (t *tracer) SetNextOP(string) {}
+func (log *tracer) SetDiss(string) {}
 
 func (t *tracer) Tick() {
 	t.ticks++

@@ -181,8 +181,9 @@ func (cpu *m6502) Tick() {
 
 	if done {
 		if cpu.log != nil {
-			cpu.log.AppendLastOP(cpu.op.String())
-			cpu.log.SetNextOP(cpu.nextOp.String())
+			cpu.log.AppendLastOP(dumpOperation(cpu.op))
+			cpu.log.SetNextOP(dumpOperation(cpu.nextOp))
+			// cpu.log.SetDiss(disassemble(cpu.nextOp.getPC(), cpu.bus.(*bus)))
 		}
 		if cpu.nextOp != nil {
 			if cpu.debugger != nil {

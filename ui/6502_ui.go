@@ -21,18 +21,27 @@ type m6502UI struct {
 	pc      *RegText
 	ps      *RegText
 
-	logTxt *widget.Label
+	logTxt  *widget.Label
+	nextTxt *widget.Label
+	// disasTxt *widget.Label
+
 	log    []string
 	nextOP string
+	diss   string
 
 	tracefile *os.File
 }
 
 func NewM6502UI(cpu m6502.M6502) Control {
-	ui := &m6502UI{regs: cpu.Registers()}
+	ui := &m6502UI{
+		regs: cpu.Registers(),
+		log:  make([]string, 10),
+	}
 	cpu.SetTracer(ui)
 
 	ui.logTxt = widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
+	ui.nextTxt = widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
+	// ui.disasTxt = widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
 
 	ui.a = NewRegText("A:")
 	ui.x = NewRegText("X:")
@@ -59,7 +68,7 @@ func NewM6502UI(cpu m6502.M6502) Control {
 		ui.doTrace(on)
 	})
 
-	ui.widget = container.New(layout.NewVBoxLayout(), dump, regs, ui.logTxt)
+	ui.widget = container.New(layout.NewVBoxLayout(), dump, regs, ui.logTxt, ui.nextTxt) //, ui.disasTxt)
 
 	return ui
 }
@@ -88,7 +97,9 @@ func (ui *m6502UI) Update() {
 	ui.sp.Update(toHex8(ui.regs.SP))
 	ui.pc.Update(toHex16(ui.regs.PC))
 	ui.ps.Update(ui.regs.PS.String())
-	ui.logTxt.Text = strings.Join(append(ui.log, "\n", ui.nextOP), "\n")
+	ui.logTxt.Text = strings.Join(ui.log, "\n")
+	ui.nextTxt.Text = ui.nextOP
+	// ui.disasTxt.Text = ui.diss
 	ui.widget.Refresh()
 }
 
@@ -97,16 +108,15 @@ func (ui *m6502UI) AppendLastOP(op string) {
 		ui.tracefile.WriteString(op)
 		ui.tracefile.WriteString("\n")
 	}
-	log := append(ui.log, op)
-	if len(log) > 10 {
-		ui.log = log[1:]
-	} else {
-		ui.log = log
-	}
+	nLog := append(ui.log, op)
+	ui.log = nLog[1:]
 }
 
 func (ui *m6502UI) SetNextOP(op string) {
 	ui.nextOP = op
+}
+func (ui *m6502UI) SetDiss(diss string) {
+	ui.diss = diss
 }
 
 func toHex8(v uint8) string {
