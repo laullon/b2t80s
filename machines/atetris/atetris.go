@@ -1,11 +1,6 @@
 package atetris
 
 import (
-	"encoding/hex"
-	"os"
-	"os/signal"
-	"syscall"
-
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/m6502"
 	"github.com/laullon/b2t80s/emulator"
@@ -77,14 +72,6 @@ func NewATetris() emulator.Machine {
 
 	m.clock.AddTicker(0, m.cpu)
 	m.clock.AddTicker(2, m.sos2)
-
-	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc, syscall.SIGALRM)
-	go func() {
-		s := <-sigc
-		println(hex.Dump(cpuRAM.mem))
-		println(s)
-	}()
 
 	print("bus:\n", bus.DumpMap(), "\n")
 	return m
