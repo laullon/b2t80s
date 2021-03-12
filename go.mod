@@ -5,7 +5,7 @@ go 1.16
 require (
 	fyne.io/fyne/v2 v2.0.1
 	github.com/faiface/beep v1.0.2
-	github.com/go-gl/glfw v0.0.0-20210311203641-62640a716d48 // indirect
+	github.com/go-gl/gl v0.0.0-20210308051507-640c6464cf3e // indirect
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20210311203641-62640a716d48 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
