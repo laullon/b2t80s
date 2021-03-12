@@ -4,12 +4,12 @@ import (
 	"image"
 	"time"
 
-	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 )
 
 type Monitor interface {
 	Canvas() *canvas.Image
+	Screen() *image.RGBA
 	FrameDone()
 	FPS() float64
 }
@@ -29,12 +29,16 @@ func NewMonitor(img *image.RGBA) Monitor {
 		start:  time.Now(),
 	}
 
-	monitor.display = canvas.NewImageFromImage(monitor.screen)
-	monitor.display.FillMode = canvas.ImageFillOriginal
-	monitor.display.ScaleMode = canvas.ImageScalePixels
-	monitor.display.SetMinSize(fyne.NewSize(352*2, 296*2))
+	// monitor.display = canvas.NewImageFromImage(monitor.screen)
+	// monitor.display.FillMode = canvas.ImageFillOriginal
+	// monitor.display.ScaleMode = canvas.ImageScalePixels
+	// monitor.display.SetMinSize(fyne.NewSize(352*2, 296*2))
 
 	return monitor
+}
+
+func (monitor *monitor) Screen() *image.RGBA {
+	return monitor.screen
 }
 
 func (monitor *monitor) Canvas() *canvas.Image {
@@ -44,9 +48,9 @@ func (monitor *monitor) Canvas() *canvas.Image {
 func (monitor *monitor) FrameDone() {
 	monitor.frames++
 	copy(monitor.screen.Pix, monitor.vram.Pix)
-	go func() {
-		monitor.display.Refresh()
-	}()
+	// go func() {
+	// monitor.display.Refresh()
+	// }()
 }
 
 func (monitor *monitor) FPS() float64 {

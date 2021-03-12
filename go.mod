@@ -5,10 +5,8 @@ go 1.16
 require (
 	fyne.io/fyne/v2 v2.0.2
 	github.com/faiface/beep v1.0.2
-	github.com/go-gl/gl v0.0.0-20210315015930-ae072cafe09d // indirect
-	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20210311203641-62640a716d48
-	github.com/godbus/dbus/v5 v5.0.4 // indirect
-	github.com/hajimehoshi/oto v0.7.1 // indirect
+	github.com/go-gl/glfw v0.0.0-20210311203641-62640a716d48 // indirect
+	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20210311203641-62640a716d48 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/srwiley/oksvg v0.0.0-20210320200257-875f767ac39a // indirect
 	github.com/stretchr/testify v1.7.0
