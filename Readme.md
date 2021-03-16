@@ -2,7 +2,7 @@
 
 # b2t80s
 
-Z80 Based Computers Emulator (back to the 80's)
+Z80 & 6502 Based Computers, consoles and arcades Emulator (back to the 80's)
 
 ## Download
 
@@ -22,7 +22,7 @@ Z80 Based Computers Emulator (back to the 80's)
   -memprofile file
         write memory profile to file
   -mode string
-        Spectrum model to emulate [48k|128k|plus3|cpc464|cpc6128|msx1] (default "48k")
+        Spectrum model to emulate [48k|128k|plus3|cpc464|cpc6128|msx1|atetris|nes] (default "48k")
   -rom string
         msx1 rom file to load - format: [mapper::]filename - Mappers:konami
   -slow
@@ -31,6 +31,7 @@ Z80 Based Computers Emulator (back to the 80's)
         tap file to load
   -z80 string
         z80 file to load
+  -cart nes cartridge
 ```
 
 ## Build and Run 
@@ -64,6 +65,14 @@ $HOME/go/bin/go-bindata -pkg data -o data/data.go data/...
 
 ```
 go run main.go --mode 48k -tap "./games/ManicMiner.tap"
+```
+
+```
+go run main.go --mode nes -cart "games/nes/1942 (JU) [p1].nes"
+```
+
+```
+go run main.go --mode atetris
 ```
 
 ## links
