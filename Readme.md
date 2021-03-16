@@ -4,6 +4,12 @@
 
 Z80 & 6502 Based Computers, consoles and arcades Emulator (back to the 80's)
 
+* ZX Spectrum [90%]
+* Anstrad CPC [80%]
+* MSX 1 [70%]
+* NES [50%]
+* Tetris Arcade [80%]
+
 ## Download
 
 <https://github.com/laullon/b2t80s/releases/latest>
