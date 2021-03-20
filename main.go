@@ -23,6 +23,7 @@ import (
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/machines/atetris"
 	"github.com/laullon/b2t80s/machines/cpc"
+	"github.com/laullon/b2t80s/machines/gameboy"
 	"github.com/laullon/b2t80s/machines/msx"
 	"github.com/laullon/b2t80s/machines/nes"
 	"github.com/laullon/b2t80s/machines/zx"
@@ -32,7 +33,7 @@ import (
 )
 
 func main() {
-	nes.CartFile = flag.String("cart", "", "NESncart file to load")
+	emulator.CartFile = flag.String("cart", "", "NESncart file to load")
 	emulator.TapFile = flag.String("tap", "", "tap file to load")
 	emulator.RomFile = flag.String("rom", "", "msx1 rom file to load - format: [mapper::]filename - Mappers:konami")
 	z80File := flag.String("z80", "", "z80 file to load")
@@ -95,6 +96,9 @@ func main() {
 		case "nes":
 			machine = nes.NewNES()
 			name = "Nes"
+		case "gb":
+			machine = gameboy.New(nil)
+			name = "GameBoy"
 		default:
 			panic(fmt.Errorf("mode '%s' not valid", *mode))
 		}

@@ -17,12 +17,12 @@ import (
 
 func init() {
 	emulator.Debug = new(bool)
-	CartFile = new(string)
+	emulator.CartFile = new(string)
 	ui.App = app.NewWithID("io.fyne.test")
 }
 
 func TestCPU(t *testing.T) {
-	*CartFile = string("tests/nestest.nes")
+	*emulator.CartFile = string("tests/nestest.nes")
 	nes := NewNES().(*nes)
 
 	nes.apu.onKeyEvent(&fyne.KeyEvent{Name: fyne.Key2})
@@ -41,7 +41,7 @@ func TestCPU(t *testing.T) {
 }
 
 func TestInterrupts(t *testing.T) {
-	*CartFile = string("tests/cpu_interrupts.nes")
+	*emulator.CartFile = string("tests/cpu_interrupts.nes")
 	nes := NewNES().(*nes)
 
 	nes.Clock().RunFor(4)
@@ -59,7 +59,7 @@ func TestInterrupts(t *testing.T) {
 }
 
 func TestCPU2(t *testing.T) {
-	*CartFile = string("tests/nestest.nes")
+	*emulator.CartFile = string("tests/nestest.nes")
 	nes := NewNES().(*nes)
 
 	f, err := os.Create("tests/nestest.out")

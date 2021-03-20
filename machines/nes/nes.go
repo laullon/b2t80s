@@ -11,7 +11,6 @@ import (
 
 var ntscClock = uint(1_789_773)
 var palClock = uint(1_662_607)
-var CartFile *string
 
 type nes struct {
 	cpu    m6502.M6502
@@ -27,7 +26,7 @@ type nes struct {
 func NewNES() emulator.Machine {
 	m := &nes{}
 
-	cartridge, ntsc := mappers.CreateMapper(*CartFile)
+	cartridge, ntsc := mappers.CreateMapper(*emulator.CartFile)
 
 	m.cpuBus = m6502.NewBus()
 	if *emulator.Debug {

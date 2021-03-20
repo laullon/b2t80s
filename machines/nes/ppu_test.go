@@ -14,12 +14,12 @@ import (
 
 func init() {
 	emulator.Debug = new(bool)
-	CartFile = new(string)
+	emulator.CartFile = new(string)
 	ui.App = app.NewWithID("io.fyne.test")
 }
 
 func Test_test_cpu_exec_space_ppuio(t *testing.T) {
-	*CartFile = string("tests/test_cpu_exec_space_ppuio.nes")
+	*emulator.CartFile = string("tests/test_cpu_exec_space_ppuio.nes")
 	nes := NewNES().(*nes)
 
 	nes.Clock().RunFor(1)
