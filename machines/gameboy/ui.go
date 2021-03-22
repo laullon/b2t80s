@@ -1,6 +1,7 @@
 package gameboy
 
 import (
+	"encoding/hex"
 	"fmt"
 	"image"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	canvas "fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	layout "fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/widget"
 	"github.com/laullon/b2t80s/ui"
 )
 
@@ -140,5 +142,39 @@ func (ctrl *timerDebugControl) Update() {
 	ctrl.tima.Update(strconv.Itoa(int(ctrl.timer.tima)))
 	ctrl.tma.Update(strconv.Itoa(int(ctrl.timer.tma)))
 	ctrl.tac.Update(strconv.Itoa(int(ctrl.timer.tac)))
+	ctrl.ui.Refresh()
+}
+
+/// *********************************
+/// *********************************
+/// *********************************
+
+type serialDebugControl struct {
+	ui     *fyne.Container
+	text   *widget.Label
+	buffer *[]byte
+}
+
+func newSerialControl(buffer *[]byte) *serialDebugControl {
+	ctrl := &serialDebugControl{
+		buffer: buffer,
+		text:   &widget.Label{},
+	}
+
+	// ctrl.text.Color = color.Black
+	// ctrl.text.TextSize = fyne.CurrentApp().Settings().Theme().Size("text")
+	ctrl.text.TextStyle = fyne.TextStyle{Monospace: true}
+
+	ctrl.ui = container.New(layout.NewBorderLayout(nil, nil, nil, nil), ctrl.text)
+
+	return ctrl
+}
+
+func (ctrl *serialDebugControl) Widget() fyne.CanvasObject {
+	return ctrl.ui
+}
+
+func (ctrl *serialDebugControl) Update() {
+	ctrl.text.Text = hex.Dump(*ctrl.buffer)
 	ctrl.ui.Refresh()
 }

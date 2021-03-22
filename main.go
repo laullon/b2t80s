@@ -97,7 +97,7 @@ func main() {
 			machine = nes.NewNES()
 			name = "Nes"
 		case "gb":
-			machine = gameboy.New(nil)
+			machine = gameboy.New()
 			name = "GameBoy"
 		default:
 			panic(fmt.Errorf("mode '%s' not valid", *mode))

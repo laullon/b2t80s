@@ -31,44 +31,60 @@ type lr35902f func(*lr35902)
 type fetch struct {
 	basicOp
 	table []*opCode
+	mrN   *mrNpc
+	mrNN  *mrNNpc
 }
 
-func (ops *fetch) tick(cpu *lr35902) {
-	ops.t++
-	// println("> [fetch]", ops.t, "pc:", fmt.Sprintf("0x%04X", cpu.regs.PC))
-	switch ops.t {
+func (fetch *fetch) tick(cpu *lr35902) {
+	fetch.t++
+	// println("> [fetch]", fetch.t, "pc:", fmt.Sprintf("0x%04X", cpu.regs.PC))
+	switch fetch.t {
 	case 1:
 		cpu.bus.SetAddr(cpu.regs.PC)
 		cpu.regs.PC++
-	case 3:
+
+	case 2:
 		cpu.bus.Read()
 		d := cpu.bus.GetData()
 		cpu.bus.Release()
 		cpu.fetched.prefix = cpu.fetched.prefix << 8
 		cpu.fetched.prefix |= uint16(cpu.fetched.opCode)
 		cpu.fetched.opCode = d
-	case 4:
-		cpu.fetched.op = ops.table[cpu.fetched.opCode]
+
+	case 3:
+		cpu.fetched.op = fetch.table[cpu.fetched.opCode]
 		if cpu.fetched.op == nil {
-			panic(errors.Errorf("opCode '%X - %X' not found", cpu.fetched.prefix, cpu.fetched.opCode))
+			panic(errors.Errorf("opCode '%X - %X' not found on 0x%04X", cpu.fetched.prefix, cpu.fetched.opCode, cpu.fetched.pc))
 		}
-		for _, op := range cpu.fetched.op.ops {
-			op.reset()
+
+		switch cpu.fetched.op.len {
+		case 1:
+			cpu.fetched.op.f(cpu)
+
+		case 2:
+			fetch.mrN.f = cpu.fetched.op.f
+			cpu.scheduler.append(fetch.mrN)
+
+		case 3:
+			fetch.mrNN.f = cpu.fetched.op.f
+			cpu.scheduler.append(fetch.mrNN)
 		}
-		// fmt.Printf("opCode '%X - %X'\n", cpu.fetched.prefix, cpu.fetched.opCode)
-		cpu.scheduler.append(cpu.fetched.op.ops...)
-		if cpu.fetched.op.onFetch != nil {
-			cpu.fetched.op.onFetch(cpu)
-		}
-		ops.done = true
+		fetch.done = true
 	}
 }
 
-var fetchPool = newObjectPool(func() interface{} { return &fetch{} })
+var fetchPool = newObjectPool(func() interface{} {
+	return &fetch{
+		mrN:  &mrNpc{},
+		mrNN: &mrNNpc{},
+	}
+})
 
 func newFetch(table []*opCode) *fetch {
 	fetch := fetchPool.next().(*fetch)
 	fetch.reset()
+	fetch.mrN.reset()
+	fetch.mrNN.reset()
 	fetch.table = table
 	return fetch
 }
@@ -92,9 +108,7 @@ func (ops *mrNpc) tick(cpu *lr35902) {
 		d := cpu.bus.GetData()
 		cpu.bus.Release()
 		cpu.fetched.n = d
-		if ops.f != nil {
-			ops.f(cpu)
-		}
+		ops.f(cpu)
 		ops.done = true
 	}
 }
@@ -118,18 +132,16 @@ func (ops *mrNNpc) tick(cpu *lr35902) {
 		d := cpu.bus.GetData()
 		cpu.bus.Release()
 		cpu.fetched.n = d
-	case 4:
+	case 5:
 		cpu.bus.SetAddr(cpu.regs.PC)
 		cpu.regs.PC++
-	case 6:
+	case 7:
 		cpu.bus.Read()
 		d := cpu.bus.GetData()
 		cpu.bus.Release()
 		cpu.fetched.n2 = d
 		cpu.fetched.nn = uint16(cpu.fetched.n) | (uint16(cpu.fetched.n2) << 8)
-		if ops.f != nil {
-			ops.f(cpu)
-		}
+		ops.f(cpu)
 		ops.done = true
 	}
 }

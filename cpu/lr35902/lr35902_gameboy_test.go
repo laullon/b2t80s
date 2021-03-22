@@ -34,3 +34,23 @@ func TestInstrs(t *testing.T) {
 		println("result:", result.String())
 	}
 }
+
+func TestInstrsTiming(t *testing.T) {
+	*emulator.CartFile = string("/Users/glaullon/Downloads/instr_timing.gb")
+
+	serial := make(chan byte, 1000)
+	gb := gameboy.New(serial)
+
+	var result strings.Builder
+	go func() {
+		for i := range serial {
+			result.WriteByte(i)
+		}
+	}()
+
+	if !assert.NotPanics(t, func() { gb.Clock().RunFor(100) }) {
+		println("result:", result.String())
+	}
+
+	println("result:", result.String())
+}

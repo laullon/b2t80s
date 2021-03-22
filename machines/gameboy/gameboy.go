@@ -10,20 +10,34 @@ import (
 )
 
 type gb struct {
-	cpu    lr35902.LR35902
-	lcd    *lcd
-	apu    *apu
-	bus    cpu.Bus
-	hram   cpu.RAM
-	timer  *timer
-	clock  emulator.Clock
-	serial chan byte
+	cpu          lr35902.LR35902
+	lcd          *lcd
+	apu          *apu
+	bus          cpu.Bus
+	hram         cpu.RAM
+	timer        *timer
+	clock        emulator.Clock
+	serial       chan byte
+	serialBuffer []byte
 }
 
-func New(serial chan byte) emulator.Machine {
+func New(serial ...chan byte) emulator.Machine {
 	m := &gb{
-		serial: serial,
-		hram:   cpu.NewRAM(make([]byte, 0x0080), 0x007f),
+		hram: cpu.NewRAM(make([]byte, 0x0080), 0x007f),
+	}
+
+	if len(serial) > 0 {
+		m.serial = serial[0]
+	} else {
+		m.serial = make(chan byte, 1000)
+		go func() {
+			for i := range m.serial {
+				m.serialBuffer = append(m.serialBuffer, i)
+				if len(m.serialBuffer) > 100 {
+					m.serialBuffer = m.serialBuffer[len(m.serialBuffer)-100:]
+				}
+			}
+		}()
 	}
 
 	cartridge := mappers.CreateMapper(*emulator.CartFile)
@@ -78,9 +92,10 @@ func (gb *gb) UIControls() []ui.Control {
 
 func (gb *gb) Control() map[string]ui.Control {
 	return map[string]ui.Control{
-		"CPU":   ui.NewLR35902UI(gb.cpu),
-		"LCD":   newLcdControl(gb.lcd),
-		"TIMER": newTimerControl(gb.timer),
+		"CPU":    ui.NewLR35902UI(gb.cpu),
+		"LCD":    newLcdControl(gb.lcd),
+		"TIMER":  newTimerControl(gb.timer),
+		"SERIAL": newSerialControl(&gb.serialBuffer),
 	}
 }
 
