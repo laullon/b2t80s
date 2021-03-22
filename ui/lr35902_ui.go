@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -18,6 +19,7 @@ type lr35902UI struct {
 	a, f, b, c, d, e, h, l *RegText
 	af, bc, de, hl         *RegText
 	sp, pc, flag           *RegText
+	ier, ifr, ime          *RegText
 
 	spDump *widget.Label
 
@@ -46,6 +48,9 @@ func NewLR35902UI(cpu lr35902.LR35902) Control {
 	ui.hl = NewRegText("HL:")
 	ui.sp = NewRegText("SP:")
 	ui.pc = NewRegText("PC:")
+	ui.ier = NewRegText("IE:")
+	ui.ifr = NewRegText("IF:")
+	ui.ime = NewRegText("IME:")
 	ui.flag = NewRegText("FLAG:")
 
 	c1 := container.New(layout.NewFormLayout(),
@@ -53,7 +58,6 @@ func NewLR35902UI(cpu lr35902.LR35902) Control {
 		ui.b.Label, ui.b.Value,
 		ui.d.Label, ui.d.Value,
 		ui.h.Label, ui.h.Value,
-		ui.pc.Label, ui.pc.Value,
 	)
 	c2 := container.New(layout.NewFormLayout(),
 		ui.f.Label, ui.f.Value,
@@ -66,15 +70,21 @@ func NewLR35902UI(cpu lr35902.LR35902) Control {
 		ui.bc.Label, ui.bc.Value,
 		ui.de.Label, ui.de.Value,
 		ui.hl.Label, ui.hl.Value,
-		ui.flag.Label, ui.flag.Value,
 	)
 
 	c4 := container.New(layout.NewFormLayout(),
+		ui.pc.Label, ui.pc.Value,
 		ui.sp.Label, ui.sp.Value,
-		// widget.NewLabel(""), ui.spDump,
+		ui.flag.Label, ui.flag.Value,
 	)
 
-	regs := container.New(layout.NewGridLayoutWithColumns(4), c1, c2, c3, c4)
+	c5 := container.New(layout.NewFormLayout(),
+		ui.ier.Label, ui.ier.Value,
+		ui.ifr.Label, ui.ifr.Value,
+		ui.ime.Label, ui.ime.Value,
+	)
+
+	regs := container.New(layout.NewGridLayoutWithColumns(5), c1, c2, c3, c4, c5)
 
 	ui.logTxt = widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
 	ui.spDump = widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
@@ -108,7 +118,10 @@ func (ui *lr35902UI) Update() {
 	ui.hl.Update(toHex16(ui.regs.HL.Get()))
 	ui.sp.Update(toHex16(ui.regs.SP.Get()))
 	ui.pc.Update(toHex16(ui.regs.PC))
-	ui.flag.Update(af)
+	ui.ifr.Update(fmt.Sprintf("%08b", ui.regs.IF))
+	ui.ier.Update(fmt.Sprintf("%08b", ui.regs.IE))
+	ui.ime.Update(fmt.Sprintf("%v", ui.regs.IME))
+	ui.flag.Update(fmt.Sprintf("%08b", ui.regs.F.GetByte()))
 
 	ui.logTxt.Text = strings.Join(append(ui.log, "\n", ui.nextOP), "\n")
 

@@ -1,6 +1,7 @@
 package gameboy
 
 import (
+	"fmt"
 	"image"
 	"strconv"
 
@@ -16,7 +17,8 @@ type lcdDebugControl struct {
 	lcd     *lcd
 	display *image.RGBA
 
-	x, y, scX, scY *ui.RegText
+	x, y, scX, scY  *ui.RegText
+	status, control *ui.RegText
 }
 
 func newLcdControl(lcd *lcd) *lcdDebugControl {
@@ -33,10 +35,12 @@ func newLcdControl(lcd *lcd) *lcdDebugControl {
 	ctrl.y = ui.NewRegText("Y:")
 	ctrl.scX = ui.NewRegText("Scroll X:")
 	ctrl.scY = ui.NewRegText("Scroll Y:")
+	ctrl.status = ui.NewRegText("Status:")
+	ctrl.control = ui.NewRegText("Control:")
 
 	c1 := container.New(layout.NewFormLayout(),
-		ctrl.y.Label, ctrl.y.Value,
 		ctrl.x.Label, ctrl.x.Value,
+		ctrl.y.Label, ctrl.y.Value,
 	)
 
 	c2 := container.New(layout.NewFormLayout(),
@@ -44,7 +48,12 @@ func newLcdControl(lcd *lcd) *lcdDebugControl {
 		ctrl.scY.Label, ctrl.scY.Value,
 	)
 
-	regs := container.New(layout.NewGridLayoutWithColumns(3), c1, c2)
+	c3 := container.New(layout.NewFormLayout(),
+		ctrl.control.Label, ctrl.control.Value,
+		ctrl.status.Label, ctrl.status.Value,
+	)
+
+	regs := container.New(layout.NewGridLayoutWithColumns(3), c1, c2, c3)
 
 	ctrl.ui = fyne.NewContainerWithLayout(layout.NewBorderLayout(regs, nil, nil, nil), regs, img)
 
@@ -60,6 +69,8 @@ func (ctrl *lcdDebugControl) Update() {
 	ctrl.y.Update(strconv.Itoa(ctrl.lcd.ly))
 	ctrl.scX.Update(strconv.Itoa(int(ctrl.lcd.scx)))
 	ctrl.scY.Update(strconv.Itoa(int(ctrl.lcd.scy)))
+	ctrl.control.Update(fmt.Sprintf("%08b", ctrl.lcd.control))
+	ctrl.status.Update(fmt.Sprintf("%08b", ctrl.lcd.status))
 
 	for r := uint16(0); r < 32; r++ {
 		y := int(r * 8)
@@ -79,5 +90,55 @@ func (ctrl *lcdDebugControl) Update() {
 		}
 	}
 
+	ctrl.ui.Refresh()
+}
+
+/// *********************************
+/// *********************************
+/// *********************************
+
+type timerDebugControl struct {
+	ui    fyne.CanvasObject
+	timer *timer
+
+	div, tima, tma, tac *ui.RegText
+}
+
+func newTimerControl(timer *timer) *timerDebugControl {
+	ctrl := &timerDebugControl{
+		timer: timer,
+	}
+
+	ctrl.div = ui.NewRegText("div:")
+	ctrl.tima = ui.NewRegText("tima:")
+	ctrl.tma = ui.NewRegText("tma:")
+	ctrl.tac = ui.NewRegText("tac:")
+
+	c1 := container.New(layout.NewFormLayout(),
+		ctrl.div.Label, ctrl.div.Value,
+		ctrl.tima.Label, ctrl.tima.Value,
+	)
+
+	c2 := container.New(layout.NewFormLayout(),
+		ctrl.tma.Label, ctrl.tma.Value,
+		ctrl.tac.Label, ctrl.tac.Value,
+	)
+
+	regs := container.New(layout.NewGridLayoutWithColumns(3), c1, c2)
+
+	ctrl.ui = fyne.NewContainerWithLayout(layout.NewBorderLayout(regs, nil, nil, nil), regs)
+
+	return ctrl
+}
+
+func (ctrl *timerDebugControl) Widget() fyne.CanvasObject {
+	return ctrl.ui
+}
+
+func (ctrl *timerDebugControl) Update() {
+	ctrl.div.Update(strconv.Itoa(int(ctrl.timer.div)))
+	ctrl.tima.Update(strconv.Itoa(int(ctrl.timer.tima)))
+	ctrl.tma.Update(strconv.Itoa(int(ctrl.timer.tma)))
+	ctrl.tac.Update(strconv.Itoa(int(ctrl.timer.tac)))
 	ctrl.ui.Refresh()
 }

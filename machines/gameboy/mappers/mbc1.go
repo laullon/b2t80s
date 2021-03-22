@@ -12,7 +12,7 @@ type mbc1 struct {
 	rom2 cpu.ROM
 }
 
-func newMBC1(file *gbFile) Mapper {
+func newMBC1(file *gbFile, ram bool) Mapper {
 	mbc1 := &mbc1{
 		file: file,
 	}

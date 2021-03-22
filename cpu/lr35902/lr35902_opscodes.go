@@ -39,7 +39,7 @@ var lr35902OpsCodeTable = []*opCode{
 	{"CALL cc, nn", 0b11100111, 0b11000100, 3, []lr35902op{&mrNNpc{f: callCC}}, nil},
 
 	{"LD (ff00+n), A", 0xFF, 0xe0, 2, []lr35902op{&mrNpc{f: ldhNa}}, nil},
-	{"LD (ff00+C), A", 0xFF, 0xe2, 1, []lr35902op{&mrNpc{f: ldhCa}}, nil},
+	{"LD (ff00+C), A", 0xFF, 0xe2, 1, []lr35902op{}, ldhCa},
 
 	{"LD A, (ff00+n)", 0xFF, 0xf0, 2, []lr35902op{&mrNpc{f: ldhAn}}, nil},
 
@@ -63,10 +63,11 @@ var lr35902OpsCodeTable = []*opCode{
 	{"NOP", 0xFF, 0x00, 1, []lr35902op{}, nil},
 	{"DAA", 0xFF, 0x27, 1, []lr35902op{}, daa},
 	{"CPL", 0xFF, 0x2f, 1, []lr35902op{}, cpl},
-	// {"SCF", 0xFF, 0x37, 1, []lr35902op{}, scf},
-	// {"CCF", 0xFF, 0x3F, 1, []lr35902op{}, ccf},
-	// {"HALT", 0xFF, 0x76, 1, []lr35902op{}, halt},
+	{"SCF", 0xFF, 0x37, 1, []lr35902op{}, scf},
+	{"CCF", 0xFF, 0x3F, 1, []lr35902op{}, ccf},
+	{"HALT", 0xFF, 0x76, 1, []lr35902op{}, halt},
 	{"RET", 0xFF, 0xC9, 1, []lr35902op{}, ret},
+	{"RETI", 0xFF, 0xD9, 1, []lr35902op{}, reti},
 
 	{"INC (HL)", 0xFF, 0x34, 1, []lr35902op{&exec{l: 1, f: incHL}}, nil},
 	{"DEC (HL)", 0xFF, 0x35, 1, []lr35902op{&exec{l: 1, f: decHL}}, nil},
@@ -100,15 +101,15 @@ var lr35902OpsCodeTable = []*opCode{
 	{"JP nn", 0xFF, 0xC3, 3, []lr35902op{&mrNNpc{f: func(cpu *lr35902) { cpu.regs.PC = cpu.fetched.nn }}}, nil},
 
 	{"RLCA", 0xFF, 0x07, 1, []lr35902op{}, rlca},
-	// {"RLA", 0xFF, 0x17, 1, []lr35902op{}, rla},
-	// {"RRCA", 0xFF, 0x0F, 1, []lr35902op{}, rrca},
+	{"RLA", 0xFF, 0x17, 1, []lr35902op{}, rla},
+	{"RRCA", 0xFF, 0x0F, 1, []lr35902op{}, rrca},
 	{"RRA", 0xFF, 0x1F, 1, []lr35902op{}, rra},
 
 	{"JP HL", 0xFF, 0xE9, 1, []lr35902op{}, func(cpu *lr35902) { cpu.regs.PC = cpu.regs.HL.Get() }},
 
 	{"XOR *", 0xFF, 0xEE, 2, []lr35902op{&mrNpc{f: func(cpu *lr35902) { cpu.xor(cpu.fetched.n) }}}, nil},
-	{"DI", 0xFF, 0xF3, 1, []lr35902op{}, func(cpu *lr35902) { cpu.regs.IFF1 = false; cpu.regs.IFF2 = false }},
-	{"EI", 0xFF, 0xFb, 1, []lr35902op{}, func(cpu *lr35902) { cpu.regs.IFF1 = true; cpu.regs.IFF2 = true }},
+	{"DI", 0xFF, 0xF3, 1, []lr35902op{}, func(cpu *lr35902) { cpu.regs.IME = false }},
+	{"EI", 0xFF, 0xFb, 1, []lr35902op{}, func(cpu *lr35902) { cpu.regs.IME = true }},
 	{"LD SP, HL", 0xFF, 0xF9, 1, []lr35902op{&exec{l: 2, f: func(cpu *lr35902) { cpu.regs.SP.Set(cpu.regs.HL.Get()) }}}, nil},
 	{"CP n", 0xFF, 0xFe, 2, []lr35902op{&mrNpc{f: func(cpu *lr35902) { cpu.cp(cpu.fetched.n) }}}, nil},
 
@@ -154,7 +155,7 @@ func (o *opCode) String() string {
 	if o == nil {
 		return "<nil>"
 	}
-	return fmt.Sprintf("%s", o.name)
+	return o.name
 }
 
 var lookup = make([]*opCode, 256)

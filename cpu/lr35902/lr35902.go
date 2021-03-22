@@ -7,8 +7,6 @@ import (
 	"github.com/laullon/b2t80s/cpu"
 )
 
-var overflowAddTable = []bool{false, false, false, true, true, false, false, false}
-var overflowSubTable = []bool{false, true, false, false, false, false, true, false}
 var halfcarryAddTable = []bool{false, true, true, true, false, false, false, true}
 var halfcarrySubTable = []bool{false, false, true, false, true, false, true, true}
 
@@ -16,7 +14,6 @@ var parityTable = make([]bool, 0x100)
 
 type LR35902Registers struct {
 	PC uint16
-	M1 bool
 
 	A byte
 	F *flags
@@ -37,14 +34,9 @@ type LR35902Registers struct {
 	P  byte
 	SP *cpu.RegPair
 
-	I  byte
-	R  byte
-	R7 byte
-
-	IFF1 bool
-	IFF2 bool
-
-	InterruptsMode byte
+	IME bool
+	IE  byte
+	IF  byte
 }
 
 type fetchedData struct {
@@ -96,23 +88,22 @@ func (d *fetchedData) String() string {
 
 type CPUTrap func()
 
+var intVector = []uint16{0x40, 0x48, 0x50, 0x58, 0x60}
+
 type LR35902 interface {
 	cpu.CPU
 	Registers() *LR35902Registers
 	RegisterTrap(pc uint16, trap CPUTrap)
+	cpu.PortManager
 }
 
 type lr35902 struct {
 	bus *genericBus
 
-	regs      *LR35902Registers
-	indexRegs []*cpu.RegPair
-	indexIdx  int
+	regs *LR35902Registers
 
 	halt bool
 	wait bool
-
-	doInterrupt bool
 
 	fetched   *fetchedData
 	scheduler *circularBuffer
@@ -152,7 +143,6 @@ func New(bus cpu.Bus) LR35902 {
 		traps:     make(map[uint16]CPUTrap),
 		regs: &LR35902Registers{
 			PC: 0,
-			M1: false,
 			A:  0xff,
 			S:  0xFF,
 			P:  0xFF,
@@ -162,7 +152,6 @@ func New(bus cpu.Bus) LR35902 {
 				H: true,
 				N: true,
 			},
-			R: 0x01,
 		},
 	}
 
@@ -175,6 +164,9 @@ func New(bus cpu.Bus) LR35902 {
 	return res
 }
 
+func (cpu *lr35902) Interrupt(bool) {}
+func (cpu *lr35902) NMI(bool)       {}
+
 func (cpu *lr35902) CurrentOP() string { panic(-2) }
 
 func (cpu *lr35902) RegisterTrap(pc uint16, trap CPUTrap) {
@@ -183,13 +175,6 @@ func (cpu *lr35902) RegisterTrap(pc uint16, trap CPUTrap) {
 
 func (cpu *lr35902) Registers() *LR35902Registers {
 	return cpu.regs
-}
-
-func (cpu *lr35902) Interrupt(i bool) {
-	cpu.doInterrupt = i
-}
-
-func (cpu *lr35902) NMI(i bool) {
 }
 
 func (cpu *lr35902) Wait(w bool) {
@@ -207,37 +192,27 @@ func (cpu *lr35902) Reset() {
 func (cpu *lr35902) SetTracer(t cpu.CPUTracer)            { cpu.log = t }
 func (cpu *lr35902) SetDebugger(db cpu.DebuggerCallbacks) { cpu.debugger = db }
 
-func (cpu *lr35902) execInterrupt() {
+func (cpu *lr35902) execInterrupt() bool {
 	cpu.prepareForNewInstruction()
-	cpu.doInterrupt = false
 
-	if cpu.regs.IFF1 {
-		cpu.regs.IFF1 = false
-		cpu.regs.IFF2 = false
-		switch cpu.regs.InterruptsMode {
-		case 0, 1:
-			code := &exec{l: 7, f: func(cpu *lr35902) {
-				cpu.pushToStack(cpu.regs.PC, func(cpu *lr35902) {
-					cpu.regs.PC = 0x0038
-				})
-			}}
-			cpu.scheduler.append(code)
-		case 2:
-			code := &exec{l: 7, f: func(cpu *lr35902) {
-				cpu.pushToStack(cpu.regs.PC, func(cpu *lr35902) {
-					pos := uint16(cpu.regs.I)<<8 + 0xff
-					mr1 := newMR(pos, func(cpu *lr35902, data byte) {
-						cpu.regs.PC = uint16(data) << 8
+	if cpu.regs.IME {
+		for i := 0; i < 5; i++ {
+			bit := byte(1) << i
+			if (cpu.regs.IE&bit != 0) && (cpu.regs.IF&bit != 0) {
+				cpu.regs.IME = false
+				cpu.debugger.EvalInterrupt()
+				cpu.regs.IF &^= bit
+				code := &exec{l: 7, f: func(cpu *lr35902) {
+					cpu.pushToStack(cpu.regs.PC, func(cpu *lr35902) {
+						cpu.regs.PC = intVector[i]
 					})
-					mr2 := newMR(pos, func(cpu *lr35902, data byte) {
-						cpu.regs.PC |= uint16(data)
-					})
-					cpu.scheduler.append(mr1, mr2)
-				})
-			}}
-			cpu.scheduler.append(code)
+				}}
+				cpu.scheduler.append(code)
+				return true
+			}
 		}
 	}
+	return false
 }
 
 func (cpu *lr35902) prepareForNewInstruction() {
@@ -250,7 +225,6 @@ func (cpu *lr35902) prepareForNewInstruction() {
 	cpu.fetched.opCode = 0
 	cpu.fetched.prefix = 0
 	cpu.fetched.pc = cpu.regs.PC
-	cpu.indexIdx = 0
 }
 
 func (cpu *lr35902) Tick() {
@@ -259,7 +233,7 @@ func (cpu *lr35902) Tick() {
 	}
 
 	if cpu.halt {
-		if cpu.doInterrupt {
+		if cpu.regs.IME {
 			cpu.halt = false
 			cpu.regs.PC++
 			cpu.execInterrupt()
@@ -274,10 +248,11 @@ func (cpu *lr35902) Tick() {
 			if cpu.log != nil {
 				cpu.log.AppendLastOP(cpu.fetched.String())
 			}
-			if cpu.doInterrupt {
-				cpu.execInterrupt()
-			} else {
+
+			if !cpu.execInterrupt() {
 				cpu.newInstruction()
+			} else {
+				cpu.debugger.EvalInterrupt()
 			}
 		}
 	}
@@ -299,91 +274,19 @@ func (cpu *lr35902) doTraps() {
 	}
 }
 
-// func (cpu *lr35902) Tick() {
-// 	var err error
-// 	if cpu.regs.M1 {
+func (cpu *lr35902) WritePort(addr uint16, data byte) {
+	switch addr {
+	case 0xffff:
+		cpu.regs.IE = data
+	case 0xff0f:
+		cpu.regs.IF = data
+	default:
+		panic(-1)
+	}
+}
+func (cpu *lr35902) ReadPort(addr uint16) (byte, bool) {
+	switch addr {
+	}
+	panic(-1)
 
-// 		// TODO: review
-// 		if trap, ok := cpu.traps[cpu.regs.PC]; ok {
-// 			res := trap()
-// 			switch res {
-// 			case emulator.CONTINUE:
-// 			case emulator.STOP:
-// 				return
-// 			default:
-// 				cpu.regs.PC = uint16(res)
-// 				return
-// 			}
-// 		}
-
-// 		cpu.regs.M1 = false
-
-// 		if cpu.doInterrupt {
-// 			cpu.pendingTicks = cpu.execInterrupt()
-// 			cpu.instruction = emulator.Instruction{Instruction: 0xffffff}
-// 		}
-
-// 		if cpu.halt { //TODO review
-// 			cpu.pendingTicks = 4
-// 			cpu.instruction = emulator.Instruction{Instruction: 0xffffff}
-// 		}
-
-// 		cpu.instruction, err = GetOpCode(cpu.memory.GetBlock(cpu.regs.PC, 4))
-// 		cpu.pendingTicks = cpu.instruction.Tstates
-// 		if err != nil {
-// 			panic(err)
-// 		}
-
-// 		if cpu.debugger != nil {
-// 			cpu.debugger.AddLastInstruction(cpu.instruction)
-// 		}
-
-// 	}
-
-// 	cpu.pendingTicks--
-
-// 	if cpu.pendingTicks == 0 {
-// 		cpu.regs.M1 = true
-// 		needPcUpdate := cpu.runSwitch(cpu.instruction)
-// 		if needPcUpdate {
-// 			cpu.regs.PC += uint16(cpu.instruction.Length)
-// 		}
-// 	}
-// }
-
-// func (cpu *lr35902) Step() {
-// 	if trap, ok := cpu.traps[cpu.regs.PC]; ok {
-// 		res := trap()
-// 		switch res {
-// 		case emulator.CONTINUE:
-// 		case emulator.STOP:
-// 			return
-// 		default:
-// 			cpu.regs.PC = uint16(res)
-// 			return
-// 		}
-// 	}
-
-// 	if cpu.doInterrupt {
-// 		ts := cpu.execInterrupt()
-// 		cpu.clock.AddTStates(ts)
-// 	}
-
-// 	if cpu.debugger != nil {
-// 		cpu.debugger.AddLastInstruction(ins)
-// 	}
-
-// 	var ts uint
-// 	if !cpu.halt {
-// 		needPcUpdate := cpu.runSwitch(ins)
-// 		if needPcUpdate {
-// 			cpu.regs.PC += uint16(ins.Length)
-// 		}
-// 		ts = ins.Tstates
-// 	} else {
-// 		ts = 4 // halt
-// 	}
-
-// 	cpu.clock.AddTStates(ts)
-// 	return
-// }
+}

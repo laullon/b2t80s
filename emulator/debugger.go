@@ -38,7 +38,7 @@ func NewDebugger(clock Clock, breaks []uint16) Debugger {
 			debug.Stop()
 		}),
 		widget.NewButton("Stop on Interrup", func() {
-			debug.StopNextFrame()
+			debug.StopNextInterrupt()
 		}),
 	)
 

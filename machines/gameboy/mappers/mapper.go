@@ -17,7 +17,10 @@ func CreateMapper(fileName string) Mapper {
 		return &rom{file}
 
 	case 1:
-		return newMBC1(file)
+		return newMBC1(file, false)
+
+	case 2:
+		return newMBC1(file, true)
 
 	default:
 		panic(fmt.Sprintf("mapper type '%d' not supported", file.header.mapper))

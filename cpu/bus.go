@@ -42,7 +42,7 @@ func (bus *bus) Write(addr uint16, data uint8) {
 	// fmt.Printf("[writePort]-> port:0x%04X data:0x%02X  \n", addr, data)
 	for _, entry := range bus.ports {
 		if (addr & entry.mask.Mask) == entry.mask.Value {
-			// println(entry.name, " - ", reflect.TypeOf(entry).String())
+			// println(entry.name, " - ", reflect.TypeOf(entry.manager).String())
 			entry.manager.WritePort(addr, data)
 			return
 		}

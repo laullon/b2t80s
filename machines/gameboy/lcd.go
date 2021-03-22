@@ -72,8 +72,25 @@ func (lcd *lcd) Tick() {
 
 		if lcd.ly == lcd.lyc {
 			lcd.status |= 0b00000100
+		} else {
+			lcd.status &= 0b11111011
 		}
 	}
+
+	mode := lcd.status & 3
+	if lcd.ly > 143 {
+		if mode != 1 {
+			lcd.bus.Write(0xff0f, 1)
+		}
+		mode = 1
+	} else if lcd.lx < 80 {
+		mode = 2
+	} else if lcd.lx < 80+168 { // TODO: review sprite count
+		mode = 3
+	} else if lcd.lx < 80+168+208 { // TODO: review sprite count
+		mode = 0
+	}
+	lcd.status = (lcd.status & 0xfc) | mode
 
 	if lcd.doDMA {
 		lcd.dmaTick()
@@ -101,7 +118,7 @@ func (lcd *lcd) drawLine() {
 }
 
 func (lcd *lcd) dmaTick() {
-	fmt.Printf("lcd.dmaTarget = 0x%04X\n", lcd.dmaTarget)
+	// fmt.Printf("lcd.dmaTarget = 0x%04X\n", lcd.dmaTarget)
 	if lcd.dmaT == 3 {
 		lcd.dmaT = 0
 		lcd.bus.Write(lcd.dmaTarget, lcd.bus.Read(lcd.dma))

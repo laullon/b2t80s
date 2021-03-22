@@ -38,12 +38,9 @@ func (ops *fetch) tick(cpu *lr35902) {
 	// println("> [fetch]", ops.t, "pc:", fmt.Sprintf("0x%04X", cpu.regs.PC))
 	switch ops.t {
 	case 1:
-		cpu.regs.M1 = true
 		cpu.bus.SetAddr(cpu.regs.PC)
 		cpu.regs.PC++
-		cpu.regs.R = cpu.regs.R&0x80 | ((cpu.regs.R + 1) & 0x7f)
 	case 3:
-		cpu.regs.M1 = false
 		cpu.bus.Read()
 		d := cpu.bus.GetData()
 		cpu.bus.Release()
@@ -209,31 +206,6 @@ func newMW(addr uint16, data uint8, f func(*lr35902)) *mw {
 	mw.data = data
 	mw.f = f
 	return mw
-}
-
-// -------------------------------------------------------------
-
-type out struct {
-	basicOp
-	addr uint16
-	data uint8
-	f    func(*lr35902)
-}
-
-func (ops *out) tick(cpu *lr35902) {
-	ops.t++
-	switch ops.t {
-	case 1:
-		cpu.bus.SetAddr(ops.addr)
-		cpu.bus.SetData(ops.data)
-		cpu.bus.Write()
-		cpu.bus.Release()
-	case 3:
-		if ops.f != nil {
-			ops.f(cpu)
-		}
-		ops.done = true
-	}
 }
 
 // -------------------------------------------------------------

@@ -14,6 +14,8 @@ type gb struct {
 	lcd    *lcd
 	apu    *apu
 	bus    cpu.Bus
+	hram   cpu.RAM
+	timer  *timer
 	clock  emulator.Clock
 	serial chan byte
 }
@@ -21,6 +23,7 @@ type gb struct {
 func New(serial chan byte) emulator.Machine {
 	m := &gb{
 		serial: serial,
+		hram:   cpu.NewRAM(make([]byte, 0x0080), 0x007f),
 	}
 
 	cartridge := mappers.CreateMapper(*emulator.CartFile)
@@ -34,6 +37,7 @@ func New(serial chan byte) emulator.Machine {
 	m.cpu.Registers().PC = 0x100 // TODO: bios?
 	m.lcd = newLCD(m.bus)
 	m.apu = newAPU()
+	m.timer = newTimer(m.bus)
 
 	m.bus.RegisterPort("vram", cpu.PortMask{0b1110_0000_0000_0000, 0b1000_0000_0000_0000}, m.lcd.vRAM)
 	m.bus.RegisterPort("oam", cpu.PortMask{0b1111_1111_0000_0000, 0b1111_1110_0000_0000}, m.lcd.oam)
@@ -46,7 +50,9 @@ func New(serial chan byte) emulator.Machine {
 
 	m.bus.RegisterPort("LCD", cpu.PortMask{0b1111_1111_1111_0000, 0b1111_1111_0100_0000}, m.lcd)
 
-	m.bus.RegisterPort("hram", cpu.PortMask{0b1111_1111_1000_0000, 0b1111_1111_1000_0000}, cpu.NewRAM(make([]byte, 0x0080), 0x007f))
+	m.bus.RegisterPort("TIMER", cpu.PortMask{0b1111_1111_1111_1100, 0b1111_1111_0000_0100}, m.timer)
+
+	// m.bus.RegisterPort("hram", cpu.PortMask{0b1111_1111_1000_0000, 0b1111_1111_1000_0000}, m)
 
 	cartridge.ConnectToCPU(m.bus)
 
@@ -54,6 +60,7 @@ func New(serial chan byte) emulator.Machine {
 	m.clock = clock
 	clock.AddTicker(0, m.cpu)
 	clock.AddTicker(0, m.lcd)
+	clock.AddTicker(0, m.timer)
 
 	print("cpu bus:\n", m.bus.DumpMap(), "\n")
 	// print("ppu bus:\n", m.ppuBus.DumpMap(), "\n")
@@ -71,8 +78,9 @@ func (gb *gb) UIControls() []ui.Control {
 
 func (gb *gb) Control() map[string]ui.Control {
 	return map[string]ui.Control{
-		"CPU": ui.NewLR35902UI(gb.cpu),
-		"LCD": newLcdControl(gb.lcd),
+		"CPU":   ui.NewLR35902UI(gb.cpu),
+		"LCD":   newLcdControl(gb.lcd),
+		"TIMER": newTimerControl(gb.timer),
 	}
 }
 
@@ -86,7 +94,17 @@ func (gb *gb) SetDebugger(db cpu.DebuggerCallbacks) {
 }
 
 func (gb *gb) ReadPort(addr uint16) (byte, bool) {
-	// fmt.Printf("[readPort]-(no PM)-> port:0x%04X \n", addr)
+	switch addr {
+	case 0xffff:
+		return gb.cpu.Registers().IE, false
+	case 0xff0f:
+		return gb.cpu.Registers().IF, false
+	default:
+		if addr > 0xff7f {
+			return gb.hram.ReadPort(addr)
+		}
+		// panic(-1)
+	}
 	return 0xff, false
 }
 
@@ -96,6 +114,18 @@ func (gb *gb) WritePort(addr uint16, data byte) {
 		if gb.serial != nil {
 			gb.serial <- data
 		}
+	case 0xff02:
+
+	case 0xffff:
+		gb.cpu.Registers().IE = data
+	case 0xff0f:
+		gb.cpu.Registers().IF |= data
+	default:
+		if addr > 0xff7f {
+			// fmt.Printf("[GB][writePort]-> port:0x%04X data:0x%02X  \n", addr, data)
+			gb.hram.WritePort(addr, data)
+			// } else {
+			// panic(fmt.Sprintf("Panic on [GB][writePort]-> port:0x%04X data:0x%02X  \n", addr, data))
+		}
 	}
-	// fmt.Printf("[writePort]-(no PM)-> port:0x%04X data:%v\n", addr, data)
 }
