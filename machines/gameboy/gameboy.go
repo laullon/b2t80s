@@ -1,12 +1,17 @@
 package gameboy
 
 import (
+	"flag"
+	"fmt"
+	"os"
+
 	"fyne.io/fyne/v2"
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/lr35902"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/machines/gameboy/mappers"
 	"github.com/laullon/b2t80s/ui"
+	"github.com/laullon/b2t80s/utils"
 )
 
 type gb struct {
@@ -15,11 +20,14 @@ type gb struct {
 	apu          *apu
 	bus          cpu.Bus
 	hram         cpu.RAM
+	bios         *bios
 	timer        *timer
 	clock        emulator.Clock
 	serial       chan byte
 	serialBuffer []byte
 }
+
+var Bios = flag.String("bios", "bios/gb_bios.bin", "NESncart file to load")
 
 func New(serial ...chan byte) emulator.Machine {
 	m := &gb{
@@ -48,10 +56,18 @@ func New(serial ...chan byte) emulator.Machine {
 	// }
 
 	m.cpu = lr35902.New(m.bus)
-	m.cpu.Registers().PC = 0x100 // TODO: bios?
 	m.lcd = newLCD(m.bus)
 	m.apu = newAPU()
 	m.timer = newTimer(m.bus)
+
+	// BIOS
+	if _, err := os.Stat(*Bios); err == nil {
+		m.bios = Newbios(utils.ReadFile(*Bios))
+		m.bus.RegisterPort("bios/rom", cpu.PortMask{0b1111_1111_0000_0000, 0b0000_0000_0000_0000}, m.bios)
+	} else {
+		m.cpu.Registers().PC = 0x100
+		fmt.Printf("Bios not found\n")
+	}
 
 	m.bus.RegisterPort("vram", cpu.PortMask{0b1110_0000_0000_0000, 0b1000_0000_0000_0000}, m.lcd.vRAM)
 	m.bus.RegisterPort("oam", cpu.PortMask{0b1111_1111_0000_0000, 0b1111_1110_0000_0000}, m.lcd.oam)
@@ -131,10 +147,15 @@ func (gb *gb) WritePort(addr uint16, data byte) {
 		}
 	case 0xff02:
 
+	case 0xff50:
+		gb.bios.enable = false
+
 	case 0xffff:
 		gb.cpu.Registers().IE = data
+
 	case 0xff0f:
-		gb.cpu.Registers().IF |= data
+		gb.cpu.Registers().IF = data
+
 	default:
 		if addr > 0xff7f {
 			// fmt.Printf("[GB][writePort]-> port:0x%04X data:0x%02X  \n", addr, data)
@@ -143,4 +164,28 @@ func (gb *gb) WritePort(addr uint16, data byte) {
 			// panic(fmt.Sprintf("Panic on [GB][writePort]-> port:0x%04X data:0x%02X  \n", addr, data))
 		}
 	}
+}
+
+// ************************
+// ************************
+// ************************
+
+type bios struct {
+	bank   []byte
+	enable bool
+}
+
+func Newbios(bank []byte) *bios {
+	return &bios{bank: bank, enable: true}
+}
+
+func (bios *bios) SetBank(bank []byte) {
+	bios.bank = bank
+}
+
+func (bios *bios) ReadPort(addr uint16) (byte, bool) {
+	return bios.bank[addr], !bios.enable
+}
+
+func (bios *bios) WritePort(addr uint16, data byte) {
 }

@@ -1,6 +1,10 @@
 package lr35902
 
-import cpuUtils "github.com/laullon/b2t80s/cpu"
+import (
+	"fmt"
+
+	cpuUtils "github.com/laullon/b2t80s/cpu"
+)
 
 func ldRn(cpu *lr35902) {
 	rIdx := cpu.fetched.opCode >> 3 & 0b111
@@ -8,30 +12,27 @@ func ldRn(cpu *lr35902) {
 	*r = cpu.fetched.n
 }
 
-func ldRhl(cpu *lr35902) {
-	mr := newMR(cpu.regs.HL.Get(), ldR_m1)
+func ldFromHL(cpu *lr35902) {
+	mr := newMR(cpu.regs.HL.Get(), ldFromHL_m1)
 	cpu.scheduler.append(mr)
 }
 
-func ldR_m1(cpu *lr35902, data uint8) {
+func ldFromHL_m1(cpu *lr35902, data uint8) {
 	rIdx := cpu.fetched.opCode >> 3 & 0b111
 	r := cpu.getRptr(rIdx)
 	*r = data
 }
 
-func ldHLr(cpu *lr35902) {
+func ldToHL(cpu *lr35902) {
 	rIdx := cpu.fetched.opCode & 0b111
 	r := cpu.getRptr(rIdx)
 	mr := newMW(cpu.regs.HL.Get(), *r, nil)
 	cpu.scheduler.append(mr)
 }
 
-func ldRr(cpu *lr35902) {
-	r1Idx := cpu.fetched.opCode >> 3 & 0b111
-	r2Idx := cpu.fetched.opCode & 0b111
-	r1 := cpu.getRptr(r1Idx)
-	r2 := cpu.getRptr(r2Idx)
-	*r1 = *r2
+func ldToHLn(cpu *lr35902) {
+	mr := newMW(cpu.regs.HL.Get(), cpu.fetched.n, nil)
+	cpu.scheduler.append(mr)
 }
 
 func rlca(cpu *lr35902) {
@@ -155,14 +156,25 @@ func addHLss(cpu *lr35902) {
 	rIdx := cpu.fetched.opCode >> 4 & 0b11
 	reg := cpu.getRRptr(rIdx)
 
-	hl := cpu.regs.HL.Get()
-	var result = uint32(hl) + uint32(reg.Get())
-	var lookup = byte(((hl & 0x0800) >> 11) | ((reg.Get() & 0x0800) >> 10) | ((uint16(result) & 0x0800) >> 9))
-	cpu.regs.HL.Set(uint16(result))
+	hl := uint32(cpu.regs.HL.Get())
+	rr := uint32(reg.Get())
+
+	var result = hl + rr
+	var result2 = hl&0xfff + rr&0xfff
 
 	cpu.regs.F.N = false
-	cpu.regs.F.H = halfcarryAddTable[lookup]
-	cpu.regs.F.C = (result & 0x10000) != 0
+	cpu.regs.F.C = result > 0xffff
+	cpu.regs.F.H = result2 > 0x0fff
+
+	cpu.regs.HL.Set(uint16(result))
+}
+
+func addSPn(cpu *lr35902) {
+	cpu.regs.F.C = ((cpu.regs.SP.Get() & 0xFF) + uint16(cpu.fetched.n)) > 0xFF
+	cpu.regs.F.H = ((cpu.regs.SP.Get() & 0x0F) + (uint16(cpu.fetched.n) & 0x0F)) > 0x0F
+	cpu.regs.F.N = false
+	cpu.regs.F.Z = false
+	cpu.regs.SP.Set(cpu.regs.SP.Get() + uint16(cpu.fetched.n))
 }
 
 func ldAbc(cpu *lr35902) {
@@ -275,7 +287,7 @@ func (cpu *lr35902) getRptr(rIdx byte) *byte {
 	case 0b101:
 		r = &cpu.regs.L
 	case 0b110:
-		panic(-1)
+		panic(fmt.Sprintf("fail on opCode: 0x%02x%02x", cpu.fetched.prefix, cpu.fetched.opCode))
 	case 0b111:
 		r = &cpu.regs.A
 	}
@@ -316,27 +328,33 @@ func (cpu *lr35902) bit(b, v byte) {
 }
 
 func (cpu *lr35902) adcA(s byte) {
-	res := int16(cpu.regs.A) + int16(s)
+	a := uint16(cpu.regs.A)
+	n := uint16(s)
+	res := a + n
 	if cpu.regs.F.C {
 		res++
 	}
-	lookup := ((cpu.regs.A & 0x88) >> 3) | ((s & 0x88) >> 2) | ((byte(res) & 0x88) >> 1)
+
+	res2 := a&0x0f + n&0x0f
+	if cpu.regs.F.C {
+		res2++
+	}
+
 	cpu.regs.A = byte(res)
 	cpu.regs.F.Z = cpu.regs.A == 0
-	cpu.regs.F.H = halfcarryAddTable[lookup&0x07]
 	cpu.regs.F.N = false
-	cpu.regs.F.C = (res & 0x100) == 0x100
+	cpu.regs.F.C = res > 0xff
+	cpu.regs.F.H = res2 > 0x0f
 }
 
-func (cpu *lr35902) cp(r byte) {
-	a := int16(cpu.regs.A)
-	result := a - int16(r)
-	lookup := ((cpu.regs.A & 0x88) >> 3) | (((r) & 0x88) >> 2) | ((byte(result) & 0x88) >> 1)
+func (cpu *lr35902) cp(n byte) {
+	result := cpu.regs.A - n
+	result2 := cpu.regs.A&0x0f - n&0x0f
 
 	cpu.regs.F.Z = result == 0
-	cpu.regs.F.H = halfcarrySubTable[lookup&0x07]
+	cpu.regs.F.H = result2 > 0x0f
 	cpu.regs.F.N = true
-	cpu.regs.F.C = ((result) & 0x100) == 0x100
+	cpu.regs.F.C = result > 0xff
 }
 
 func rlc(cpu *lr35902, r *byte) {
@@ -415,27 +433,31 @@ func rl(cpu *lr35902, r *byte) {
 // ------
 
 func (cpu *lr35902) addA(r byte) {
-	a := int16(cpu.regs.A)
-	result := a + int16(r)
-	lookup := ((cpu.regs.A & 0x88) >> 3) | (((r) & 0x88) >> 2) | ((byte(result) & 0x88) >> 1)
-	cpu.regs.A = uint8(result & 0x00ff)
+	a := uint16(cpu.regs.A)
+	n := uint16(r)
 
+	result := a + n
+	result2 := a&0x0f + n&0x0f
+
+	cpu.regs.A = byte(result)
 	cpu.regs.F.Z = cpu.regs.A == 0
-	cpu.regs.F.H = halfcarryAddTable[lookup&0x07]
+	cpu.regs.F.H = result2 > 0x0f
 	cpu.regs.F.N = false
-	cpu.regs.F.C = ((result) & 0x100) != 0
+	cpu.regs.F.C = result > 0xff
 }
 
 func (cpu *lr35902) subA(r byte) {
-	a := int16(cpu.regs.A)
-	result := a - int16(r)
-	lookup := ((cpu.regs.A & 0x88) >> 3) | (((r) & 0x88) >> 2) | ((byte(result) & 0x88) >> 1)
-	cpu.regs.A = uint8(result & 0x00ff)
+	a := uint16(cpu.regs.A)
+	n := uint16(r)
 
+	result := a - n
+	result2 := a&0x0f - n&0x0f
+
+	cpu.regs.A = byte(result)
 	cpu.regs.F.Z = cpu.regs.A == 0
-	cpu.regs.F.H = halfcarrySubTable[lookup&0x07]
+	cpu.regs.F.H = result2 > 0x0f
 	cpu.regs.F.N = true
-	cpu.regs.F.C = ((result) & 0x100) == 0x100
+	cpu.regs.F.C = result > 0xff
 }
 
 func (cpu *lr35902) xor(s uint8) {
@@ -464,16 +486,23 @@ func (cpu *lr35902) or(s uint8) {
 }
 
 func (cpu *lr35902) sbcA(s byte) {
-	res := uint16(cpu.regs.A) - uint16(s)
+	a := uint16(cpu.regs.A)
+	n := uint16(s)
+
+	result := a - n
 	if cpu.regs.F.C {
-		res--
+		result--
 	}
-	lookup := ((cpu.regs.A & 0x88) >> 3) | ((s & 0x88) >> 2) | byte(res&0x88>>1)
-	cpu.regs.A = byte(res)
+	result2 := a&0x0f - n&0x0f
+	if cpu.regs.F.C {
+		result2--
+	}
+
+	cpu.regs.A = byte(result)
 	cpu.regs.F.Z = cpu.regs.A == 0
-	cpu.regs.F.H = halfcarrySubTable[lookup&0x07]
+	cpu.regs.F.H = result2 > 0x0f
 	cpu.regs.F.N = true
-	cpu.regs.F.C = (res & 0x100) == 0x100
+	cpu.regs.F.C = result > 0xff
 }
 
 func swap(cpu *lr35902) {
@@ -484,6 +513,15 @@ func swap(cpu *lr35902) {
 	cpu.regs.F.H = false
 	cpu.regs.F.C = false
 	cpu.regs.F.N = false
+}
+
+func swapHL(cpu *lr35902) {
+	cpu.scheduler.append(newMR(cpu.regs.HL.Get(), swapHL_m2))
+}
+
+func swapHL_m2(cpu *lr35902, data byte) {
+	r := ((data & 0b11110000) >> 4) | ((data & 0b00001111) << 4)
+	cpu.scheduler.append(newMW(cpu.regs.HL.Get(), r, nil))
 }
 
 func ldHLspE(cpu *lr35902) {
@@ -524,6 +562,12 @@ func ldhCa(cpu *lr35902) {
 	mm := uint16(0xff00) | uint16(cpu.regs.C)
 	mw1 := newMW(mm, cpu.regs.A, nil)
 	cpu.scheduler.append(mw1)
+}
+
+func ldhAc(cpu *lr35902) {
+	mm := uint16(cpu.regs.C) | uint16(0xff00)
+	mr1 := newMR(mm, ldhAc_m2)
+	cpu.scheduler.append(mr1)
 }
 
 func ldiAhl(cpu *lr35902) {

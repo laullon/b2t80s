@@ -144,7 +144,7 @@ func pushSS(cpu *lr35902) {
 	cpu.pushToStack(data, nil)
 }
 
-func ldDDmm(cpu *lr35902) {
+func ldDDnn(cpu *lr35902) {
 	t := cpu.fetched.opCode >> 4 & 0b11
 	switch t {
 	case 0b00:
@@ -210,11 +210,6 @@ func ldAnn(cpu *lr35902) {
 }
 
 func ldAnn_n1(cpu *lr35902, data uint8) { cpu.regs.A = data }
-
-func ldHLn(cpu *lr35902) {
-	mw1 := newMW(cpu.regs.HL.Get(), cpu.fetched.n, nil)
-	cpu.scheduler.append(mw1)
-}
 
 func incSS(cpu *lr35902) {
 	rIdx := cpu.fetched.opCode >> 4 & 0b11

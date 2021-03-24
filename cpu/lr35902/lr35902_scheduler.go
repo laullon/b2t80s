@@ -47,8 +47,7 @@ func (fetch *fetch) tick(cpu *lr35902) {
 		cpu.bus.Read()
 		d := cpu.bus.GetData()
 		cpu.bus.Release()
-		cpu.fetched.prefix = cpu.fetched.prefix << 8
-		cpu.fetched.prefix |= uint16(cpu.fetched.opCode)
+		cpu.fetched.prefix = cpu.fetched.opCode
 		cpu.fetched.opCode = d
 
 	case 3:

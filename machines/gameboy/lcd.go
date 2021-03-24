@@ -98,16 +98,22 @@ func (lcd *lcd) Tick() {
 }
 
 func (lcd *lcd) drawLine() {
-	r := uint16((lcd.ly) >> 3)
-	l := uint16((lcd.ly) & 0x07)
-	// r := uint16((lcd.ly + lcd.scy) >> 3)
-	// l := uint16((lcd.ly + lcd.scy) & 0x07)
+	r := uint16((lcd.ly + lcd.scy) >> 3)
+	l := uint16((lcd.ly + lcd.scy) & 0x07)
+	mapBase := uint16(0x1800)
+	if lcd.control&0b00001000 != 0 {
+		mapBase += 0x0400
+	}
+	tileBase := uint16(0)
+	if lcd.control&0b00010000 == 0 {
+		tileBase += 0x0800
+	}
 	for c := uint16(0); c < 20; c++ {
-		mapAddr := uint16(0x1800) + c + r*32
+		mapAddr := mapBase + c + r*32
 		tileIdx, _ := lcd.vRAM.ReadPort(mapAddr)
 		tileAddr := uint16(tileIdx) * 16
-		b1, _ := lcd.vRAM.ReadPort(tileAddr + l*2)
-		b2, _ := lcd.vRAM.ReadPort(tileAddr + l*2 + 1)
+		b1, _ := lcd.vRAM.ReadPort(tileBase + tileAddr + l*2)
+		b2, _ := lcd.vRAM.ReadPort(tileBase + tileAddr + l*2 + 1)
 		for x_off := 0; x_off < 8; x_off++ {
 			color := (b1 & 1) | ((b2 & 1) << 1)
 			lcd.display.SetRGBA(int(c*8)+(7-x_off), lcd.ly, lcd.palette[color])
@@ -201,6 +207,8 @@ func (lcd *lcd) WritePort(addr uint16, data byte) {
 
 	case 0xff43:
 		lcd.scxNew = int(data)
+
+	case 0xff44:
 
 	case 0xff45:
 		lcd.lyc = int(data)

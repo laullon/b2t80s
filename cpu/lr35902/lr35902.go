@@ -7,11 +7,6 @@ import (
 	"github.com/laullon/b2t80s/cpu"
 )
 
-var halfcarryAddTable = []bool{false, true, true, true, false, false, false, true}
-var halfcarrySubTable = []bool{false, false, true, false, true, false, true, true}
-
-var parityTable = make([]bool, 0x100)
-
 type LR35902Registers struct {
 	PC uint16
 
@@ -41,7 +36,7 @@ type LR35902Registers struct {
 
 type fetchedData struct {
 	pc     uint16
-	prefix uint16
+	prefix byte
 	opCode uint8
 	n      uint8
 	n2     uint8
@@ -50,13 +45,13 @@ type fetchedData struct {
 }
 
 func (d *fetchedData) getInstruction() string {
-	return d.op.String()
+	return d.op.ins
 }
 
 func (d *fetchedData) getMemory() string {
 	var res strings.Builder
 	if d.prefix > 0xff && d.op.len == 4 {
-		res.WriteString(fmt.Sprintf("%02X ", (d.prefix >> 8)))
+		res.WriteString(fmt.Sprintf("%02X ", (d.prefix)))
 		res.WriteString(fmt.Sprintf("%02X ", (d.prefix & 0xff)))
 		res.WriteString(fmt.Sprintf("%02X ", d.n))
 		res.WriteString(fmt.Sprintf("%02X", d.opCode))
@@ -83,7 +78,7 @@ func (d *fetchedData) getMemory() string {
 }
 
 func (d *fetchedData) String() string {
-	return fmt.Sprintf("0x%04X: %-11s : %s", d.pc, d.getMemory(), d.op)
+	return fmt.Sprintf("0x%04X: %-11s : %s", d.pc, d.getMemory(), d.op.ins)
 }
 
 type CPUTrap func()
@@ -100,6 +95,9 @@ type LR35902 interface {
 type lr35902 struct {
 	bus *genericBus
 
+	opCodes   []*opCode
+	opCodesCB []*opCode
+
 	regs *LR35902Registers
 
 	halt bool
@@ -112,27 +110,6 @@ type lr35902 struct {
 
 	log      cpu.CPUTracer
 	debugger cpu.DebuggerCallbacks
-}
-
-func init() {
-	var i int16
-	var j, k byte
-	var p byte
-
-	for i = 0; i < 0x100; i++ {
-		j = byte(i)
-		p = 0
-		for k = 0; k < 8; k++ {
-			p ^= j & 1
-			j >>= 1
-		}
-		if p != 0 {
-			parityTable[i] = false
-		} else {
-			parityTable[i] = true
-		}
-	}
-
 }
 
 func New(bus cpu.Bus) LR35902 {
@@ -155,12 +132,14 @@ func New(bus cpu.Bus) LR35902 {
 		},
 	}
 
+	res.initOpCodes()
+
 	res.regs.BC = &cpu.RegPair{&res.regs.B, &res.regs.C}
 	res.regs.DE = &cpu.RegPair{&res.regs.D, &res.regs.E}
 	res.regs.HL = &cpu.RegPair{&res.regs.H, &res.regs.L}
 	res.regs.SP = &cpu.RegPair{&res.regs.S, &res.regs.P}
 
-	res.scheduler.append(newFetch(lookup))
+	res.scheduler.append(newFetch(res.opCodes))
 	return res
 }
 
@@ -200,7 +179,9 @@ func (cpu *lr35902) execInterrupt() bool {
 			bit := byte(1) << i
 			if (cpu.regs.IE&bit != 0) && (cpu.regs.IF&bit != 0) {
 				cpu.regs.IME = false
-				cpu.debugger.EvalInterrupt()
+				if cpu.debugger != nil {
+					cpu.debugger.EvalInterrupt()
+				}
 				cpu.regs.IF &^= bit
 				code := &exec{l: 7, f: func(cpu *lr35902) {
 					cpu.pushToStack(cpu.regs.PC, func(cpu *lr35902) {
@@ -252,7 +233,9 @@ func (cpu *lr35902) Tick() {
 			if !cpu.execInterrupt() {
 				cpu.newInstruction()
 			} else {
-				cpu.debugger.EvalInterrupt()
+				if cpu.debugger != nil {
+					cpu.debugger.EvalInterrupt()
+				}
 			}
 		}
 	}
@@ -265,7 +248,7 @@ func (cpu *lr35902) Tick() {
 func (cpu *lr35902) newInstruction() {
 	cpu.prepareForNewInstruction()
 	cpu.doTraps()
-	cpu.scheduler.append(newFetch(lookup))
+	cpu.scheduler.append(newFetch(cpu.opCodes))
 }
 
 func (cpu *lr35902) doTraps() {

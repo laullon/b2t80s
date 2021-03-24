@@ -58,10 +58,12 @@ func (bus *bus) Read(addr uint16) uint8 {
 	for _, entry := range bus.ports {
 		if (addr & entry.mask.Mask) == entry.mask.Value {
 			// fmt.Printf("[readPort] port:0x%04X (0x%04X)(0x%04X) \n", addr, addr&portMask.Mask, portMask.Value)
-			// println(reflect.TypeOf(portManager).Elem().Name())
-			data, _ := entry.manager.ReadPort(addr)
+			data, skip := entry.manager.ReadPort(addr)
+			// println("[readPort] read from:", entry.name, "skip:", skip)
 			// fmt.Printf(fmt.Sprintf("[readPort]-> port:0x%04X data:0x%02X \n", addr, data))
-			return data
+			if !skip {
+				return data
+			}
 		}
 	}
 

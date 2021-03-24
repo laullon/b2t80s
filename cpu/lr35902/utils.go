@@ -2,7 +2,6 @@ package lr35902
 
 import (
 	"fmt"
-	"strconv"
 )
 
 //*****
@@ -70,20 +69,4 @@ func (regs *LR35902Registers) dump() string {
 		uint16(regs.D)<<8|uint16(regs.E),
 		uint16(regs.H)<<8|uint16(regs.L),
 		regs.SP.Get())
-}
-
-func parseHexUInt8(num string) uint8 {
-	r, err := strconv.ParseInt(num, 16, 0)
-	if err != nil {
-		panic(err)
-	}
-	return uint8(r)
-}
-
-func parseHexUInt16(num string) uint16 {
-	r, err := strconv.ParseInt(num, 16, 0)
-	if err != nil {
-		panic(err)
-	}
-	return uint16(r)
 }

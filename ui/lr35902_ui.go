@@ -52,6 +52,8 @@ func NewLR35902UI(cpu lr35902.LR35902) Control {
 	ui.ifr = NewRegText("IF:")
 	ui.ime = NewRegText("IME:")
 	ui.flag = NewRegText("FLAG:")
+	flag := NewRegText("")
+	flag.Value.Text = "ZNHC"
 
 	c1 := container.New(layout.NewFormLayout(),
 		ui.a.Label, ui.a.Value,
@@ -76,6 +78,7 @@ func NewLR35902UI(cpu lr35902.LR35902) Control {
 		ui.pc.Label, ui.pc.Value,
 		ui.sp.Label, ui.sp.Value,
 		ui.flag.Label, ui.flag.Value,
+		flag.Label, flag.Value,
 	)
 
 	c5 := container.New(layout.NewFormLayout(),
@@ -121,7 +124,7 @@ func (ui *lr35902UI) Update() {
 	ui.ifr.Update(fmt.Sprintf("%08b", ui.regs.IF))
 	ui.ier.Update(fmt.Sprintf("%08b", ui.regs.IE))
 	ui.ime.Update(fmt.Sprintf("%v", ui.regs.IME))
-	ui.flag.Update(fmt.Sprintf("%08b", ui.regs.F.GetByte()))
+	ui.flag.Update(fmt.Sprintf("%04b", ui.regs.F.GetByte()>>4))
 
 	ui.logTxt.Text = strings.Join(append(ui.log, "\n", ui.nextOP), "\n")
 

@@ -1,6 +1,7 @@
 package lr35902_test
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -19,6 +20,7 @@ func init() {
 
 func TestInstrs(t *testing.T) {
 	*emulator.CartFile = string("../../machines/gameboy/test/cpu_instrs.gb")
+	*gameboy.Bios = string("../../bios/gb_bios.bin")
 
 	serial := make(chan byte, 1000)
 	gb := gameboy.New(serial)
@@ -30,12 +32,18 @@ func TestInstrs(t *testing.T) {
 		}
 	}()
 
-	if !assert.NotPanics(t, func() { gb.Clock().RunFor(1000) }) {
-		println("result:", result.String())
+	assert.NotPanics(t, func() { gb.Clock().RunFor(120) })
+	println("result:", result.String())
+
+	re := regexp.MustCompile(`(\d.):(\w.)`)
+	results := re.FindAllSubmatch([]byte(result.String()), -1)
+	assert.NotEqual(t, 0, len(results), "tests no executed")
+	for _, res := range results {
+		assert.Equalf(t, "ok", string(res[2]), "error on test %s error %s", res[1], res[2])
 	}
 }
 
-func TestInstrsTiming(t *testing.T) {
+func _TestInstrsTiming(t *testing.T) {
 	*emulator.CartFile = string("/Users/glaullon/Downloads/instr_timing.gb")
 
 	serial := make(chan byte, 1000)
