@@ -115,14 +115,20 @@ func (ui *m6502UI) AppendLastOP(op string) {
 func (ui *m6502UI) SetNextOP(op string) {
 	ui.nextOP = op
 }
-func (ui *m6502UI) SetDiss(diss string) {
-	ui.diss = diss
+func (ui *m6502UI) SetDiss(pc uint16, getMemory func(pc, leng uint16) []byte) {
+	// ui.diss = diss
 }
 
 func toHex8(v uint8) string {
 	n := "0" + strconv.FormatUint(uint64(v), 16)
 	return "0x" + n[len(n)-2:]
 }
+
+func toHex8_2(v uint8) string {
+	n := "0" + strconv.FormatUint(uint64(v), 16)
+	return n[len(n)-2:]
+}
+
 func toHex16(v uint16) string {
 	n := "000" + strconv.FormatUint(uint64(v), 16)
 	return "0x" + n[len(n)-4:]

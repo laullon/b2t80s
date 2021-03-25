@@ -103,6 +103,9 @@ func NewMSX() emulator.Machine {
 	return msx
 }
 
+func (msx *msx) Reset() {
+}
+
 func (msx *msx) ReadPort(port uint16) (byte, bool) {
 	if port&0xff < 40 {
 		return 0, false

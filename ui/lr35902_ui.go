@@ -23,15 +23,24 @@ type lr35902UI struct {
 
 	spDump *widget.Label
 
-	logTxt *widget.Label
-	log    []string
-	nextOP string
+	logTxt  *widget.Label
+	nextTxt *widget.Label
+	dissTxt *widget.Label
+
+	log       []string
+	nextOP    string
+	lastPC    uint16
+	getMemory func(pc, leng uint16) []byte
 
 	traceFile *os.File
 }
 
 func NewLR35902UI(cpu lr35902.LR35902) Control {
-	ui := &lr35902UI{regs: cpu.Registers()}
+	ui := &lr35902UI{
+		regs: cpu.Registers(),
+		log:  make([]string, 10),
+	}
+
 	cpu.SetTracer(ui)
 
 	ui.a = NewRegText("A:")
@@ -90,13 +99,16 @@ func NewLR35902UI(cpu lr35902.LR35902) Control {
 	regs := container.New(layout.NewGridLayoutWithColumns(5), c1, c2, c3, c4, c5)
 
 	ui.logTxt = widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
+	ui.nextTxt = widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
+	ui.dissTxt = widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
+
 	ui.spDump = widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
 
 	dump := widget.NewCheck("Dump", func(on bool) {
 		ui.doTrace(on)
 	})
 
-	ui.widget = container.New(layout.NewVBoxLayout(), regs, dump, ui.logTxt)
+	ui.widget = container.New(layout.NewVBoxLayout(), regs, dump, ui.logTxt, ui.nextTxt, ui.dissTxt)
 
 	return ui
 }
@@ -126,7 +138,21 @@ func (ui *lr35902UI) Update() {
 	ui.ime.Update(fmt.Sprintf("%v", ui.regs.IME))
 	ui.flag.Update(fmt.Sprintf("%04b", ui.regs.F.GetByte()>>4))
 
-	ui.logTxt.Text = strings.Join(append(ui.log, "\n", ui.nextOP), "\n")
+	ui.logTxt.Text = strings.Join(ui.log, "\n")
+	ui.nextTxt.Text = ui.nextOP
+
+	pc := ui.lastPC
+	data := ui.getMemory(pc, 40)
+	diss := make([]string, 10)
+	for i := 0; (len(data) > 4) && (i < 10); i++ {
+		op := lr35902.OPCodes[data[0]]
+		if op != nil {
+			diss[i] = op.Dump(pc, data)
+			pc += uint16(op.Len)
+			data = data[op.Len:]
+		}
+	}
+	ui.dissTxt.Text = strings.Join(diss, "\n")
 
 	ui.widget.Refresh()
 }
@@ -140,20 +166,26 @@ func (ui *lr35902UI) AppendLastOP(op string) {
 		ui.traceFile.WriteString("\n")
 	}
 
-	log := append(ui.log, op)
-	if len(log) > 10 {
-		ui.log = log[1:]
-	} else {
-		ui.log = log
-	}
+	nLog := append(ui.log, op)
+	ui.log = nLog[1:]
 }
 
 func (ui *lr35902UI) SetNextOP(op string) {
 	ui.nextOP = op
 }
 
-func (ui *lr35902UI) SetDiss(diss string) {
-	panic(-1)
+func (ui *lr35902UI) SetDiss(pc uint16, getMemory func(pc, leng uint16) []byte) {
+	ui.AppendLastOP(ui.nextOP)
+
+	data := getMemory(pc, 4)
+
+	op := lr35902.OPCodes[data[0]]
+	ui.nextOP = op.Dump(pc, data)
+	pc += uint16(op.Len)
+	data = data[op.Len:]
+
+	ui.lastPC = pc
+	ui.getMemory = getMemory
 }
 
 func (ui *lr35902UI) doTrace(on bool) {

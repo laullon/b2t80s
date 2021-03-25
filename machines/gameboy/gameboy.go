@@ -100,6 +100,10 @@ func New(serial ...chan byte) emulator.Machine {
 	return m
 }
 
+func (gb *gb) Reset() {
+	gb.cpu.Reset()
+}
+
 func (gb *gb) UIControls() []ui.Control {
 	return []ui.Control{
 		ui.NewBusUI("memory", gb.bus),
@@ -108,9 +112,8 @@ func (gb *gb) UIControls() []ui.Control {
 
 func (gb *gb) Control() map[string]ui.Control {
 	return map[string]ui.Control{
-		"CPU":    ui.NewLR35902UI(gb.cpu),
+		"CPU":    newTimerControl(gb.cpu, gb.timer),
 		"LCD":    newLcdControl(gb.lcd),
-		"TIMER":  newTimerControl(gb.timer),
 		"SERIAL": newSerialControl(&gb.serialBuffer),
 	}
 }
@@ -154,7 +157,7 @@ func (gb *gb) WritePort(addr uint16, data byte) {
 		gb.cpu.Registers().IE = data
 
 	case 0xff0f:
-		gb.cpu.Registers().IF = data
+		gb.cpu.Registers().IF |= data
 
 	default:
 		if addr > 0xff7f {

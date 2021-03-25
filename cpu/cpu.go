@@ -35,5 +35,5 @@ type PortManager interface {
 type CPUTracer interface {
 	AppendLastOP(string)
 	SetNextOP(string)
-	SetDiss(string)
+	SetDiss(pc uint16, getMemory func(pc, leng uint16) []byte)
 }

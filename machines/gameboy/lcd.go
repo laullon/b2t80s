@@ -59,6 +59,10 @@ func newLCD(bus cpu.Bus) *lcd {
 }
 
 func (lcd *lcd) Tick() {
+	if lcd.control&0x80 == 0 {
+		return
+	}
+
 	lcd.lx++
 	if lcd.lx == 456 {
 		lcd.drawLine()

@@ -11,6 +11,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	layout "fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
+	"github.com/laullon/b2t80s/cpu/lr35902"
 	"github.com/laullon/b2t80s/ui"
 )
 
@@ -104,11 +105,14 @@ type timerDebugControl struct {
 	timer *timer
 
 	div, tima, tma, tac *ui.RegText
+
+	cpu ui.Control
 }
 
-func newTimerControl(timer *timer) *timerDebugControl {
+func newTimerControl(cpu lr35902.LR35902, timer *timer) *timerDebugControl {
 	ctrl := &timerDebugControl{
 		timer: timer,
+		cpu:   ui.NewLR35902UI(cpu),
 	}
 
 	ctrl.div = ui.NewRegText("div:")
@@ -127,8 +131,9 @@ func newTimerControl(timer *timer) *timerDebugControl {
 	)
 
 	regs := container.New(layout.NewGridLayoutWithColumns(3), c1, c2)
+	panel := container.New(layout.NewVBoxLayout(), regs, ctrl.cpu.Widget())
 
-	ctrl.ui = fyne.NewContainerWithLayout(layout.NewBorderLayout(regs, nil, nil, nil), regs)
+	ctrl.ui = fyne.NewContainerWithLayout(layout.NewBorderLayout(panel, nil, nil, nil), panel)
 
 	return ctrl
 }
@@ -142,6 +147,7 @@ func (ctrl *timerDebugControl) Update() {
 	ctrl.tima.Update(strconv.Itoa(int(ctrl.timer.tima)))
 	ctrl.tma.Update(strconv.Itoa(int(ctrl.timer.tma)))
 	ctrl.tac.Update(strconv.Itoa(int(ctrl.timer.tac)))
+	ctrl.cpu.Update()
 	ctrl.ui.Refresh()
 }
 

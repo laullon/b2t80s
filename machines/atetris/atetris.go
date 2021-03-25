@@ -90,6 +90,9 @@ func NewATetris() emulator.Machine {
 	return m
 }
 
+func (t *atetris) Reset() {
+}
+
 func (t *atetris) Debugger() emulator.Debugger { return t.debugger }
 
 func (t *atetris) Monitor() emulator.Monitor {

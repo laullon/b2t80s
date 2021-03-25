@@ -10,7 +10,6 @@ import (
 	"runtime/pprof"
 	"strconv"
 	"strings"
-	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -176,18 +175,26 @@ func main() {
 	w.Canvas().(desktop.Canvas).SetOnKeyDown(machine.OnKeyEvent)
 	w.Canvas().(desktop.Canvas).SetOnKeyUp(machine.OnKeyEvent)
 
+	// if *emulator.Debug {
+	// 	wait := time.Duration(20 * time.Millisecond)
+	// 	ticker := time.NewTicker(wait)
+	// 	go func() {
+	// 		for range ticker.C {
+	// 			controls[debugTabs.CurrentTab().Text].Update()
+	// 			status.SetText(fmt.Sprintf("time: %s - FPS: %03.2f", machine.Clock().Stats(), machine.Monitor().FPS()))
+	// 		}
+	// 	}()
+	// }
+
 	if *emulator.Debug {
-		wait := time.Duration(20 * time.Millisecond)
-		ticker := time.NewTicker(wait)
-		go func() {
-			for range ticker.C {
-				controls[debugTabs.CurrentTab().Text].Update()
-				status.SetText(fmt.Sprintf("time: %s - FPS: %03.2f", machine.Clock().Stats(), machine.Monitor().FPS()))
-			}
-		}()
+		machine.Clock().SetOnFrameCallback(func() {
+			controls[debugTabs.CurrentTab().Text].Update()
+			status.SetText(fmt.Sprintf("time: %s - FPS: %03.2f", machine.Clock().Stats(), machine.Monitor().FPS()))
+		})
 	}
 
 	go func() {
+		machine.Reset()
 		machine.Clock().Run()
 	}()
 

@@ -18,20 +18,18 @@ func newTimer(bus cpu.Bus) *timer {
 func (t *timer) Tick() {
 	t.div++
 
-	if t.div&divMods[t.tac&3] == 0 {
-		if t.tac&0b100 != 0 {
+	if t.tac&0b100 != 0 {
+		if t.div&divMods[t.tac&3] == 0 {
 			t.tima++
+			if t.tima == 0 {
+				t.tima = t.tma
+				if !t.overflow {
+					t.bus.Write(0xff0f, 0b100)
+					t.overflow = true
+				}
+			}
 		}
 	}
-
-	if t.tima == 0 {
-		t.tima = t.tma
-		if !t.overflow {
-			t.bus.Write(0xff0f, 0b100)
-			t.overflow = true
-		}
-	}
-
 }
 
 func (t *timer) timaTick() {

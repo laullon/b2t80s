@@ -45,30 +45,30 @@ type fetchedData struct {
 }
 
 func (d *fetchedData) getInstruction() string {
-	return d.op.ins
+	return d.op.Ins
 }
 
 func (d *fetchedData) getMemory() string {
 	var res strings.Builder
-	if d.prefix > 0xff && d.op.len == 4 {
+	if d.prefix > 0xff && d.op.Len == 4 {
 		res.WriteString(fmt.Sprintf("%02X ", (d.prefix)))
 		res.WriteString(fmt.Sprintf("%02X ", (d.prefix & 0xff)))
 		res.WriteString(fmt.Sprintf("%02X ", d.n))
 		res.WriteString(fmt.Sprintf("%02X", d.opCode))
-	} else if d.prefix > 0x00 && d.op.len == 4 {
+	} else if d.prefix > 0x00 && d.op.Len == 4 {
 		res.WriteString(fmt.Sprintf("%02X ", (d.prefix & 0xff)))
 		res.WriteString(fmt.Sprintf("%02X ", d.opCode))
 		res.WriteString(fmt.Sprintf("%02X ", d.n))
 		res.WriteString(fmt.Sprintf("%02X", d.n2))
-	} else if d.prefix > 0x00 && d.op.len == 3 {
+	} else if d.prefix > 0x00 && d.op.Len == 3 {
 		res.WriteString(fmt.Sprintf("%02X ", (d.prefix & 0xff)))
 		res.WriteString(fmt.Sprintf("%02X ", d.opCode))
 		res.WriteString(fmt.Sprintf("%02X", d.n))
-	} else if d.prefix == 0x00 && d.op.len == 3 {
+	} else if d.prefix == 0x00 && d.op.Len == 3 {
 		res.WriteString(fmt.Sprintf("%02X ", d.opCode))
 		res.WriteString(fmt.Sprintf("%02X ", d.n))
 		res.WriteString(fmt.Sprintf("%02X", d.n2))
-	} else if d.prefix == 0x00 && d.op.len == 2 {
+	} else if d.prefix == 0x00 && d.op.Len == 2 {
 		res.WriteString(fmt.Sprintf("%02X ", d.opCode))
 		res.WriteString(fmt.Sprintf("%02X", d.n))
 	} else {
@@ -78,7 +78,7 @@ func (d *fetchedData) getMemory() string {
 }
 
 func (d *fetchedData) String() string {
-	return fmt.Sprintf("0x%04X: %-11s : %s", d.pc, d.getMemory(), d.op.ins)
+	return fmt.Sprintf("0x%04X: %-11s : %s", d.pc, d.getMemory(), d.op.Ins)
 }
 
 type CPUTrap func()
@@ -94,9 +94,6 @@ type LR35902 interface {
 
 type lr35902 struct {
 	bus *genericBus
-
-	opCodes   []*opCode
-	opCodesCB []*opCode
 
 	regs *LR35902Registers
 
@@ -132,14 +129,11 @@ func New(bus cpu.Bus) LR35902 {
 		},
 	}
 
-	res.initOpCodes()
-
 	res.regs.BC = &cpu.RegPair{&res.regs.B, &res.regs.C}
 	res.regs.DE = &cpu.RegPair{&res.regs.D, &res.regs.E}
 	res.regs.HL = &cpu.RegPair{&res.regs.H, &res.regs.L}
 	res.regs.SP = &cpu.RegPair{&res.regs.S, &res.regs.P}
 
-	res.scheduler.append(newFetch(res.opCodes))
 	return res
 }
 
@@ -165,7 +159,8 @@ func (cpu *lr35902) Halt() {
 }
 
 func (cpu *lr35902) Reset() {
-	panic(-1)
+	cpu.regs.PC = 0
+	cpu.newInstruction()
 }
 
 func (cpu *lr35902) SetTracer(t cpu.CPUTracer)            { cpu.log = t }
@@ -226,10 +221,6 @@ func (cpu *lr35902) Tick() {
 	if cpu.scheduler.first().isDone() {
 		cpu.scheduler.next()
 		if cpu.scheduler.isEmpty() {
-			if cpu.log != nil {
-				cpu.log.AppendLastOP(cpu.fetched.String())
-			}
-
 			if !cpu.execInterrupt() {
 				cpu.newInstruction()
 			} else {
@@ -239,16 +230,19 @@ func (cpu *lr35902) Tick() {
 			}
 		}
 	}
+
 	cpu.scheduler.first().tick(cpu)
-	// if cpu.scheduler.first().isDone() {
-	// 	println("[done]", reflect.TypeOf(cpu.scheduler.first()).String())
-	// }
 }
 
 func (cpu *lr35902) newInstruction() {
+	if cpu.log != nil {
+		cpu.log.SetDiss(cpu.regs.PC, func(pc, l uint16) []byte {
+			return cpu.bus.GetBlock(pc, l)
+		})
+	}
 	cpu.prepareForNewInstruction()
 	cpu.doTraps()
-	cpu.scheduler.append(newFetch(cpu.opCodes))
+	cpu.scheduler.append(newFetch(OPCodes))
 }
 
 func (cpu *lr35902) doTraps() {

@@ -25,4 +25,5 @@ type Machine interface {
 	Control() map[string]ui.Control
 	GetVolumeControl() func(float64)
 	SetDebugger(cpu.DebuggerCallbacks)
+	Reset()
 }

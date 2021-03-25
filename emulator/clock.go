@@ -13,6 +13,7 @@ type Clock interface {
 	Stats() string
 	Pause()
 	Resume()
+	SetOnFrameCallback(func())
 }
 
 type Ticker interface {
@@ -32,6 +33,7 @@ type clock struct {
 	tickers         []*ticker
 	lastFrameTime   float64
 	pasued          bool
+	callback        func()
 }
 
 func NewCLock(hz uint, fps uint) Clock {
@@ -74,14 +76,28 @@ func (c *clock) Stats() string {
 
 func (c *clock) Run() {
 	ticker := time.NewTicker(c.wait)
+	hf := 0
 	go func() {
 		for range ticker.C {
-			start := time.Now()
-			for (c.tStates < c.tStatesPerFrame) && !c.pasued {
-				c.tick()
+			if !c.pasued {
+				start := time.Now()
+				for (c.tStates < c.tStatesPerFrame) && !c.pasued {
+					c.tick()
+				}
+				c.lastFrameTime = float64(time.Since(start).Microseconds()) / 1000.0
+				c.tStates = 0
+
+				if !c.pasued {
+					hf = 1 - hf
+					if hf == 0 && c.callback != nil {
+						c.callback()
+					}
+				} else {
+					c.callback()
+				}
+			} else {
+				c.callback()
 			}
-			c.lastFrameTime = float64(time.Now().Sub(start).Microseconds()) / 1000.0
-			c.tStates = 0
 		}
 	}()
 }
@@ -90,4 +106,8 @@ func (c *clock) RunFor(seconds uint) {
 	for c.tStates < (c.tStatesPerFrame * 50 * seconds) {
 		c.tick()
 	}
+}
+
+func (c *clock) SetOnFrameCallback(f func()) {
+	c.callback = f
 }

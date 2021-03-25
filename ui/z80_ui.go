@@ -137,6 +137,6 @@ func (ui *z80UI) SetNextOP(op string) {
 	ui.nextOP = op
 }
 
-func (ui *z80UI) SetDiss(diss string) {
+func (ui *z80UI) SetDiss(pc uint16, getMemory func(pc, leng uint16) []byte) {
 	panic(-1)
 }

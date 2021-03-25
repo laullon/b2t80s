@@ -89,6 +89,9 @@ func NewZX(mem *memory, plus, cas, ay bool) *zx {
 	return zx
 }
 
+func (zx *zx) Reset() {
+}
+
 func (zx *zx) Debugger() emulator.Debugger {
 	return zx.debugger
 }

@@ -165,8 +165,8 @@ func (log *logPrinter) AppendLastOP(entry string) {
 	fmt.Printf("%5d (%d) - %s\n", *log.ticks, *log.ticks-log.prevTicks, entry)
 	log.prevTicks = *log.ticks
 }
-func (log *logPrinter) SetNextOP(string) {}
-func (log *logPrinter) SetDiss(string)   {}
+func (log *logPrinter) SetNextOP(string)                                          {}
+func (log *logPrinter) SetDiss(pc uint16, getMemory func(pc, leng uint16) []byte) {}
 
 type simpleBus struct {
 	mem       []byte

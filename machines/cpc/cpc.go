@@ -123,6 +123,9 @@ func NewCPC(cpc464 bool) emulator.Machine {
 	return cpc
 }
 
+func (m *cpc) Reset() {
+}
+
 func (m *cpc) loadTapeBlockCPC464() {
 	m.LoadTapeBlockCPC(0x2872)
 }

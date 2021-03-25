@@ -24,3 +24,11 @@ func (bus *genericBus) Release() { bus.addr = 0xffff; bus.data = 0xff }
 
 func (bus *genericBus) Write() { bus.bus.Write(bus.addr, bus.data) }
 func (bus *genericBus) Read()  { bus.data = bus.bus.Read(bus.addr) }
+
+func (bus *genericBus) GetBlock(pc, l uint16) []byte {
+	res := make([]byte, l)
+	for i := uint16(0); i < l; i++ {
+		res[i] = bus.bus.Read(pc + i)
+	}
+	return res
+}

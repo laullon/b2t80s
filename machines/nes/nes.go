@@ -86,6 +86,9 @@ func NewNES() emulator.Machine {
 	return m
 }
 
+func (t *nes) Reset() {
+}
+
 func (t *nes) UIControls() []ui.Control {
 	return []ui.Control{
 		ui.NewM6502BusUI("cpu", t.cpuBus),

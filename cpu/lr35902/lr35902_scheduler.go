@@ -56,7 +56,7 @@ func (fetch *fetch) tick(cpu *lr35902) {
 			panic(errors.Errorf("opCode '%X - %X' not found on 0x%04X", cpu.fetched.prefix, cpu.fetched.opCode, cpu.fetched.pc))
 		}
 
-		switch cpu.fetched.op.len {
+		switch cpu.fetched.op.Len {
 		case 1:
 			cpu.fetched.op.f(cpu)
 
