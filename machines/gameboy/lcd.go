@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"math/bits"
 
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/emulator"
@@ -34,13 +35,24 @@ type lcd struct {
 	monitor emulator.Monitor
 
 	bus  cpu.Bus
-	vRAM cpu.RAM
-	oam  cpu.RAM
+	vRAM []byte
+	oam  []byte
+
+	bgBuffer       chan byte
+	bgMapAddr      uint16
+	bgNextTileAddr uint16
+
+	spriteBuffer    []uint16
+	spriteBufferIdx uint16
+	spriteCount     uint16
+
+	mode2Ticks int
+	mode3Ticks int
 }
 
 func newLCD(bus cpu.Bus) *lcd {
 	display := image.NewRGBA(image.Rect(0, 0, 160, 144))
-	return &lcd{
+	lcd := &lcd{
 		gbp:  make([]byte, 4),
 		obp0: make([]byte, 4),
 		obp1: make([]byte, 4),
@@ -50,12 +62,18 @@ func newLCD(bus cpu.Bus) *lcd {
 			{0x30, 0x62, 0x30, 0xff},
 			{0x0f, 0x38, 0x0f, 0xff},
 		},
-		display: display,
-		monitor: emulator.NewMonitor(display),
-		bus:     bus,
-		vRAM:    cpu.NewRAM(make([]byte, 0x2000), 0x1fff),
-		oam:     cpu.NewRAM(make([]byte, 0x0100), 0x00ff), //TODO: real size is 0xa0
+		display:  display,
+		monitor:  emulator.NewMonitor(display),
+		bus:      bus,
+		vRAM:     make([]byte, 0x2000),
+		oam:      make([]byte, 0x0100),
+		bgBuffer: make(chan byte, 100),
 	}
+
+	bus.RegisterPort("vram", cpu.PortMask{0b1110_0000_0000_0000, 0b1000_0000_0000_0000}, cpu.NewRAM(lcd.vRAM, 0x1fff))
+	bus.RegisterPort("oam", cpu.PortMask{0b1111_1111_0000_0000, 0b1111_1110_0000_0000}, cpu.NewRAM(lcd.oam, 0x00ff))
+
+	return lcd
 }
 
 func (lcd *lcd) Tick() {
@@ -68,6 +86,8 @@ func (lcd *lcd) Tick() {
 		lcd.drawLine()
 		lcd.scy, lcd.scx = lcd.scyNew, lcd.scxNew
 		lcd.lx = 0
+		lcd.mode2Ticks = 0
+		lcd.mode3Ticks = 0
 		lcd.ly++
 		if lcd.ly == 153 {
 			lcd.ly = 0
@@ -89,8 +109,10 @@ func (lcd *lcd) Tick() {
 		mode = 1
 	} else if lcd.lx < 80 {
 		mode = 2
-	} else if lcd.lx < 80+168 { // TODO: review sprite count
+		lcd.mode2Tick()
+	} else if lcd.lx < 80+172 { // TODO: review sprite count
 		mode = 3
+		lcd.mode3Tick()
 	} else if lcd.lx < 80+168+208 { // TODO: review sprite count
 		mode = 0
 	}
@@ -101,26 +123,101 @@ func (lcd *lcd) Tick() {
 	}
 }
 
+func (lcd *lcd) mode2Tick() {
+	if lcd.mode2Ticks%2 == 1 {
+		if lcd.spriteCount < 10 {
+			y := int(lcd.oam[lcd.spriteBufferIdx*4])
+			x := int(lcd.oam[lcd.spriteBufferIdx*4+1])
+			if (x != 0) && (lcd.ly+16 >= y) && (lcd.ly+16 < y+8) { // TODO: 16 sprites
+				lcd.spriteBuffer[lcd.spriteCount] = lcd.spriteBufferIdx * 4
+				lcd.spriteCount++
+			}
+		}
+		lcd.spriteBufferIdx++
+	} else if lcd.mode2Ticks == 0 {
+		lcd.spriteBuffer = make([]uint16, 10)
+		lcd.spriteBufferIdx = 0
+		lcd.spriteCount = 0
+	}
+	lcd.mode2Ticks++
+}
+
+func (lcd *lcd) mode3Tick() {
+	switch lcd.mode3Ticks % 8 {
+	case 0:
+		if lcd.mode3Ticks == 0 {
+			r := uint16(lcd.ly+lcd.scy) >> 3
+			lcd.bgMapAddr = 0x1800 + r*32
+		}
+	case 1:
+		l := uint16(lcd.ly+lcd.scy) & 0x07
+		tileIdx := lcd.vRAM[lcd.bgMapAddr]
+		area := lcd.control & 0b0001_0000
+		if area == 1 {
+			lcd.bgNextTileAddr = uint16(tileIdx)*16 + l*2
+		} else {
+			block := tileIdx & 0x80 >> 7
+			idx := tileIdx & 0x7f
+			if block == 0 {
+				lcd.bgNextTileAddr = 0x1000 + uint16(idx)*16 + l*2
+			} else {
+				lcd.bgNextTileAddr = 0x0800 + uint16(idx)*16 + l*2
+			}
+		}
+		lcd.bgMapAddr++
+	case 3:
+		lcd.bgBuffer <- lcd.vRAM[lcd.bgNextTileAddr]
+	case 5:
+		lcd.bgBuffer <- lcd.vRAM[lcd.bgNextTileAddr+1]
+	}
+	lcd.mode3Ticks++
+}
+
 func (lcd *lcd) drawLine() {
-	r := uint16((lcd.ly + lcd.scy) >> 3)
-	l := uint16((lcd.ly + lcd.scy) & 0x07)
-	mapBase := uint16(0x1800)
-	if lcd.control&0b00001000 != 0 {
-		mapBase += 0x0400
+	if len(lcd.bgBuffer) == 0 {
+		return
 	}
-	tileBase := uint16(0)
-	if lcd.control&0b00010000 == 0 {
-		tileBase += 0x0800
-	}
+
 	for c := uint16(0); c < 20; c++ {
-		mapAddr := mapBase + c + r*32
-		tileIdx, _ := lcd.vRAM.ReadPort(mapAddr)
-		tileAddr := uint16(tileIdx) * 16
-		b1, _ := lcd.vRAM.ReadPort(tileBase + tileAddr + l*2)
-		b2, _ := lcd.vRAM.ReadPort(tileBase + tileAddr + l*2 + 1)
+		b1 := <-lcd.bgBuffer
+		b2 := <-lcd.bgBuffer
 		for x_off := 0; x_off < 8; x_off++ {
 			color := (b1 & 1) | ((b2 & 1) << 1)
+			color = lcd.gbp[color]
 			lcd.display.SetRGBA(int(c*8)+(7-x_off), lcd.ly, lcd.palette[color])
+			b1 >>= 1
+			b2 >>= 1
+		}
+	}
+
+	for len(lcd.bgBuffer) != 0 {
+		<-lcd.bgBuffer
+	}
+
+	for i := 0; i < int(lcd.spriteCount); i++ {
+		sprite := lcd.spriteBuffer[i]
+		x := int(lcd.oam[sprite+1]) - 8
+		y := uint16(lcd.ly - (int(lcd.oam[sprite]) - 16))
+		f := lcd.oam[sprite+3]
+
+		tileIdx := lcd.oam[sprite+2]
+		tileAddr := uint16(tileIdx) * 16
+		b1 := lcd.vRAM[tileAddr+y*2]
+		b2 := lcd.vRAM[tileAddr+y*2+1]
+		if f&0b0010_0000 == 0 {
+			bits.Reverse8(b1)
+			bits.Reverse8(b2)
+		}
+		for x_off := 0; x_off < 8; x_off++ {
+			color := (b1 & 1) | ((b2 & 1) << 1)
+			if color != 0 {
+				if f&0b0001_0000 == 0 {
+					color = lcd.obp0[color]
+				} else {
+					color = lcd.obp1[color]
+				}
+				lcd.display.SetRGBA(x+(7-x_off), lcd.ly, lcd.palette[color])
+			}
 			b1 >>= 1
 			b2 >>= 1
 		}

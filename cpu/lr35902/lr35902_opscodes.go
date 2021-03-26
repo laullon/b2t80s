@@ -1,6 +1,7 @@
 package lr35902
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -31,7 +32,7 @@ func init() {
 	OPCodes[0x0D] = &opCode{"DEC C", 1, decR}
 	OPCodes[0x0E] = &opCode{"LD C, n", 2, ldRn}
 	OPCodes[0x0F] = &opCode{"RRCA", 1, rrca}
-	OPCodes[0x0F] = &opCode{"STOP", 1, func(cpu *lr35902) { panic(-1) }}
+	OPCodes[0x0F] = &opCode{"STOP", 1, func(cpu *lr35902) { panic(fmt.Sprintf("panic on 0x%04X", cpu.regs.PC)) }}
 	OPCodes[0x11] = &opCode{"LD DE, nn", 3, ldDDnn}
 	OPCodes[0x12] = &opCode{"LD (DE), A", 1, ldDEa}
 	OPCodes[0x13] = &opCode{"INC DE", 1, incSS}

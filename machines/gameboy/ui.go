@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"strconv"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	canvas "fyne.io/fyne/v2/canvas"
@@ -22,16 +23,17 @@ type lcdDebugControl struct {
 
 	x, y, scX, scY  *ui.RegText
 	status, control *ui.RegText
+
+	sprites *widget.Label
 }
 
 func newLcdControl(lcd *lcd) *lcdDebugControl {
 	ctrl := &lcdDebugControl{
 		lcd:     lcd,
-		display: image.NewRGBA(image.Rect(0, 0, 32*8, 32*8)),
+		display: image.NewRGBA(image.Rect(0, 0, 32*8, 12*8+2)),
 	}
 
 	img := canvas.NewImageFromImage(ctrl.display)
-	img.SetMinSize(fyne.NewSize((64*8)+4+84, (64*8)+2))
 	img.ScaleMode = canvas.ImageScalePixels
 
 	ctrl.x = ui.NewRegText("X:")
@@ -40,6 +42,8 @@ func newLcdControl(lcd *lcd) *lcdDebugControl {
 	ctrl.scY = ui.NewRegText("Scroll Y:")
 	ctrl.status = ui.NewRegText("Status:")
 	ctrl.control = ui.NewRegText("Control:")
+
+	ctrl.sprites = widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
 
 	c1 := container.New(layout.NewFormLayout(),
 		ctrl.x.Label, ctrl.x.Value,
@@ -58,7 +62,7 @@ func newLcdControl(lcd *lcd) *lcdDebugControl {
 
 	regs := container.New(layout.NewGridLayoutWithColumns(3), c1, c2, c3)
 
-	ctrl.ui = fyne.NewContainerWithLayout(layout.NewBorderLayout(regs, nil, nil, nil), regs, img)
+	ctrl.ui = fyne.NewContainerWithLayout(layout.NewBorderLayout(regs, ctrl.sprites, nil, nil), regs, img, ctrl.sprites)
 
 	return ctrl
 }
@@ -75,17 +79,33 @@ func (ctrl *lcdDebugControl) Update() {
 	ctrl.control.Update(fmt.Sprintf("%08b", ctrl.lcd.control))
 	ctrl.status.Update(fmt.Sprintf("%08b", ctrl.lcd.status))
 
-	for r := uint16(0); r < 32; r++ {
+	var sb strings.Builder
+	sb.WriteString("X   Y   Tile Flag        X   Y   Tile Flag\n")
+	for i := uint16(0); i < 40; i++ {
+		sb.WriteString(fmt.Sprintf("%03d %03d 0x%02X 0b%08b  ",
+			ctrl.lcd.oam[i*4+1],
+			ctrl.lcd.oam[i*4+0],
+			ctrl.lcd.oam[i*4+2],
+			ctrl.lcd.oam[i*4+3],
+		))
+		if i%2 == 1 {
+			sb.WriteString("\n")
+		}
+	}
+	ctrl.sprites.Text = sb.String()
+
+	for r := uint16(0); r < 12; r++ {
 		y := int(r * 8)
 		for c := uint16(0); c < 32; c++ {
 			x := int(c * 8)
 			for y_off := uint16(0); y_off < 8; y_off++ {
 				tileAddr := c*16 + r*16*32 + y_off*2
-				b1, _ := ctrl.lcd.vRAM.ReadPort(tileAddr)
-				b2, _ := ctrl.lcd.vRAM.ReadPort(tileAddr + 1)
+				block := int(tileAddr >> 11)
+				b1 := ctrl.lcd.vRAM[tileAddr]
+				b2 := ctrl.lcd.vRAM[tileAddr+1]
 				for x_off := 0; x_off < 8; x_off++ {
 					c := (b1 & 1) | ((b2 & 1) << 1)
-					ctrl.display.Set(x+(7-x_off), y+int(y_off), ctrl.lcd.palette[c])
+					ctrl.display.Set(x+(7-x_off), y+int(y_off)+block, ctrl.lcd.palette[c])
 					b1 >>= 1
 					b2 >>= 1
 				}
@@ -133,7 +153,7 @@ func newTimerControl(cpu lr35902.LR35902, timer *timer) *timerDebugControl {
 	regs := container.New(layout.NewGridLayoutWithColumns(3), c1, c2)
 	panel := container.New(layout.NewVBoxLayout(), regs, ctrl.cpu.Widget())
 
-	ctrl.ui = fyne.NewContainerWithLayout(layout.NewBorderLayout(panel, nil, nil, nil), panel)
+	ctrl.ui = container.New(layout.NewBorderLayout(panel, nil, nil, nil), panel)
 
 	return ctrl
 }

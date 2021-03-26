@@ -69,9 +69,6 @@ func New(serial ...chan byte) emulator.Machine {
 		fmt.Printf("Bios not found\n")
 	}
 
-	m.bus.RegisterPort("vram", cpu.PortMask{0b1110_0000_0000_0000, 0b1000_0000_0000_0000}, m.lcd.vRAM)
-	m.bus.RegisterPort("oam", cpu.PortMask{0b1111_1111_0000_0000, 0b1111_1110_0000_0000}, m.lcd.oam)
-
 	m.bus.RegisterPort("wram", cpu.PortMask{0b1110_0000_0000_0000, 0b1100_0000_0000_0000}, cpu.NewRAM(make([]byte, 0x2000), 0x1fff))
 
 	m.bus.RegisterPort("APU", cpu.PortMask{0b1111_1111_1111_0000, 0b1111_1111_0001_0000}, m.apu)
