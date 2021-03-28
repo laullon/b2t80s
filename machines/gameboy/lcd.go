@@ -53,9 +53,9 @@ type lcd struct {
 func newLCD(bus cpu.Bus) *lcd {
 	display := image.NewRGBA(image.Rect(0, 0, 160, 144))
 	lcd := &lcd{
-		gbp:  make([]byte, 4),
-		obp0: make([]byte, 4),
-		obp1: make([]byte, 4),
+		gbp:  []byte{0, 1, 2, 3},
+		obp0: []byte{0, 1, 2, 3},
+		obp1: []byte{0, 1, 2, 3},
 		palette: []color.RGBA{
 			{0x9b, 0xbc, 0x0f, 0xff},
 			{0x8b, 0xac, 0x0f, 0xff},
@@ -146,13 +146,13 @@ func (lcd *lcd) mode3Tick() {
 	switch lcd.mode3Ticks % 8 {
 	case 0:
 		if lcd.mode3Ticks == 0 {
-			r := uint16(lcd.ly+lcd.scy) >> 3
+			r := (uint16(lcd.ly+lcd.scy) >> 3) & 31
 			lcd.bgMapAddr = 0x1800 + r*32
 		}
 	case 1:
 		l := uint16(lcd.ly+lcd.scy) & 0x07
 		tileIdx := lcd.vRAM[lcd.bgMapAddr]
-		area := lcd.control & 0b0001_0000
+		area := lcd.control & 0b0001_0000 >> 4
 		if area == 1 {
 			lcd.bgNextTileAddr = uint16(tileIdx)*16 + l*2
 		} else {

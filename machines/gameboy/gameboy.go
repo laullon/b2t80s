@@ -25,13 +25,18 @@ type gb struct {
 	clock        emulator.Clock
 	serial       chan byte
 	serialBuffer []byte
+
+	controls     *byte
+	pad, buttons byte
 }
 
 var Bios = flag.String("bios", "bios/gb_bios.bin", "NESncart file to load")
 
 func New(serial ...chan byte) emulator.Machine {
 	m := &gb{
-		hram: cpu.NewRAM(make([]byte, 0x0080), 0x007f),
+		hram:    cpu.NewRAM(make([]byte, 0x0080), 0x007f),
+		pad:     0xff,
+		buttons: 0xff,
 	}
 
 	if len(serial) > 0 {
@@ -118,7 +123,6 @@ func (gb *gb) Control() map[string]ui.Control {
 func (gb *gb) Monitor() emulator.Monitor       { return gb.lcd.monitor }
 func (gb *gb) Clock() emulator.Clock           { return gb.clock }
 func (gb *gb) GetVolumeControl() func(float64) { return func(f float64) {} }
-func (gb *gb) OnKeyEvent(key *fyne.KeyEvent)   {}
 
 func (gb *gb) SetDebugger(db cpu.DebuggerCallbacks) {
 	gb.cpu.SetDebugger(db)
@@ -126,10 +130,15 @@ func (gb *gb) SetDebugger(db cpu.DebuggerCallbacks) {
 
 func (gb *gb) ReadPort(addr uint16) (byte, bool) {
 	switch addr {
+	case 0xff00:
+		return *gb.controls, false
+
 	case 0xffff:
 		return gb.cpu.Registers().IE, false
+
 	case 0xff0f:
 		return gb.cpu.Registers().IF, false
+
 	default:
 		if addr > 0xff7f {
 			return gb.hram.ReadPort(addr)
@@ -141,10 +150,18 @@ func (gb *gb) ReadPort(addr uint16) (byte, bool) {
 
 func (gb *gb) WritePort(addr uint16, data byte) {
 	switch addr {
+	case 0xff00:
+		if data&0b0001_0000 == 0 {
+			gb.controls = &gb.pad
+		} else if data&0b0010_0000 == 0 {
+			gb.controls = &gb.buttons
+		}
+
 	case 0xff01:
 		if gb.serial != nil {
 			gb.serial <- data
 		}
+
 	case 0xff02:
 
 	case 0xff50:
@@ -163,6 +180,30 @@ func (gb *gb) WritePort(addr uint16, data byte) {
 			// } else {
 			// panic(fmt.Sprintf("Panic on [GB][writePort]-> port:0x%04X data:0x%02X  \n", addr, data))
 		}
+	}
+}
+
+func (gb *gb) OnKeyEvent(key *fyne.KeyEvent) {
+	// fmt.Println("key:", key.Name)
+	switch key.Name {
+
+	case fyne.KeyZ: // A
+		gb.buttons ^= 0b00000001
+	case fyne.KeyX: // B
+		gb.buttons ^= 0b00000010
+	case fyne.Key1: //select
+		gb.buttons ^= 0b00000100
+	case fyne.Key2: // start
+		gb.buttons ^= 0b00001000
+
+	case fyne.KeyRight:
+		gb.pad ^= 0b00000001
+	case fyne.KeyLeft:
+		gb.pad ^= 0b00000010
+	case fyne.KeyUp:
+		gb.pad ^= 0b00000100
+	case fyne.KeyDown:
+		gb.pad ^= 0b00001000
 	}
 }
 
