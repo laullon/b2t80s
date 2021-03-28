@@ -35,24 +35,6 @@ func ldToHLn(cpu *lr35902) {
 	cpu.scheduler.append(mr)
 }
 
-func rlca(cpu *lr35902) {
-	cpu.regs.A = cpu.regs.A<<1 | cpu.regs.A>>7
-	cpu.regs.F.C = cpu.regs.A&0x01 != 0
-	cpu.regs.F.H = false
-	cpu.regs.F.N = false
-}
-
-func rla(cpu *lr35902) {
-	c := cpu.regs.F.C
-	cpu.regs.F.C = cpu.regs.A&0b10000000 != 0
-	cpu.regs.A = (cpu.regs.A << 1)
-	if c {
-		cpu.regs.A |= 1
-	}
-	cpu.regs.F.H = false
-	cpu.regs.F.N = false
-}
-
 var cbFuncs = []func(cpu *lr35902, r *byte){rlc, rrc, rl, rr, sla, sra, sll, srl}
 
 func cbR(cpu *lr35902) {
@@ -60,6 +42,9 @@ func cbR(cpu *lr35902) {
 	r := cpu.getRptr(rIdx)
 	fIdx := cpu.fetched.opCode >> 3
 	cbFuncs[fIdx](cpu, r)
+	if cpu.fetched.prefix == 0 && rIdx == 0b111 {
+		cpu.regs.F.Z = false
+	}
 }
 
 func cbHL(cpu *lr35902) {
@@ -129,24 +114,6 @@ func setHL(cpu *lr35902) {
 	cpu.scheduler.append(mr)
 }
 
-func rrca(cpu *lr35902) {
-	cpu.regs.F.C = cpu.regs.A&0x01 != 0
-	cpu.regs.F.H = false
-	cpu.regs.F.N = false
-	cpu.regs.A = (cpu.regs.A >> 1) | (cpu.regs.A << 7)
-}
-
-func rra(cpu *lr35902) {
-	c := cpu.regs.F.C
-	cpu.regs.F.C = cpu.regs.A&1 != 0
-	cpu.regs.A = (cpu.regs.A >> 1)
-	if c {
-		cpu.regs.A |= 0b10000000
-	}
-	cpu.regs.F.H = false
-	cpu.regs.F.N = false
-}
-
 func halt(cpu *lr35902) {
 	cpu.halt = true
 	cpu.regs.PC--
@@ -174,7 +141,7 @@ func addSPn(cpu *lr35902) {
 	cpu.regs.F.H = ((cpu.regs.SP.Get() & 0x0F) + (uint16(cpu.fetched.n) & 0x0F)) > 0x0F
 	cpu.regs.F.N = false
 	cpu.regs.F.Z = false
-	cpu.regs.SP.Set(cpu.regs.SP.Get() + uint16(cpu.fetched.n))
+	cpu.regs.SP.Set(cpu.regs.SP.Get() + uint16(int8(cpu.fetched.n)))
 }
 
 func ldAbc(cpu *lr35902) {
@@ -229,7 +196,7 @@ func scf(cpu *lr35902) {
 }
 
 func ccf(cpu *lr35902) {
-	cpu.regs.F.H = cpu.regs.F.C
+	cpu.regs.F.H = false
 	cpu.regs.F.N = false
 	cpu.regs.F.C = !cpu.regs.F.C
 }
@@ -348,7 +315,7 @@ func (cpu *lr35902) adcA(s byte) {
 }
 
 func (cpu *lr35902) cp(n byte) {
-	result := cpu.regs.A - n
+	result := uint16(cpu.regs.A) - uint16(n)
 	result2 := cpu.regs.A&0x0f - n&0x0f
 
 	cpu.regs.F.Z = result == 0
@@ -521,6 +488,10 @@ func swapHL(cpu *lr35902) {
 
 func swapHL_m2(cpu *lr35902, data byte) {
 	r := ((data & 0b11110000) >> 4) | ((data & 0b00001111) << 4)
+	cpu.regs.F.Z = r == 0
+	cpu.regs.F.H = false
+	cpu.regs.F.C = false
+	cpu.regs.F.N = false
 	cpu.scheduler.append(newMW(cpu.regs.HL.Get(), r, nil))
 }
 
@@ -529,8 +500,8 @@ func ldHLspE(cpu *lr35902) {
 	res := sp + uint16(int8(cpu.fetched.n))
 	cpu.regs.HL.Set(res)
 
-	cpu.regs.F.C = ((sp & 0xff) + uint16(cpu.fetched.n)&0xf) > 0xff
-	cpu.regs.F.H = ((sp & 0x0f) + uint16(cpu.fetched.n)&0x0) > 0x0f
+	cpu.regs.F.C = ((sp & 0xff) + uint16(cpu.fetched.n)&0xff) > 0xff
+	cpu.regs.F.H = ((sp & 0x0f) + uint16(cpu.fetched.n)&0x0f) > 0x0f
 	cpu.regs.F.Z = false
 	cpu.regs.F.N = false
 }

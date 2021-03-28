@@ -19,11 +19,12 @@ func init() {
 }
 
 func TestInstrs(t *testing.T) {
-	*emulator.CartFile = string("../../machines/gameboy/test/cpu_instrs.gb")
+	*emulator.CartFile = string("/Users/glaullon/Downloads/gb-test-roms-master/cpu_instrs/individual/11-op a,(hl).gb")
 	*gameboy.Bios = string("../../bios/gb_bios.bin")
 
 	serial := make(chan byte, 1000)
 	gb := gameboy.New(serial)
+	gb.Reset()
 
 	var result strings.Builder
 	go func() {
@@ -32,7 +33,7 @@ func TestInstrs(t *testing.T) {
 		}
 	}()
 
-	assert.NotPanics(t, func() { gb.Clock().RunFor(120) })
+	assert.NotPanics(t, func() { gb.Clock().RunFor(200) })
 	println("result:", result.String())
 
 	re := regexp.MustCompile(`(\d.):(\w.)`)

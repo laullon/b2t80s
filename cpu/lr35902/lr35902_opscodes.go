@@ -23,7 +23,7 @@ func init() {
 	OPCodes[0x04] = &opCode{"INC B", 1, incR}
 	OPCodes[0x05] = &opCode{"DEC B", 1, decR}
 	OPCodes[0x06] = &opCode{"LD B, n", 2, ldRn}
-	OPCodes[0x07] = &opCode{"RLCA", 1, rlca}
+	OPCodes[0x07] = &opCode{"RLCA", 1, cbR}
 	OPCodes[0x08] = &opCode{"LD (nn), SP", 3, ldNNsp}
 	OPCodes[0x09] = &opCode{"ADD HL,BC", 1, addHLss}
 	OPCodes[0x0A] = &opCode{"LD A,(BC)", 1, ldAbc}
@@ -31,15 +31,15 @@ func init() {
 	OPCodes[0x0C] = &opCode{"INC C", 1, incR}
 	OPCodes[0x0D] = &opCode{"DEC C", 1, decR}
 	OPCodes[0x0E] = &opCode{"LD C, n", 2, ldRn}
-	OPCodes[0x0F] = &opCode{"RRCA", 1, rrca}
-	OPCodes[0x0F] = &opCode{"STOP", 1, func(cpu *lr35902) { panic(fmt.Sprintf("panic on 0x%04X", cpu.regs.PC)) }}
+	OPCodes[0x0F] = &opCode{"RRCA", 1, cbR}
+	OPCodes[0x10] = &opCode{"STOP", 1, func(cpu *lr35902) { panic(fmt.Sprintf("panic on 0x%04X", cpu.regs.PC)) }}
 	OPCodes[0x11] = &opCode{"LD DE, nn", 3, ldDDnn}
 	OPCodes[0x12] = &opCode{"LD (DE), A", 1, ldDEa}
 	OPCodes[0x13] = &opCode{"INC DE", 1, incSS}
 	OPCodes[0x14] = &opCode{"INC D", 1, incR}
 	OPCodes[0x15] = &opCode{"DEC D", 1, decR}
 	OPCodes[0x16] = &opCode{"LD D, n", 2, ldRn}
-	OPCodes[0x17] = &opCode{"RLA", 1, rla}
+	OPCodes[0x17] = &opCode{"RLA", 1, cbR}
 	OPCodes[0x18] = &opCode{"JR e", 2, jr}
 	OPCodes[0x19] = &opCode{"ADD HL,DE", 1, addHLss}
 	OPCodes[0x1A] = &opCode{"LD A,(DE)", 1, ldAde}
@@ -47,7 +47,7 @@ func init() {
 	OPCodes[0x1C] = &opCode{"INC E", 1, incR}
 	OPCodes[0x1D] = &opCode{"DEC E", 1, decR}
 	OPCodes[0x1E] = &opCode{"LD E, n", 2, ldRn}
-	OPCodes[0x1F] = &opCode{"RRA", 1, rra}
+	OPCodes[0x1F] = &opCode{"RRA", 1, cbR}
 	OPCodes[0x20] = &opCode{"JR NZ, e", 2, jrnz}
 	OPCodes[0x21] = &opCode{"LD HL, nn", 3, ldDDnn}
 	OPCodes[0x22] = &opCode{"LDI (HL),a", 1, ldiHLa}
@@ -243,7 +243,7 @@ func init() {
 	OPCodes[0xE5] = &opCode{"PUSH HL", 1, pushSS}
 	OPCodes[0xE6] = &opCode{"AND n", 2, func(cpu *lr35902) { cpu.and(cpu.fetched.n) }}
 	OPCodes[0xE7] = &opCode{"RST 0x20", 1, rstP}
-	OPCodes[0xE8] = &opCode{"ADD SP,n", 2, addSPn}
+	OPCodes[0xE8] = &opCode{"ADD SP, n", 2, addSPn}
 	OPCodes[0xE9] = &opCode{"JP HL", 1, func(cpu *lr35902) { cpu.regs.PC = cpu.regs.HL.Get() }}
 	OPCodes[0xEA] = &opCode{"LD (nn), A", 3, ldNNa}
 	OPCodes[0xEE] = &opCode{"XOR A, n", 2, func(cpu *lr35902) { cpu.xor(cpu.fetched.n) }}
