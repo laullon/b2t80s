@@ -18,8 +18,8 @@ type DebuggerCallbacks interface {
 	Eval(pc uint16)
 	EvalInterrupt()
 
-	EvalLine()
-	EvalFrame()
+	EvalLine() bool
+	EvalFrame() bool
 }
 
 type PortMask struct {

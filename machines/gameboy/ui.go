@@ -16,30 +16,32 @@ import (
 	"github.com/laullon/b2t80s/ui"
 )
 
-type lcdDebugControl struct {
+type ppuDebugControl struct {
 	ui      fyne.CanvasObject
-	lcd     *lcd
+	ppu     *ppu
 	display *image.RGBA
 
-	x, y, scX, scY  *ui.RegText
-	status, control *ui.RegText
+	x, y, scX, scY, wx, wy *ui.RegText
+	status, control        *ui.RegText
 
 	sprites *widget.Label
 }
 
-func newLcdControl(lcd *lcd) *lcdDebugControl {
-	ctrl := &lcdDebugControl{
-		lcd:     lcd,
+func newPPUControl(ppu *ppu) *ppuDebugControl {
+	ctrl := &ppuDebugControl{
+		ppu:     ppu,
 		display: image.NewRGBA(image.Rect(0, 0, 32*8, 12*8+2)),
 	}
 
 	img := canvas.NewImageFromImage(ctrl.display)
 	img.ScaleMode = canvas.ImageScalePixels
 
-	ctrl.x = ui.NewRegText("X:")
-	ctrl.y = ui.NewRegText("Y:")
-	ctrl.scX = ui.NewRegText("Scroll X:")
-	ctrl.scY = ui.NewRegText("Scroll Y:")
+	ctrl.x = ui.NewRegText("lX:")
+	ctrl.y = ui.NewRegText("lY:")
+	ctrl.scX = ui.NewRegText("scX:")
+	ctrl.scY = ui.NewRegText("scY:")
+	ctrl.wx = ui.NewRegText("wX:")
+	ctrl.wy = ui.NewRegText("wY:")
 	ctrl.status = ui.NewRegText("Status:")
 	ctrl.control = ui.NewRegText("Control:")
 
@@ -56,37 +58,44 @@ func newLcdControl(lcd *lcd) *lcdDebugControl {
 	)
 
 	c3 := container.New(layout.NewFormLayout(),
+		ctrl.wx.Label, ctrl.wx.Value,
+		ctrl.wy.Label, ctrl.wy.Value,
+	)
+
+	c4 := container.New(layout.NewFormLayout(),
 		ctrl.control.Label, ctrl.control.Value,
 		ctrl.status.Label, ctrl.status.Value,
 	)
 
-	regs := container.New(layout.NewGridLayoutWithColumns(3), c1, c2, c3)
+	regs := container.New(layout.NewGridLayoutWithColumns(4), c1, c2, c3, c4)
 
-	ctrl.ui = fyne.NewContainerWithLayout(layout.NewBorderLayout(regs, ctrl.sprites, nil, nil), regs, img, ctrl.sprites)
+	ctrl.ui = container.New(layout.NewBorderLayout(regs, ctrl.sprites, nil, nil), regs, img, ctrl.sprites)
 
 	return ctrl
 }
 
-func (ctrl *lcdDebugControl) Widget() fyne.CanvasObject {
+func (ctrl *ppuDebugControl) Widget() fyne.CanvasObject {
 	return ctrl.ui
 }
 
-func (ctrl *lcdDebugControl) Update() {
-	ctrl.x.Update(strconv.Itoa(ctrl.lcd.lx))
-	ctrl.y.Update(strconv.Itoa(ctrl.lcd.ly))
-	ctrl.scX.Update(strconv.Itoa(int(ctrl.lcd.scx)))
-	ctrl.scY.Update(strconv.Itoa(int(ctrl.lcd.scy)))
-	ctrl.control.Update(fmt.Sprintf("%08b", ctrl.lcd.control))
-	ctrl.status.Update(fmt.Sprintf("%08b", ctrl.lcd.status))
+func (ctrl *ppuDebugControl) Update() {
+	ctrl.x.Update(strconv.Itoa(ctrl.ppu.lx))
+	ctrl.y.Update(strconv.Itoa(ctrl.ppu.ly))
+	ctrl.wx.Update(strconv.Itoa(ctrl.ppu.wx))
+	ctrl.wy.Update(strconv.Itoa(ctrl.ppu.wy))
+	ctrl.scX.Update(strconv.Itoa(int(ctrl.ppu.scxNew)))
+	ctrl.scY.Update(strconv.Itoa(int(ctrl.ppu.scy)))
+	ctrl.control.Update(fmt.Sprintf("%08b", ctrl.ppu.control))
+	ctrl.status.Update(fmt.Sprintf("%08b", ctrl.ppu.status))
 
 	var sb strings.Builder
 	sb.WriteString("X   Y   Tile Flag        X   Y   Tile Flag\n")
 	for i := uint16(0); i < 40; i++ {
 		sb.WriteString(fmt.Sprintf("%03d %03d 0x%02X 0b%08b  ",
-			ctrl.lcd.oam[i*4+1],
-			ctrl.lcd.oam[i*4+0],
-			ctrl.lcd.oam[i*4+2],
-			ctrl.lcd.oam[i*4+3],
+			ctrl.ppu.oam[i*4+1],
+			ctrl.ppu.oam[i*4+0],
+			ctrl.ppu.oam[i*4+2],
+			ctrl.ppu.oam[i*4+3],
 		))
 		if i%2 == 1 {
 			sb.WriteString("\n")
@@ -101,11 +110,11 @@ func (ctrl *lcdDebugControl) Update() {
 			for y_off := uint16(0); y_off < 8; y_off++ {
 				tileAddr := c*16 + r*16*32 + y_off*2
 				block := int(tileAddr >> 11)
-				b1 := ctrl.lcd.vRAM[tileAddr]
-				b2 := ctrl.lcd.vRAM[tileAddr+1]
+				b1 := ctrl.ppu.vRAM[tileAddr]
+				b2 := ctrl.ppu.vRAM[tileAddr+1]
 				for x_off := 0; x_off < 8; x_off++ {
 					c := (b1 & 1) | ((b2 & 1) << 1)
-					ctrl.display.Set(x+(7-x_off), y+int(y_off)+block, ctrl.lcd.palette[c])
+					ctrl.display.Set(x+(7-x_off), y+int(y_off)+block, ctrl.ppu.palette[c])
 					b1 >>= 1
 					b2 >>= 1
 				}

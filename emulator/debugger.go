@@ -88,18 +88,22 @@ func (debug *debugger) EvalInterrupt() {
 	}
 }
 
-func (debug *debugger) EvalLine() {
+func (debug *debugger) EvalLine() bool {
 	if debug.doStopLine {
 		debug.doStopLine = false
 		debug.pause()
+		return true
 	}
+	return false
 }
 
-func (debug *debugger) EvalFrame() {
+func (debug *debugger) EvalFrame() bool {
 	if debug.doStopFrame {
 		debug.doStopFrame = false
 		debug.pause()
+		return true
 	}
+	return false
 }
 
 func (debug *debugger) Stop() {

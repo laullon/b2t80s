@@ -16,7 +16,7 @@ import (
 
 type gb struct {
 	cpu          lr35902.LR35902
-	lcd          *lcd
+	ppu          *ppu
 	apu          *apu
 	bus          cpu.Bus
 	hram         cpu.RAM
@@ -61,7 +61,7 @@ func New(serial ...chan byte) emulator.Machine {
 	// }
 
 	m.cpu = lr35902.New(m.bus)
-	m.lcd = newLCD(m.bus)
+	m.ppu = newPPU(m.bus)
 	m.apu = newAPU()
 	m.timer = newTimer(m.bus)
 
@@ -80,7 +80,7 @@ func New(serial ...chan byte) emulator.Machine {
 	m.bus.RegisterPort("APU", cpu.PortMask{0b1111_1111_1111_0000, 0b1111_1111_0010_0000}, m.apu)
 	m.bus.RegisterPort("APU", cpu.PortMask{0b1111_1111_1111_0000, 0b1111_1111_0011_0000}, m.apu)
 
-	m.bus.RegisterPort("LCD", cpu.PortMask{0b1111_1111_1111_0000, 0b1111_1111_0100_0000}, m.lcd)
+	m.bus.RegisterPort("PPU", cpu.PortMask{0b1111_1111_1111_0000, 0b1111_1111_0100_0000}, m.ppu)
 
 	m.bus.RegisterPort("TIMER", cpu.PortMask{0b1111_1111_1111_1100, 0b1111_1111_0000_0100}, m.timer)
 
@@ -91,7 +91,7 @@ func New(serial ...chan byte) emulator.Machine {
 	clock := emulator.NewCLock(4_190_000, 50)
 	m.clock = clock
 	clock.AddTicker(0, m.cpu)
-	clock.AddTicker(0, m.lcd)
+	clock.AddTicker(0, m.ppu)
 	clock.AddTicker(0, m.timer)
 
 	print("cpu bus:\n", m.bus.DumpMap(), "\n")
@@ -115,17 +115,18 @@ func (gb *gb) UIControls() []ui.Control {
 func (gb *gb) Control() map[string]ui.Control {
 	return map[string]ui.Control{
 		"CPU":    newTimerControl(gb.cpu, gb.timer),
-		"LCD":    newLcdControl(gb.lcd),
+		"PPU":    newPPUControl(gb.ppu),
 		"SERIAL": newSerialControl(&gb.serialBuffer),
 	}
 }
 
-func (gb *gb) Monitor() emulator.Monitor       { return gb.lcd.monitor }
+func (gb *gb) Monitor() emulator.Monitor       { return gb.ppu.monitor }
 func (gb *gb) Clock() emulator.Clock           { return gb.clock }
 func (gb *gb) GetVolumeControl() func(float64) { return func(f float64) {} }
 
 func (gb *gb) SetDebugger(db cpu.DebuggerCallbacks) {
 	gb.cpu.SetDebugger(db)
+	gb.ppu.debugger = db
 }
 
 func (gb *gb) ReadPort(addr uint16) (byte, bool) {
