@@ -6,10 +6,9 @@ type timer struct {
 	bus            cpu.Bus
 	div            uint16
 	tima, tma, tac byte
-	overflow       bool
 }
 
-var divMods = []uint16{0x03ff, 0x000f, 0x003f, 0x00ff}
+var divMods = []uint16{1024, 16, 64, 256}
 
 func newTimer(bus cpu.Bus) *timer {
 	return &timer{bus: bus}
@@ -19,22 +18,14 @@ func (t *timer) Tick() {
 	t.div++
 
 	if t.tac&0b100 != 0 {
-		if t.div&divMods[t.tac&3] == 0 {
+		if t.div%divMods[t.tac&3] == 0 {
 			t.tima++
 			if t.tima == 0 {
 				t.tima = t.tma
-				if !t.overflow {
-					t.bus.Write(0xff0f, 0b100)
-					t.overflow = true
-				}
+				t.bus.Write(0xff0f, 0b100)
 			}
 		}
-	}
-}
-
-func (t *timer) timaTick() {
-	if t.tac&0b100 != 0 {
-		t.tima++
+		// println("t.div:", t.div, "(", t.div%divMods[t.tac&3], ")", "t.tima:", t.tima)
 	}
 }
 

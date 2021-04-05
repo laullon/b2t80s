@@ -33,7 +33,7 @@ func TestInstrs(t *testing.T) {
 		}
 	}()
 
-	assert.NotPanics(t, func() { gb.Clock().RunFor(200) })
+	assert.NotPanics(t, func() { gb.Clock().RunFor(20) })
 	println("result:", result.String())
 
 	re := regexp.MustCompile(`(\d.):(\w.)`)

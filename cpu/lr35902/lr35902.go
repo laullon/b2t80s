@@ -93,7 +93,7 @@ type LR35902 interface {
 }
 
 type lr35902 struct {
-	bus *genericBus
+	bus cpu.Bus
 
 	regs *LR35902Registers
 
@@ -103,28 +103,25 @@ type lr35902 struct {
 	fetched   *fetchedData
 	scheduler *circularBuffer
 
-	traps map[uint16]CPUTrap
-
 	log      cpu.CPUTracer
 	debugger cpu.DebuggerCallbacks
 }
 
 func New(bus cpu.Bus) LR35902 {
 	res := &lr35902{
-		bus:       newBus(bus),
+		bus:       bus,
 		fetched:   &fetchedData{},
 		scheduler: newCircularBuffer(),
-		traps:     make(map[uint16]CPUTrap),
 		regs: &LR35902Registers{
 			PC: 0,
-			A:  0xff,
-			S:  0xFF,
-			P:  0xFF,
+			A:  0,
+			S:  0,
+			P:  0,
 			F: &flags{
-				Z: true,
-				C: true,
-				H: true,
-				N: true,
+				Z: false,
+				C: false,
+				H: false,
+				N: false,
 			},
 		},
 	}
@@ -137,14 +134,11 @@ func New(bus cpu.Bus) LR35902 {
 	return res
 }
 
-func (cpu *lr35902) Interrupt(bool) {}
-func (cpu *lr35902) NMI(bool)       {}
-
-func (cpu *lr35902) CurrentOP() string { panic(-2) }
-
-func (cpu *lr35902) RegisterTrap(pc uint16, trap CPUTrap) {
-	cpu.traps[pc] = trap
-}
+// TODO: remove from CPU interface
+func (cpu *lr35902) Interrupt(bool)                       {}
+func (cpu *lr35902) NMI(bool)                             {}
+func (cpu *lr35902) CurrentOP() string                    { panic(-2) }
+func (cpu *lr35902) RegisterTrap(pc uint16, trap CPUTrap) { panic(-2) }
 
 func (cpu *lr35902) Registers() *LR35902Registers {
 	return cpu.regs
@@ -160,38 +154,49 @@ func (cpu *lr35902) Halt() {
 
 func (cpu *lr35902) Reset() {
 	cpu.regs.PC = 0
-	cpu.newInstruction()
+	cpu.scheduler.append(&fetch{table: OPCodes})
 }
 
 func (cpu *lr35902) SetTracer(t cpu.CPUTracer)            { cpu.log = t }
 func (cpu *lr35902) SetDebugger(db cpu.DebuggerCallbacks) { cpu.debugger = db }
 
-func (cpu *lr35902) execInterrupt() bool {
-	cpu.prepareForNewInstruction()
+func (cpu *lr35902) Tick() {
+	if cpu.wait {
+		return
+	}
 
-	if cpu.regs.IME {
-		for i := 0; i < 5; i++ {
-			bit := byte(1) << i
-			if (cpu.regs.IE&bit != 0) && (cpu.regs.IF&bit != 0) {
-				cpu.regs.IME = false
-				if cpu.debugger != nil {
-					cpu.debugger.EvalInterrupt()
-				}
-				cpu.regs.IF &^= bit
-				code := &exec{l: 7, f: func(cpu *lr35902) {
-					cpu.pushToStack(cpu.regs.PC, func(cpu *lr35902) {
-						cpu.regs.PC = intVector[i]
-					})
-				}}
-				cpu.scheduler.append(code)
-				return true
+	// if cpu.halt {
+	// 	if cpu.regs.IME {
+	// 		cpu.halt = false
+	// 		cpu.regs.PC++
+	// 		cpu.execInterrupt()
+	// 	} else {
+	// 		return
+	// 	}
+	// }
+
+	if cpu.scheduler.isEmpty() {
+		cpu.prepareNewInstruction()
+		if !cpu.execInterrupt() {
+			cpu.scheduler.append(&fetch{table: OPCodes})
+		} else {
+			if cpu.debugger != nil {
+				cpu.debugger.EvalInterrupt()
 			}
 		}
 	}
-	return false
+
+	cpu.scheduler.first().tick(cpu)
+	cpu.scheduler.next()
 }
 
-func (cpu *lr35902) prepareForNewInstruction() {
+func (cpu *lr35902) prepareNewInstruction() {
+	if cpu.log != nil {
+		cpu.log.SetDiss(cpu.regs.PC, func(pc, l uint16) []byte {
+			return cpu.GetBlock(pc, l)
+		})
+	}
+
 	if cpu.debugger != nil {
 		cpu.debugger.Eval(cpu.regs.PC)
 	}
@@ -203,52 +208,26 @@ func (cpu *lr35902) prepareForNewInstruction() {
 	cpu.fetched.pc = cpu.regs.PC
 }
 
-func (cpu *lr35902) Tick() {
-	if cpu.wait {
-		return
-	}
-
-	if cpu.halt {
-		if cpu.regs.IME {
-			cpu.halt = false
-			cpu.regs.PC++
-			cpu.execInterrupt()
-		} else {
-			return
-		}
-	}
-
-	if cpu.scheduler.first().isDone() {
-		cpu.scheduler.next()
-		if cpu.scheduler.isEmpty() {
-			if !cpu.execInterrupt() {
-				cpu.newInstruction()
-			} else {
+func (cpu *lr35902) execInterrupt() bool {
+	if cpu.regs.IME {
+		for i := 0; i < 5; i++ {
+			bit := byte(1) << i
+			if (cpu.regs.IE&bit != 0) && (cpu.regs.IF&bit != 0) {
+				cpu.regs.IME = false
 				if cpu.debugger != nil {
 					cpu.debugger.EvalInterrupt()
 				}
+				cpu.regs.IF &^= bit
+
+				cpu.scheduler.append(&exec{}, &exec{})
+				cpu.pushToStack(cpu.regs.PC, nil)
+				cpu.scheduler.append(&exec{f: func(cpu *lr35902) { cpu.regs.PC = intVector[i] }})
+
+				return true
 			}
 		}
 	}
-
-	cpu.scheduler.first().tick(cpu)
-}
-
-func (cpu *lr35902) newInstruction() {
-	if cpu.log != nil {
-		cpu.log.SetDiss(cpu.regs.PC, func(pc, l uint16) []byte {
-			return cpu.bus.GetBlock(pc, l)
-		})
-	}
-	cpu.prepareForNewInstruction()
-	cpu.doTraps()
-	cpu.scheduler.append(newFetch(OPCodes))
-}
-
-func (cpu *lr35902) doTraps() {
-	if trap, ok := cpu.traps[cpu.regs.PC]; ok {
-		trap()
-	}
+	return false
 }
 
 func (cpu *lr35902) WritePort(addr uint16, data byte) {
@@ -261,9 +240,18 @@ func (cpu *lr35902) WritePort(addr uint16, data byte) {
 		panic(-1)
 	}
 }
+
 func (cpu *lr35902) ReadPort(addr uint16) (byte, bool) {
 	switch addr {
 	}
 	panic(-1)
 
+}
+
+func (cpu *lr35902) GetBlock(pc, l uint16) []byte {
+	res := make([]byte, l)
+	for i := uint16(0); i < l; i++ {
+		res[i] = cpu.bus.Read(pc + i)
+	}
+	return res
 }

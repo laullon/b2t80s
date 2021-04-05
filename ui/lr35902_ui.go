@@ -142,18 +142,19 @@ func (ui *lr35902UI) Update() {
 	ui.nextTxt.Text = ui.nextOP
 
 	pc := ui.lastPC
-	data := ui.getMemory(pc, 40)
-	diss := make([]string, 10)
-	for i := 0; (len(data) > 4) && (i < 10); i++ {
-		op := lr35902.OPCodes[data[0]]
-		if op != nil {
-			diss[i] = op.Dump(pc, data)
-			pc += uint16(op.Len)
-			data = data[op.Len:]
+	if ui.getMemory != nil {
+		data := ui.getMemory(pc, 40)
+		diss := make([]string, 10)
+		for i := 0; (len(data) > 4) && (i < 10); i++ {
+			op := lr35902.OPCodes[data[0]]
+			if op != nil {
+				diss[i] = op.Dump(pc, data)
+				pc += uint16(op.Len)
+				data = data[op.Len:]
+			}
 		}
+		ui.dissTxt.Text = strings.Join(diss, "\n")
 	}
-	ui.dissTxt.Text = strings.Join(diss, "\n")
-
 	ui.widget.Refresh()
 }
 
@@ -165,7 +166,8 @@ func (ui *lr35902UI) AppendLastOP(op string) {
 		ui.traceFile.WriteString(op)
 		ui.traceFile.WriteString("\n")
 	}
-
+	// println(op)
+	// println()
 	nLog := append(ui.log, op)
 	ui.log = nLog[1:]
 }

@@ -13,7 +13,7 @@ func ldRn(cpu *lr35902) {
 }
 
 func ldFromHL(cpu *lr35902) {
-	mr := newMR(cpu.regs.HL.Get(), ldFromHL_m1)
+	mr := &mr{from: cpu.regs.HL.Get(), f: ldFromHL_m1}
 	cpu.scheduler.append(mr)
 }
 
@@ -26,12 +26,12 @@ func ldFromHL_m1(cpu *lr35902, data uint8) {
 func ldToHL(cpu *lr35902) {
 	rIdx := cpu.fetched.opCode & 0b111
 	r := cpu.getRptr(rIdx)
-	mr := newMW(cpu.regs.HL.Get(), *r, nil)
+	mr := &mw{to: cpu.regs.HL.Get(), d: *r, f: nil}
 	cpu.scheduler.append(mr)
 }
 
 func ldToHLn(cpu *lr35902) {
-	mr := newMW(cpu.regs.HL.Get(), cpu.fetched.n, nil)
+	mr := &mw{to: cpu.regs.HL.Get(), d: cpu.fetched.n, f: nil}
 	cpu.scheduler.append(mr)
 }
 
@@ -48,14 +48,13 @@ func cbR(cpu *lr35902) {
 }
 
 func cbHL(cpu *lr35902) {
-	mr := newMR(cpu.regs.HL.Get(),
-		func(cpu *lr35902, data uint8) {
-			b := data
-			fIdx := cpu.fetched.opCode >> 3
-			cbFuncs[fIdx](cpu, &b)
-			mw := newMW(cpu.regs.HL.Get(), b, nil)
-			cpu.scheduler.append(mw)
-		})
+	mr := &mr{from: cpu.regs.HL.Get(), f: func(cpu *lr35902, data uint8) {
+		b := data
+		fIdx := cpu.fetched.opCode >> 3
+		cbFuncs[fIdx](cpu, &b)
+		mw := &mw{to: cpu.regs.HL.Get(), d: b, f: nil}
+		cpu.scheduler.append(mw)
+	}}
 	cpu.scheduler.append(mr)
 }
 
@@ -67,12 +66,11 @@ func bit(cpu *lr35902) {
 }
 
 func bitHL(cpu *lr35902) {
-	mr := newMR(cpu.regs.HL.Get(),
-		func(cpu *lr35902, data uint8) {
-			v := data
-			b := (cpu.fetched.opCode >> 3) & 0b111
-			cpu.bit(b, v)
-		})
+	mr := &mr{from: cpu.regs.HL.Get(), f: func(cpu *lr35902, data uint8) {
+		v := data
+		b := (cpu.fetched.opCode >> 3) & 0b111
+		cpu.bit(b, v)
+	}}
 	cpu.scheduler.append(mr)
 }
 
@@ -84,14 +82,13 @@ func res(cpu *lr35902) {
 }
 
 func resHL(cpu *lr35902) {
-	mr := newMR(cpu.regs.HL.Get(),
-		func(cpu *lr35902, data uint8) {
-			v := data
-			b := (cpu.fetched.opCode >> 3) & 0b111
-			cpu.res(b, &v)
-			mw := newMW(cpu.regs.HL.Get(), v, nil)
-			cpu.scheduler.append(mw)
-		})
+	mr := &mr{from: cpu.regs.HL.Get(), f: func(cpu *lr35902, data uint8) {
+		v := data
+		b := (cpu.fetched.opCode >> 3) & 0b111
+		cpu.res(b, &v)
+		mw := &mw{to: cpu.regs.HL.Get(), d: v, f: nil}
+		cpu.scheduler.append(mw)
+	}}
 	cpu.scheduler.append(mr)
 }
 
@@ -103,14 +100,13 @@ func set(cpu *lr35902) {
 }
 
 func setHL(cpu *lr35902) {
-	mr := newMR(cpu.regs.HL.Get(),
-		func(cpu *lr35902, data uint8) {
-			v := data
-			b := (cpu.fetched.opCode >> 3) & 0b111
-			cpu.set(b, &v)
-			mw := newMW(cpu.regs.HL.Get(), v, nil)
-			cpu.scheduler.append(mw)
-		})
+	mr := &mr{from: cpu.regs.HL.Get(), f: func(cpu *lr35902, data uint8) {
+		v := data
+		b := (cpu.fetched.opCode >> 3) & 0b111
+		cpu.set(b, &v)
+		mw := &mw{to: cpu.regs.HL.Get(), d: v, f: nil}
+		cpu.scheduler.append(mw)
+	}}
 	cpu.scheduler.append(mr)
 }
 
@@ -146,7 +142,7 @@ func addSPn(cpu *lr35902) {
 
 func ldAbc(cpu *lr35902) {
 	from := cpu.regs.BC.Get()
-	mr := newMR(from, ldAbc_m1)
+	mr := &mr{from: from, f: ldAbc_m1}
 	cpu.scheduler.append(mr)
 }
 
@@ -154,7 +150,7 @@ func ldAbc_m1(cpu *lr35902, data uint8) { cpu.regs.A = data }
 
 func ldAde(cpu *lr35902) {
 	from := cpu.regs.DE.Get()
-	mr := newMR(from, ldAde_m1)
+	mr := &mr{from: from, f: ldAde_m1}
 	cpu.scheduler.append(mr)
 }
 
@@ -162,25 +158,25 @@ func ldAde_m1(cpu *lr35902, data uint8) { cpu.regs.A = data }
 
 func jrnz(cpu *lr35902) {
 	if !cpu.regs.F.Z {
-		cpu.scheduler.append(&exec{l: 5, f: jr})
+		cpu.scheduler.append(&exec{f: jr})
 	}
 }
 
 func jrnc(cpu *lr35902) {
 	if !cpu.regs.F.C {
-		cpu.scheduler.append(&exec{l: 5, f: jr})
+		cpu.scheduler.append(&exec{f: jr})
 	}
 }
 
 func jrc(cpu *lr35902) {
 	if cpu.regs.F.C {
-		cpu.scheduler.append(&exec{l: 5, f: jr})
+		cpu.scheduler.append(&exec{f: jr})
 	}
 }
 
 func jrz(cpu *lr35902) {
 	if cpu.regs.F.Z {
-		cpu.scheduler.append(&exec{l: 5, f: jr})
+		cpu.scheduler.append(&exec{f: jr})
 	}
 }
 
@@ -483,7 +479,7 @@ func swap(cpu *lr35902) {
 }
 
 func swapHL(cpu *lr35902) {
-	cpu.scheduler.append(newMR(cpu.regs.HL.Get(), swapHL_m2))
+	cpu.scheduler.append(&mr{from: cpu.regs.HL.Get(), f: swapHL_m2})
 }
 
 func swapHL_m2(cpu *lr35902, data byte) {
@@ -492,7 +488,7 @@ func swapHL_m2(cpu *lr35902, data byte) {
 	cpu.regs.F.H = false
 	cpu.regs.F.C = false
 	cpu.regs.F.N = false
-	cpu.scheduler.append(newMW(cpu.regs.HL.Get(), r, nil))
+	cpu.scheduler.append(&mw{to: cpu.regs.HL.Get(), d: r, f: nil})
 }
 
 func ldHLspE(cpu *lr35902) {
@@ -508,20 +504,20 @@ func ldHLspE(cpu *lr35902) {
 
 func ldNNsp(cpu *lr35902) {
 	mm := cpu.fetched.nn
-	mw1 := newMW(mm, byte(*cpu.regs.SP.L), nil)
-	mw2 := newMW(mm+1, byte(*cpu.regs.SP.H), nil)
+	mw1 := &mw{to: mm, d: byte(*cpu.regs.SP.L), f: nil}
+	mw2 := &mw{to: mm + 1, d: byte(*cpu.regs.SP.H), f: nil}
 	cpu.scheduler.append(mw1, mw2)
 }
 
 func ldhNa(cpu *lr35902) {
 	mm := uint16(cpu.fetched.n) | uint16(0xff00)
-	mw1 := newMW(mm, cpu.regs.A, nil)
+	mw1 := &mw{to: mm, d: cpu.regs.A, f: nil}
 	cpu.scheduler.append(mw1)
 }
 
 func ldhAn(cpu *lr35902) {
 	mm := uint16(cpu.fetched.n) | uint16(0xff00)
-	mr1 := newMR(mm, ldhAc_m2)
+	mr1 := &mr{from: mm, f: ldhAc_m2}
 	cpu.scheduler.append(mr1)
 }
 
@@ -531,18 +527,18 @@ func ldhAc_m2(cpu *lr35902, data uint8) {
 
 func ldhCa(cpu *lr35902) {
 	mm := uint16(0xff00) | uint16(cpu.regs.C)
-	mw1 := newMW(mm, cpu.regs.A, nil)
+	mw1 := &mw{to: mm, d: cpu.regs.A, f: nil}
 	cpu.scheduler.append(mw1)
 }
 
 func ldhAc(cpu *lr35902) {
 	mm := uint16(cpu.regs.C) | uint16(0xff00)
-	mr1 := newMR(mm, ldhAc_m2)
+	mr1 := &mr{from: mm, f: ldhAc_m2}
 	cpu.scheduler.append(mr1)
 }
 
 func ldiAhl(cpu *lr35902) {
-	cpu.scheduler.append(newMR(cpu.regs.HL.Get(), ldiAhl_m2))
+	cpu.scheduler.append(&mr{from: cpu.regs.HL.Get(), f: ldiAhl_m2})
 }
 
 func ldiAhl_m2(cpu *lr35902, data byte) {

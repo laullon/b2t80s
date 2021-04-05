@@ -70,7 +70,6 @@ func New(serial ...chan byte) emulator.Machine {
 		m.bios = Newbios(utils.ReadFile(*Bios))
 		m.bus.RegisterPort("bios/rom", cpu.PortMask{0b1111_1111_0000_0000, 0b0000_0000_0000_0000}, m.bios)
 	} else {
-		m.cpu.Registers().PC = 0x100
 		fmt.Printf("Bios not found\n")
 	}
 
@@ -88,11 +87,11 @@ func New(serial ...chan byte) emulator.Machine {
 
 	cartridge.ConnectToCPU(m.bus)
 
-	clock := emulator.NewCLock(4_190_000, 50)
+	clock := emulator.NewCLock(4_194_304, 59.73)
 	m.clock = clock
-	clock.AddTicker(0, m.cpu)
 	clock.AddTicker(0, m.ppu)
 	clock.AddTicker(0, m.timer)
+	clock.AddTicker(4, m.cpu)
 
 	print("cpu bus:\n", m.bus.DumpMap(), "\n")
 	// print("ppu bus:\n", m.ppuBus.DumpMap(), "\n")
@@ -104,6 +103,9 @@ func New(serial ...chan byte) emulator.Machine {
 
 func (gb *gb) Reset() {
 	gb.cpu.Reset()
+	if gb.bios == nil {
+		gb.cpu.Registers().PC = 0x100
+	}
 }
 
 func (gb *gb) UIControls() []ui.Control {
@@ -166,8 +168,9 @@ func (gb *gb) WritePort(addr uint16, data byte) {
 	case 0xff02:
 
 	case 0xff50:
-		gb.bios.enable = false
-
+		if gb.bios != nil {
+			gb.bios.enable = false
+		}
 	case 0xffff:
 		gb.cpu.Registers().IE = data
 
@@ -179,7 +182,7 @@ func (gb *gb) WritePort(addr uint16, data byte) {
 			// fmt.Printf("[GB][writePort]-> port:0x%04X data:0x%02X  \n", addr, data)
 			gb.hram.WritePort(addr, data)
 			// } else {
-			// panic(fmt.Sprintf("Panic on [GB][writePort]-> port:0x%04X data:0x%02X  \n", addr, data))
+			// 	panic(fmt.Sprintf("Panic on [GB][writePort]-> port:0x%04X data:0x%02X  \n", addr, data))
 		}
 	}
 }

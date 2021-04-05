@@ -211,8 +211,8 @@ func init() {
 	OPCodes[0xC0] = &opCode{"RET NZ", 1, retCC}
 	OPCodes[0xC1] = &opCode{"POP BC", 1, popSS}
 	OPCodes[0xC2] = &opCode{"JP NZ, nn", 3, jpCC}
-	OPCodes[0xC3] = &opCode{"JP nn", 3, func(cpu *lr35902) { cpu.regs.PC = cpu.fetched.nn }}
-	OPCodes[0xC4] = &opCode{"CALL NZ, nn", 3, callCC}
+	OPCodes[0xC3] = &opCode{"JP nn", 3, jpCC}
+	OPCodes[0xC4] = &opCode{"CALL NZ, nn", 3, call}
 	OPCodes[0xC5] = &opCode{"PUSH BC", 1, pushSS}
 	OPCodes[0xC6] = &opCode{"ADD A, n", 2, func(cpu *lr35902) { cpu.addA(cpu.fetched.n) }}
 	OPCodes[0xC7] = &opCode{"RST 0x0", 1, rstP}
@@ -220,21 +220,21 @@ func init() {
 	OPCodes[0xC9] = &opCode{"RET", 1, ret}
 	OPCodes[0xCA] = &opCode{"JP Z, nn", 3, jpCC}
 	OPCodes[0xCB] = &opCode{"CB", 1, decodeCB}
-	OPCodes[0xCC] = &opCode{"CALL Z, nn", 3, callCC}
+	OPCodes[0xCC] = &opCode{"CALL Z, nn", 3, call}
 	OPCodes[0xCD] = &opCode{"CALL nn", 3, call}
 	OPCodes[0xCE] = &opCode{"ADC A, n", 2, func(cpu *lr35902) { cpu.adcA(cpu.fetched.n) }}
 	OPCodes[0xCF] = &opCode{"RST 0x8", 1, rstP}
 	OPCodes[0xD0] = &opCode{"RET NC", 1, retCC}
 	OPCodes[0xD1] = &opCode{"POP DE", 1, popSS}
 	OPCodes[0xD2] = &opCode{"JP NC, nn", 3, jpCC}
-	OPCodes[0xD4] = &opCode{"CALL NC, nn", 3, callCC}
+	OPCodes[0xD4] = &opCode{"CALL NC, nn", 3, call}
 	OPCodes[0xD5] = &opCode{"PUSH DE", 1, pushSS}
 	OPCodes[0xD6] = &opCode{"SUB A, n", 2, func(cpu *lr35902) { cpu.subA(cpu.fetched.n) }}
 	OPCodes[0xD7] = &opCode{"RST 0x10", 1, rstP}
 	OPCodes[0xD8] = &opCode{"RET C", 1, retCC}
 	OPCodes[0xD9] = &opCode{"RETI", 1, reti}
 	OPCodes[0xDA] = &opCode{"JP C, nn", 3, jpCC}
-	OPCodes[0xDC] = &opCode{"CALL C, nn", 3, callCC}
+	OPCodes[0xDC] = &opCode{"CALL C, nn", 3, call}
 	OPCodes[0xDE] = &opCode{"SBC A, nn", 3, func(cpu *lr35902) { cpu.sbcA(cpu.fetched.n) }}
 	OPCodes[0xDF] = &opCode{"RST 0x18", 1, rstP}
 	OPCodes[0xE0] = &opCode{"LD (0xff00+n), A", 2, ldhNa}
@@ -521,7 +521,8 @@ func init() {
 }
 
 func decodeCB(cpu *lr35902) {
-	cpu.scheduler.append(newFetch(OPCodesCB))
+	cpu.fetched.prefix = 0xcb
+	cpu.scheduler.append(&fetch{table: OPCodesCB})
 }
 
 func (op *opCode) Dump(pc uint16, data []byte) string {

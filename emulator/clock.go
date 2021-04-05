@@ -29,6 +29,7 @@ type ticker struct {
 type clock struct {
 	wait            time.Duration
 	tStatesPerFrame uint
+	fps             float32
 	tStates         uint
 	tickers         []*ticker
 	lastFrameTime   float64
@@ -36,10 +37,11 @@ type clock struct {
 	callback        func()
 }
 
-func NewCLock(hz uint, fps uint) Clock {
+func NewCLock(hz uint, fps float32) Clock {
 	clock := &clock{
-		tStatesPerFrame: hz / (fps * 2),
+		tStatesPerFrame: uint(float32(hz) / (fps * 2)),
 		wait:            time.Duration(time.Second / time.Duration(fps*2)),
+		fps:             fps,
 	}
 	return clock
 }
@@ -103,7 +105,7 @@ func (c *clock) Run() {
 }
 
 func (c *clock) RunFor(seconds uint) {
-	for c.tStates < (c.tStatesPerFrame * 50 * seconds) {
+	for c.tStates < uint(float32(c.tStatesPerFrame)*2*c.fps*float32(seconds)) {
 		c.tick()
 	}
 }
