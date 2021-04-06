@@ -32,6 +32,8 @@ type gb struct {
 
 var Bios = flag.String("bios", "bios/gb_bios.bin", "NESncart file to load")
 
+const clockHz = 4_194_304
+
 func New(serial ...chan byte) emulator.Machine {
 	m := &gb{
 		hram:    cpu.NewRAM(make([]byte, 0x0080), 0x007f),
@@ -62,7 +64,7 @@ func New(serial ...chan byte) emulator.Machine {
 
 	m.cpu = lr35902.New(m.bus)
 	m.ppu = newPPU(m.bus)
-	m.apu = newAPU()
+	m.apu = newAPU(clockHz / 80)
 	m.timer = newTimer(m.bus)
 
 	// BIOS
@@ -87,11 +89,15 @@ func New(serial ...chan byte) emulator.Machine {
 
 	cartridge.ConnectToCPU(m.bus)
 
-	clock := emulator.NewCLock(4_194_304, 59.73)
+	sound := emulator.NewSoundSystem(clockHz / 80)
+	sound.AddSource(m.apu)
+
+	clock := emulator.NewCLock(clockHz, 59.73)
 	m.clock = clock
 	clock.AddTicker(0, m.ppu)
 	clock.AddTicker(0, m.timer)
 	clock.AddTicker(4, m.cpu)
+	clock.AddTicker(80, sound)
 
 	print("cpu bus:\n", m.bus.DumpMap(), "\n")
 	// print("ppu bus:\n", m.ppuBus.DumpMap(), "\n")
@@ -119,6 +125,7 @@ func (gb *gb) Control() map[string]ui.Control {
 		"CPU":    newTimerControl(gb.cpu, gb.timer),
 		"PPU":    newPPUControl(gb.ppu),
 		"SERIAL": newSerialControl(&gb.serialBuffer),
+		"Sound":  newSoundCtrl(gb.apu),
 	}
 }
 

@@ -213,3 +213,66 @@ func (ctrl *serialDebugControl) Update() {
 	ctrl.text.Text = hex.Dump(*ctrl.buffer)
 	ctrl.ui.Refresh()
 }
+
+/// *********************************
+/// *********************************
+/// *********************************
+
+type soundCtrl struct {
+	ui  fyne.CanvasObject
+	apu *apu
+
+	ch1On, ch2On, ch3On, ch4On *ui.RegText
+}
+
+func newSoundCtrl(apu *apu) *soundCtrl {
+	ctrl := &soundCtrl{
+		apu: apu,
+	}
+
+	ctrl.ch1On = ui.NewRegText("ch1 On:")
+	ctrl.ch2On = ui.NewRegText("ch2 On:")
+	ctrl.ch3On = ui.NewRegText("ch3 On:")
+	ctrl.ch4On = ui.NewRegText("ch4 On:")
+
+	c1 := container.New(layout.NewFormLayout(),
+		ctrl.ch1On.Label, ctrl.ch1On.Value,
+		ctrl.ch2On.Label, ctrl.ch2On.Value,
+		ctrl.ch3On.Label, ctrl.ch3On.Value,
+		ctrl.ch4On.Label, ctrl.ch4On.Value,
+	)
+
+	regs := container.New(layout.NewGridLayoutWithColumns(3), c1)
+	ctrl.ui = container.New(layout.NewBorderLayout(regs, nil, nil, nil), regs)
+
+	return ctrl
+}
+
+func (ctrl *soundCtrl) Widget() fyne.CanvasObject {
+	return ctrl.ui
+}
+
+func (ctrl *soundCtrl) Update() {
+	if ctrl.apu.channel1.enable {
+		ctrl.ch1On.Update("ON")
+	} else {
+		ctrl.ch1On.Update("Off")
+	}
+	if ctrl.apu.channel2.enable {
+		ctrl.ch2On.Update("ON")
+	} else {
+		ctrl.ch2On.Update("Off")
+	}
+	if ctrl.apu.channel3.enable {
+		ctrl.ch3On.Update("ON")
+	} else {
+		ctrl.ch3On.Update("Off")
+	}
+	if ctrl.apu.channel4.enable {
+		ctrl.ch4On.Update("ON")
+	} else {
+		ctrl.ch4On.Update("Off")
+	}
+
+	ctrl.ui.Refresh()
+}
