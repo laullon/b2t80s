@@ -253,26 +253,26 @@ func (ctrl *soundCtrl) Widget() fyne.CanvasObject {
 }
 
 func (ctrl *soundCtrl) Update() {
-	if ctrl.apu.channel1.enable {
-		ctrl.ch1On.Update("ON")
-	} else {
-		ctrl.ch1On.Update("Off")
-	}
-	if ctrl.apu.channel2.enable {
-		ctrl.ch2On.Update("ON")
-	} else {
-		ctrl.ch2On.Update("Off")
-	}
-	if ctrl.apu.channel3.enable {
-		ctrl.ch3On.Update("ON")
-	} else {
-		ctrl.ch3On.Update("Off")
-	}
-	if ctrl.apu.channel4.enable {
-		ctrl.ch4On.Update("ON")
-	} else {
-		ctrl.ch4On.Update("Off")
-	}
+	// if ctrl.apu.channel1.enable {
+	// 	ctrl.ch1On.Update("ON")
+	// } else {
+	// 	ctrl.ch1On.Update("Off")
+	// }
+	// if ctrl.apu.channel2.enable {
+	// 	ctrl.ch2On.Update("ON")
+	// } else {
+	// 	ctrl.ch2On.Update("Off")
+	// }
+	// if ctrl.apu.channel3.enable {
+	// 	ctrl.ch3On.Update("ON")
+	// } else {
+	// 	ctrl.ch3On.Update("Off")
+	// }
+	// if ctrl.apu.channel4.enable {
+	// 	ctrl.ch4On.Update("ON")
+	// } else {
+	// 	ctrl.ch4On.Update("Off")
+	// }
 
 	ctrl.ui.Refresh()
 }
