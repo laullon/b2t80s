@@ -13,6 +13,9 @@ type channel interface {
 	setRegister(r int, data byte)
 	getRegister(r int) byte
 	tick()
+	lengthTick()
+	setOn(bool)
+	isOn() bool
 }
 
 type channelRuntime struct {
@@ -31,11 +34,10 @@ type channelRuntime struct {
 type basicChannel struct {
 	enable bool
 
-	sampleRate uint
+	soundLength       uint16
+	soundLengthEnable bool
 
-	initialVolume  byte
-	envelopeInc    bool
-	envelopeSweeps byte
+	sampleRate uint
 
 	rt channelRuntime
 }
@@ -43,13 +45,15 @@ type basicChannel struct {
 type tomeChannel struct {
 	basicChannel
 
-	waveDuty    byte
-	soundLength byte
+	waveDuty byte
 
 	frequency11b uint16
 	frequency    float32
 	restart      bool
-	consecutive  bool
+
+	initialVolume  byte
+	envelopeInc    bool
+	envelopeSweeps byte
 
 	sweepDissabled bool
 	sweepTime      byte
@@ -61,13 +65,11 @@ type waveChannel struct {
 	basicChannel
 
 	play   bool
-	length byte
 	volume byte
 
 	frequency11b uint16
 	frequency    float32
 	restart      bool
-	consecutive  bool
 
 	ram []byte
 }
@@ -75,10 +77,7 @@ type waveChannel struct {
 type noiseChannel struct {
 	basicChannel
 
-	length byte
-
-	restart     bool
-	consecutive bool
+	restart bool
 
 	initialVolume  byte
 	envelopeInc    bool
@@ -93,6 +92,11 @@ type apu struct {
 	channels      []channel
 	soundChannels []emulator.SoundChannel
 
+	ticks          uint
+	sampleRate     uint
+	sequencerTicks uint
+	sequencerCount uint
+
 	outputTerminal byte
 	outputControl  byte
 	on             bool
@@ -100,6 +104,9 @@ type apu struct {
 
 func newAPU(sampleRate uint) *apu {
 	apu := &apu{}
+
+	apu.sampleRate = sampleRate
+	apu.sequencerTicks = sampleRate / 512
 
 	channel1 := &tomeChannel{}
 	channel2 := &tomeChannel{}
@@ -122,8 +129,23 @@ func newAPU(sampleRate uint) *apu {
 }
 
 func (apu *apu) SoundTick() {
-	for _, ch := range apu.channels {
-		ch.tick()
+}
+
+func (apu *apu) Tick() {
+	apu.sequencerCount++
+	apu.sequencerCount &= 7
+	switch apu.sequencerCount {
+	case 0, 4:
+		for _, ch := range apu.channels {
+			ch.lengthTick()
+		}
+	case 7:
+		// volTick++
+	case 2, 6:
+		for _, ch := range apu.channels {
+			ch.lengthTick()
+		}
+		// sweepTick++
 	}
 }
 
@@ -136,6 +158,16 @@ func decode(addr uint16) (channel, register int) {
 	register = int(addr&0xff-0x10) % 5
 	return
 }
+
+func (apu *apu) getStatus() (res byte) {
+	for c := 0; c < 4; c++ {
+		if apu.channels[c].isOn() {
+			res |= 1 << c
+		}
+	}
+	return
+}
+
 func (apu *apu) ReadPort(addr uint16) (res byte, skip bool) {
 	channel, register := decode(addr)
 	if channel < 4 {
@@ -145,26 +177,23 @@ func (apu *apu) ReadPort(addr uint16) (res byte, skip bool) {
 	} else if addr == 0xff25 {
 		res = apu.outputTerminal
 	} else if addr == 0xff26 {
-		res = 0x70
+		res = 0x70 | apu.getStatus()
 		if apu.on {
 			res |= 0x80
 		}
-		// apu.channel1.enable = data&0x80 != 0
-		// apu.channel2.enable = data&0x80 != 0
-		// apu.channel3.enable = data&0x80 != 0
-		// apu.channel4.enable = data&0x80 != 0
+
 	} else if addr >= 0xFF27 && addr <= 0xFF2F {
 		res = 0xff
 	} else {
 		res = apu.channels[2].(*waveChannel).ram[addr&0x000f]
 	}
-	fmt.Printf("[apu] read  0x%04X 0x%02X (%d,%d)\n", addr, res, channel, register)
+	fmt.Printf("[apu] read  0x%04X 0x%02X (%d,%d)%04b\n", addr, res, channel, register, apu.getStatus()&0b1111)
 	return
 }
 
 func (apu *apu) WritePort(addr uint16, data byte) {
 	channel, register := decode(addr)
-	fmt.Printf("[apu] write 0x%04X 0x%02X (%d,%d)\n", addr, data, channel, register)
+	fmt.Printf("[apu] write 0x%04X 0x%02X (%d,%d)%04b\n", addr, data, channel, register, apu.getStatus()&0b1111)
 	if channel < 4 && apu.on {
 		apu.channels[channel].setRegister(register, data)
 	} else if addr == 0xff24 && apu.on {
@@ -182,10 +211,9 @@ func (apu *apu) WritePort(addr uint16, data byte) {
 			apu.outputControl = 0
 			apu.outputTerminal = 0
 		}
-		// apu.channel1.enable = data&0x80 != 0
-		// apu.channel2.enable = data&0x80 != 0
-		// apu.channel3.enable = data&0x80 != 0
-		// apu.channel4.enable = data&0x80 != 0
+		for c := 0; c < 4; c++ {
+			apu.channels[c].setOn(data&0x80 != 0)
+		}
 	} else if addr >= 0xFF27 && addr <= 0xFF2F {
 	} else {
 		apu.channels[2].(*waveChannel).ram[addr&0x000f] = data
@@ -273,12 +301,15 @@ func (ch *tomeChannel) setRegister(r int, data byte) {
 
 	case 1:
 		ch.waveDuty = data >> 6
-		ch.soundLength = data & 63
+		ch.soundLength = 64 - uint16(data)&63
 
 	case 2:
 		ch.initialVolume = data >> 4
 		ch.envelopeInc = data&0b1000 != 0
 		ch.envelopeSweeps = data & 7
+		if ch.initialVolume == 0 {
+			ch.enable = false
+		}
 
 	case 3:
 		ch.frequency11b = ch.frequency11b&0xff00 | uint16(data)
@@ -286,7 +317,11 @@ func (ch *tomeChannel) setRegister(r int, data byte) {
 	case 4:
 		ch.frequency11b = ch.frequency11b&0x00ff | uint16(data&0b111)<<8
 		ch.restart = data&0x80 != 0
-		ch.consecutive = data&0x40 != 0
+		ch.soundLengthEnable = data&0x40 != 0
+		if ch.restart && ch.soundLength == 0 {
+			ch.soundLength = 64
+		}
+		ch.enable = ch.soundLengthEnable
 	}
 }
 
@@ -317,7 +352,7 @@ func (ch *tomeChannel) getRegister(r int) (res byte) {
 
 	case 4:
 		res = 0xbf
-		if ch.consecutive {
+		if ch.soundLengthEnable {
 			res |= 0x40
 		}
 
@@ -334,13 +369,16 @@ func (ch *tomeChannel) GetBuffer(max int) (res []*emulator.SoundData, l int) { r
 func (ch *waveChannel) setRegister(r int, data byte) {
 	switch r {
 	case 0:
-		ch.play = data&0x80 != 0
+		ch.enable = data&0x80 != 0
 
 	case 1:
-		ch.length = data
+		ch.soundLength = 256 - uint16(data)
 
 	case 2:
-		ch.volume = data >> 5 & 3
+		ch.volume = data >> 5
+		if ch.volume == 0 {
+			ch.enable = false
+		}
 
 	case 3:
 		ch.frequency11b = ch.frequency11b&0xff00 | uint16(data)
@@ -348,7 +386,11 @@ func (ch *waveChannel) setRegister(r int, data byte) {
 	case 4:
 		ch.frequency11b = ch.frequency11b&0x00ff | uint16(data&0b111)<<8
 		ch.restart = data&0x80 != 0
-		ch.consecutive = data&0x40 != 0
+		ch.soundLengthEnable = data&0x40 != 0
+		if ch.restart && ch.soundLength == 0 {
+			ch.soundLength = 0x100
+		}
+		ch.enable = ch.soundLengthEnable
 	}
 }
 
@@ -372,7 +414,7 @@ func (ch *waveChannel) getRegister(r int) (res byte) {
 
 	case 4:
 		res = 0xbf
-		if ch.consecutive {
+		if ch.soundLengthEnable {
 			res |= 0x40
 		}
 	}
@@ -385,12 +427,15 @@ func (ch *waveChannel) GetBuffer(max int) (res []*emulator.SoundData, l int) { r
 func (ch *noiseChannel) setRegister(r int, data byte) {
 	switch r {
 	case 1:
-		ch.length = data & 0x3f
+		ch.soundLength = 64 - uint16(data)&63
 
 	case 2:
 		ch.initialVolume = data >> 4
 		ch.envelopeInc = data&0b1000 != 0
 		ch.envelopeSweeps = data & 7
+		if ch.initialVolume == 0 {
+			ch.enable = false
+		}
 
 	case 3:
 		ch.polyClock = data >> 4
@@ -399,7 +444,11 @@ func (ch *noiseChannel) setRegister(r int, data byte) {
 
 	case 4:
 		ch.restart = data&0x80 != 0
-		ch.consecutive = data&0x40 != 0
+		ch.soundLengthEnable = data&0x40 != 0
+		if ch.restart && ch.soundLength == 0 {
+			ch.soundLength = 64
+		}
+		ch.enable = ch.soundLengthEnable
 	}
 }
 
@@ -424,7 +473,7 @@ func (ch *noiseChannel) getRegister(r int) (res byte) {
 
 	case 4:
 		res = 0xbf
-		if ch.consecutive {
+		if ch.soundLengthEnable {
 			res |= 0x40
 		}
 	}
@@ -433,3 +482,20 @@ func (ch *noiseChannel) getRegister(r int) (res byte) {
 
 func (ch *noiseChannel) tick()                                                {}
 func (ch *noiseChannel) GetBuffer(max int) (res []*emulator.SoundData, l int) { return }
+
+// ****************************
+// ****************************
+// ****************************
+
+func (ch *basicChannel) setOn(on bool) { ch.enable = on }
+func (ch *basicChannel) isOn() bool    { return ch.enable }
+
+func (ch *basicChannel) lengthTick() {
+	if ch.soundLengthEnable && ch.soundLength != 0 {
+		ch.soundLength--
+		if ch.soundLength == 0 {
+			ch.enable = false
+		}
+		println("ch.soundLength:", ch.soundLength, ch.enable)
+	}
+}

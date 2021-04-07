@@ -34,6 +34,8 @@ var Bios = flag.String("bios", "bios/gb_bios.bin", "NESncart file to load")
 
 const clockHz = 4_194_304
 
+//4194304/(512/8)
+
 func New(serial ...chan byte) emulator.Machine {
 	m := &gb{
 		hram:    cpu.NewRAM(make([]byte, 0x0080), 0x007f),
@@ -97,6 +99,7 @@ func New(serial ...chan byte) emulator.Machine {
 	clock.AddTicker(0, m.ppu)
 	clock.AddTicker(0, m.timer)
 	clock.AddTicker(4, m.cpu)
+	clock.AddTicker(8192, m.apu) // 512Hz
 	clock.AddTicker(80, sound)
 
 	print("cpu bus:\n", m.bus.DumpMap(), "\n")
