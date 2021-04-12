@@ -116,28 +116,34 @@ func halt(cpu *lr35902) {
 }
 
 func addHLss(cpu *lr35902) {
-	rIdx := cpu.fetched.opCode >> 4 & 0b11
-	reg := cpu.getRRptr(rIdx)
+	cpu.scheduler.append(&exec{f: func(cpu *lr35902) {
+		rIdx := cpu.fetched.opCode >> 4 & 0b11
+		reg := cpu.getRRptr(rIdx)
 
-	hl := uint32(cpu.regs.HL.Get())
-	rr := uint32(reg.Get())
+		hl := uint32(cpu.regs.HL.Get())
+		rr := uint32(reg.Get())
 
-	var result = hl + rr
-	var result2 = hl&0xfff + rr&0xfff
+		var result = hl + rr
+		var result2 = hl&0xfff + rr&0xfff
 
-	cpu.regs.F.N = false
-	cpu.regs.F.C = result > 0xffff
-	cpu.regs.F.H = result2 > 0x0fff
+		cpu.regs.F.N = false
+		cpu.regs.F.C = result > 0xffff
+		cpu.regs.F.H = result2 > 0x0fff
 
-	cpu.regs.HL.Set(uint16(result))
+		cpu.regs.HL.Set(uint16(result))
+	}})
 }
 
 func addSPn(cpu *lr35902) {
-	cpu.regs.F.C = ((cpu.regs.SP.Get() & 0xFF) + uint16(cpu.fetched.n)) > 0xFF
-	cpu.regs.F.H = ((cpu.regs.SP.Get() & 0x0F) + (uint16(cpu.fetched.n) & 0x0F)) > 0x0F
-	cpu.regs.F.N = false
-	cpu.regs.F.Z = false
-	cpu.regs.SP.Set(cpu.regs.SP.Get() + uint16(int8(cpu.fetched.n)))
+	cpu.scheduler.append(&exec{f: func(cpu *lr35902) {
+		cpu.regs.F.C = ((cpu.regs.SP.Get() & 0xFF) + uint16(cpu.fetched.n)) > 0xFF
+		cpu.regs.F.H = ((cpu.regs.SP.Get() & 0x0F) + (uint16(cpu.fetched.n) & 0x0F)) > 0x0F
+		cpu.regs.F.N = false
+		cpu.regs.F.Z = false
+		cpu.scheduler.append(&exec{f: func(cpu *lr35902) {
+			cpu.regs.SP.Set(cpu.regs.SP.Get() + uint16(int8(cpu.fetched.n)))
+		}})
+	}})
 }
 
 func ldAbc(cpu *lr35902) {
@@ -158,29 +164,33 @@ func ldAde_m1(cpu *lr35902, data uint8) { cpu.regs.A = data }
 
 func jrnz(cpu *lr35902) {
 	if !cpu.regs.F.Z {
-		cpu.scheduler.append(&exec{f: jr})
+		jr(cpu)
 	}
 }
 
 func jrnc(cpu *lr35902) {
 	if !cpu.regs.F.C {
-		cpu.scheduler.append(&exec{f: jr})
+		jr(cpu)
 	}
 }
 
 func jrc(cpu *lr35902) {
 	if cpu.regs.F.C {
-		cpu.scheduler.append(&exec{f: jr})
+		jr(cpu)
 	}
 }
 
 func jrz(cpu *lr35902) {
 	if cpu.regs.F.Z {
-		cpu.scheduler.append(&exec{f: jr})
+		jr(cpu)
 	}
 }
 
 func jr(cpu *lr35902) {
+	cpu.scheduler.append(&exec{f: jr_m2})
+}
+
+func jr_m2(cpu *lr35902) {
 	jump := int8(cpu.fetched.n)
 	cpu.regs.PC += uint16(jump)
 }
@@ -192,8 +202,8 @@ func scf(cpu *lr35902) {
 }
 
 func ccf(cpu *lr35902) {
-	cpu.regs.F.H = false
 	cpu.regs.F.N = false
+	cpu.regs.F.H = false
 	cpu.regs.F.C = !cpu.regs.F.C
 }
 
@@ -492,14 +502,16 @@ func swapHL_m2(cpu *lr35902, data byte) {
 }
 
 func ldHLspE(cpu *lr35902) {
-	sp := cpu.regs.SP.Get()
-	res := sp + uint16(int8(cpu.fetched.n))
-	cpu.regs.HL.Set(res)
+	cpu.scheduler.append(&exec{f: func(cpu *lr35902) {
+		sp := cpu.regs.SP.Get()
+		res := sp + uint16(int8(cpu.fetched.n))
+		cpu.regs.HL.Set(res)
 
-	cpu.regs.F.C = ((sp & 0xff) + uint16(cpu.fetched.n)&0xff) > 0xff
-	cpu.regs.F.H = ((sp & 0x0f) + uint16(cpu.fetched.n)&0x0f) > 0x0f
-	cpu.regs.F.Z = false
-	cpu.regs.F.N = false
+		cpu.regs.F.C = ((sp & 0xff) + uint16(cpu.fetched.n)&0xff) > 0xff
+		cpu.regs.F.H = ((sp & 0x0f) + uint16(cpu.fetched.n)&0x0f) > 0x0f
+		cpu.regs.F.Z = false
+		cpu.regs.F.N = false
+	}})
 }
 
 func ldNNsp(cpu *lr35902) {
@@ -544,4 +556,10 @@ func ldiAhl(cpu *lr35902) {
 func ldiAhl_m2(cpu *lr35902, data byte) {
 	cpu.regs.A = data
 	cpu.regs.HL.Set(cpu.regs.HL.Get() + 1)
+}
+
+func ldSPhl(cpu *lr35902) {
+	cpu.scheduler.append(&exec{f: func(cpu *lr35902) {
+		cpu.regs.SP.Set(cpu.regs.HL.Get())
+	}})
 }

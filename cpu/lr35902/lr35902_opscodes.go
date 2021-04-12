@@ -211,7 +211,7 @@ func init() {
 	OPCodes[0xC0] = &opCode{"RET NZ", 1, retCC}
 	OPCodes[0xC1] = &opCode{"POP BC", 1, popSS}
 	OPCodes[0xC2] = &opCode{"JP NZ, nn", 3, jpCC}
-	OPCodes[0xC3] = &opCode{"JP nn", 3, jpCC}
+	OPCodes[0xC3] = &opCode{"JP nn", 3, jpNN}
 	OPCodes[0xC4] = &opCode{"CALL NZ, nn", 3, call}
 	OPCodes[0xC5] = &opCode{"PUSH BC", 1, pushSS}
 	OPCodes[0xC6] = &opCode{"ADD A, n", 2, func(cpu *lr35902) { cpu.addA(cpu.fetched.n) }}
@@ -235,7 +235,7 @@ func init() {
 	OPCodes[0xD9] = &opCode{"RETI", 1, reti}
 	OPCodes[0xDA] = &opCode{"JP C, nn", 3, jpCC}
 	OPCodes[0xDC] = &opCode{"CALL C, nn", 3, call}
-	OPCodes[0xDE] = &opCode{"SBC A, nn", 3, func(cpu *lr35902) { cpu.sbcA(cpu.fetched.n) }}
+	OPCodes[0xDE] = &opCode{"SBC A, n", 2, func(cpu *lr35902) { cpu.sbcA(cpu.fetched.n) }}
 	OPCodes[0xDF] = &opCode{"RST 0x18", 1, rstP}
 	OPCodes[0xE0] = &opCode{"LD (0xff00+n), A", 2, ldhNa}
 	OPCodes[0xE1] = &opCode{"POP HL", 1, popSS}
@@ -256,7 +256,7 @@ func init() {
 	OPCodes[0xF6] = &opCode{"OR n", 2, func(cpu *lr35902) { cpu.or(cpu.fetched.n) }}
 	OPCodes[0xF7] = &opCode{"RST 0x30", 1, rstP}
 	OPCodes[0xF8] = &opCode{"LD HL,(SP+n)", 2, ldHLspE}
-	OPCodes[0xF9] = &opCode{"LD SP, HL", 1, func(cpu *lr35902) { cpu.regs.SP.Set(cpu.regs.HL.Get()) }}
+	OPCodes[0xF9] = &opCode{"LD SP, HL", 1, ldSPhl}
 	OPCodes[0xFA] = &opCode{"LD A, (nn)", 3, ldAnn}
 	OPCodes[0xFB] = &opCode{"EI", 1, func(cpu *lr35902) { cpu.regs.IME = true }}
 	OPCodes[0xFE] = &opCode{"CP A, n", 2, func(cpu *lr35902) { cpu.cp(cpu.fetched.n) }}

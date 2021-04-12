@@ -23,14 +23,18 @@ func ret(cpu *lr35902) {
 }
 
 func reti(cpu *lr35902) {
-	cpu.popFromStack(func(cpu *lr35902, data uint16) {
-		cpu.regs.PC = data
-		cpu.regs.IME = true
-	})
+	cpu.scheduler.append(&exec{f: func(cpu *lr35902) {
+		cpu.popFromStack(func(cpu *lr35902, data uint16) {
+			cpu.regs.PC = data
+			cpu.regs.IME = true
+		})
+	}})
 }
 
 func rstP(cpu *lr35902) {
-	cpu.pushToStack(cpu.regs.PC, rstP_m1)
+	cpu.scheduler.append(&exec{f: func(cpu *lr35902) {
+		cpu.pushToStack(cpu.regs.PC, rstP_m1)
+	}})
 }
 
 func rstP_m1(cpu *lr35902) {
@@ -43,10 +47,14 @@ func jpCC(cpu *lr35902) {
 	ccIdx := cpu.fetched.opCode >> 3 & 0b111
 	branch := cpu.checkCondition(ccIdx)
 	if branch {
-		cpu.scheduler.append(&exec{f: func(cpu *lr35902) {
-			cpu.regs.PC = cpu.fetched.nn
-		}})
+		jpNN(cpu)
 	}
+}
+
+func jpNN(cpu *lr35902) {
+	cpu.scheduler.append(&exec{f: func(cpu *lr35902) {
+		cpu.regs.PC = cpu.fetched.nn
+	}})
 }
 
 func call(cpu *lr35902) {
@@ -222,7 +230,9 @@ func incSS(cpu *lr35902) {
 	reg := cpu.getRRptr(rIdx)
 	v := reg.Get()
 	v++
-	reg.Set(v)
+	cpu.scheduler.append(&exec{f: func(cpu *lr35902) {
+		reg.Set(v)
+	}})
 }
 
 func decSS(cpu *lr35902) {
