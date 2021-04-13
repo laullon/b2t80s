@@ -10,7 +10,7 @@ import (
 
 func TestTimer(t *testing.T) {
 
-	clock := emulator.NewCLock(4_194_304, 59.73)
+	clock := emulator.NewCLock(4_194_304, 64)
 
 	timer0 := newTimer(&timerBus{})
 	timer0.tac = 0b100
@@ -33,10 +33,10 @@ func TestTimer(t *testing.T) {
 	clock.RunFor(1)
 
 	assert.Equal(t, 0, cpu.count)
-	assert.Equal(t, 0, timer0.bus.(*timerBus).count)
-	assert.Equal(t, 0, timer1.bus.(*timerBus).count)
-	assert.Equal(t, 0, timer2.bus.(*timerBus).count)
-	assert.Equal(t, 0, timer3.bus.(*timerBus).count)
+	assert.Equal(t, 16, timer0.bus.(*timerBus).count)
+	assert.Equal(t, 1024, timer1.bus.(*timerBus).count)
+	assert.Equal(t, 256, timer2.bus.(*timerBus).count)
+	assert.Equal(t, 64, timer3.bus.(*timerBus).count)
 }
 
 type timerBus struct {

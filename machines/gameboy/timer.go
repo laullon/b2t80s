@@ -8,21 +8,33 @@ type timer struct {
 	tima, tma, tac byte
 }
 
-var divMods = []uint16{1024, 16, 64, 256}
+var divMods = []uint16{
+	0b0000_0010_0000_0000,
+	0b0000_0000_0000_1000,
+	0b0000_0000_0010_0000,
+	0b0000_0000_1000_0000,
+}
 
 func newTimer(bus cpu.Bus) *timer {
 	return &timer{bus: bus}
 }
 
 func (t *timer) Tick() {
-	t.div++
+	t.setDiv(t.div + 1)
+}
+
+func (t *timer) setDiv(newDiv uint16) {
+	prev := t.div&divMods[t.tac&3] != 0
+	t.div = newDiv
+	new := t.div&divMods[t.tac&3] != 0
 
 	if t.tac&0b100 != 0 {
-		if t.div%divMods[t.tac&3] == 0 {
-			t.tima++
-			if t.tima == 0 {
+		if prev && !new { // 1 -> 0
+			if t.tima == 0xff {
 				t.tima = t.tma
 				t.bus.Write(0xff0f, 0b100)
+			} else {
+				t.tima++
 			}
 		}
 		// println("t.div:", t.div, "(", t.div%divMods[t.tac&3], ")", "t.tima:", t.tima)
@@ -32,7 +44,7 @@ func (t *timer) Tick() {
 func (t *timer) WritePort(addr uint16, data byte) {
 	switch addr {
 	case 0xff04:
-		t.div = uint16(data) << 8
+		t.setDiv(uint16(data) << 8)
 	case 0xff05:
 		t.tima = data
 	case 0xff06:
