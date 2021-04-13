@@ -111,8 +111,13 @@ func setHL(cpu *lr35902) {
 }
 
 func halt(cpu *lr35902) {
-	cpu.halt = true
-	cpu.regs.PC--
+	if cpu.halt && cpu.haltDone {
+		cpu.halt = false
+		cpu.haltDone = false
+	} else {
+		cpu.halt = true
+		cpu.regs.PC--
+	}
 }
 
 func addHLss(cpu *lr35902) {

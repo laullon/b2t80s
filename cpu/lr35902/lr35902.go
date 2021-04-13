@@ -97,7 +97,9 @@ type lr35902 struct {
 
 	regs *LR35902Registers
 
-	halt bool
+	halt     bool
+	haltDone bool
+
 	wait bool
 
 	fetched   *fetchedData
@@ -165,15 +167,11 @@ func (cpu *lr35902) Tick() {
 		return
 	}
 
-	// if cpu.halt {
-	// 	if cpu.regs.IME {
-	// 		cpu.halt = false
-	// 		cpu.regs.PC++
-	// 		cpu.execInterrupt()
-	// 	} else {
-	// 		return
-	// 	}
-	// }
+	if cpu.halt {
+		if cpu.execInterrupt() {
+			cpu.haltDone = true
+		}
+	}
 
 	if cpu.scheduler.isEmpty() {
 		cpu.prepareNewInstruction()
