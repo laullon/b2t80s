@@ -223,6 +223,8 @@ type soundCtrl struct {
 	apu *apu
 
 	ch1On, ch2On, ch3On, ch4On *ui.RegText
+
+	regs [][]*ui.RegText
 }
 
 func newSoundCtrl(apu *apu) *soundCtrl {
@@ -235,14 +237,28 @@ func newSoundCtrl(apu *apu) *soundCtrl {
 	ctrl.ch3On = ui.NewRegText("ch3 On:")
 	ctrl.ch4On = ui.NewRegText("ch4 On:")
 
-	c1 := container.New(layout.NewFormLayout(),
-		ctrl.ch1On.Label, ctrl.ch1On.Value,
-		ctrl.ch2On.Label, ctrl.ch2On.Value,
-		ctrl.ch3On.Label, ctrl.ch3On.Value,
-		ctrl.ch4On.Label, ctrl.ch4On.Value,
-	)
+	for c := 0; c < 4; c++ {
+		ctrl.regs = append(ctrl.regs, []*ui.RegText{})
+		for r := 0; r < 5; r++ {
+			ctrl.regs[c] = append(ctrl.regs[c], ui.NewRegText(fmt.Sprintf("MR%d%d:", c, r)))
+		}
+	}
 
-	regs := container.New(layout.NewGridLayoutWithColumns(3), c1)
+	cols := []fyne.CanvasObject{
+		container.New(layout.NewFormLayout(), ctrl.ch1On.Label, ctrl.ch1On.Value),
+		container.New(layout.NewFormLayout(), ctrl.ch2On.Label, ctrl.ch2On.Value),
+		container.New(layout.NewFormLayout(), ctrl.ch3On.Label, ctrl.ch3On.Value),
+		container.New(layout.NewFormLayout(), ctrl.ch4On.Label, ctrl.ch4On.Value),
+	}
+
+	for c := 0; c < 4; c++ {
+		for r := 0; r < 5; r++ {
+			cols[c].(*fyne.Container).Add(ctrl.regs[c][r].Label)
+			cols[c].(*fyne.Container).Add(ctrl.regs[c][r].Value)
+		}
+	}
+
+	regs := container.New(layout.NewGridLayoutWithColumns(4), cols...)
 	ctrl.ui = container.New(layout.NewBorderLayout(regs, nil, nil, nil), regs)
 
 	return ctrl
@@ -272,6 +288,12 @@ func (ctrl *soundCtrl) Update() {
 		ctrl.ch4On.Update("ON")
 	} else {
 		ctrl.ch4On.Update("Off")
+	}
+
+	for c := 0; c < 4; c++ {
+		for r := 0; r < 5; r++ {
+			ctrl.regs[c][r].Update(fmt.Sprintf("%08b", ctrl.apu.channels[c].getRegister(r)))
+		}
 	}
 
 	ctrl.ui.Refresh()
