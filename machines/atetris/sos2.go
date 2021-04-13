@@ -7,6 +7,7 @@ import (
 
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/ui"
 )
 
 var irqPerScanline = map[int]bool{
@@ -26,7 +27,7 @@ type sos2 struct {
 	vram    []byte
 	color   *colorRam
 	rom     []byte
-	display *image.RGBA
+	display *ui.Display
 	monitor emulator.Monitor
 
 	hBlank *bool
@@ -41,7 +42,7 @@ func newSOS2() *sos2 {
 			mem:    make([]byte, 0x0100),
 		},
 		rom:     loadRom("136066-1101.35a"),
-		display: image.NewRGBA(image.Rect(0, 0, 336, 240)),
+		display: ui.NewDisplay(image.Rect(0, 0, 336, 240)),
 	}
 }
 

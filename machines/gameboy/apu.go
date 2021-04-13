@@ -1,7 +1,6 @@
 package gameboy
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/laullon/b2t80s/emulator"
@@ -180,7 +179,7 @@ func (apu *apu) ReadPort(addr uint16) (res byte, skip bool) {
 	} else {
 		res = apu.channels[2].(*waveChannel).ram[addr&0x000f]
 	}
-	fmt.Printf("[apu] read  0x%04X 0x%02X (%d,%d)%04b\n", addr, res, channel, register, apu.getStatus()&0b1111)
+	// fmt.Printf("[apu] read  0x%04X 0x%02X (%d,%d)%04b\n", addr, res, channel, register, apu.getStatus()&0b1111)
 	return
 }
 
@@ -210,7 +209,7 @@ func (apu *apu) WritePort(addr uint16, data byte) {
 	} else {
 		apu.channels[2].(*waveChannel).ram[addr&0x000f] = data
 	}
-	fmt.Printf("[apu] write 0x%04X 0x%02X (%d,%d)%04b\n", addr, data, channel, register, apu.getStatus()&0b1111)
+	// fmt.Printf("[apu] write 0x%04X 0x%02X (%d,%d)%04b\n", addr, data, channel, register, apu.getStatus()&0b1111)
 }
 
 func (ch *tomeChannel) update() {

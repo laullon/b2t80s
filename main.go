@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
+	"time"
 
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/machines/atetris"
@@ -97,6 +98,13 @@ func main() {
 
 	go func() {
 		machine.Clock().Run()
+		wait := time.Duration(time.Second)
+		ticker := time.NewTicker(wait)
+		go func() {
+			for range ticker.C {
+				fmt.Printf("time: %s - FPS: %03.2f\n", machine.Clock().Stats(), machine.Monitor().FPS())
+			}
+		}()
 	}()
 
 	ui.NewWindow(name, machine.Monitor().Screen()).Run()
@@ -174,14 +182,14 @@ func main() {
 	// w.Canvas().(desktop.Canvas).SetOnKeyUp(machine.OnKeyEvent)
 
 	// if *emulator.Debug {
-	// 	wait := time.Duration(20 * time.Millisecond)
-	// 	ticker := time.NewTicker(wait)
-	// 	go func() {
-	// 		for range ticker.C {
-	// 			controls[debugTabs.CurrentTab().Text].Update()
-	// 			status.SetText(fmt.Sprintf("time: %s - FPS: %03.2f", machine.Clock().Stats(), machine.Monitor().FPS()))
-	// 		}
-	// 	}()
+	// wait := time.Duration(20 * time.Millisecond)
+	// ticker := time.NewTicker(wait)
+	// go func() {
+	// 	for range ticker.C {
+	// 		controls[debugTabs.CurrentTab().Text].Update()
+	// 		status.SetText(fmt.Sprintf("time: %s - FPS: %03.2f", machine.Clock().Stats(), machine.Monitor().FPS()))
+	// 	}
+	// }()
 	// }
 
 	// // w.CenterOnScreen()

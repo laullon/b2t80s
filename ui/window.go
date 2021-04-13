@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"image"
 	"time"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
@@ -14,13 +13,13 @@ type Window interface {
 
 type window struct {
 	mainWin *glfw.Window
-	img     *image.RGBA
+	img     *Display
 
 	texture uint32
 	fobID   uint32
 }
 
-func NewWindow(name string, img *image.RGBA) Window {
+func NewWindow(name string, img *Display) Window {
 	var err error
 	window := &window{
 		img: img,
@@ -88,30 +87,30 @@ func (win *window) Run() {
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 
-		ratioOrg := float32(win.img.Rect.Size().X) / float32(win.img.Rect.Size().Y)
-		ratioDst := float32(w) / float32(h)
+		// ratioOrg := float32(win.img.Rect.Size().X) / float32(win.img.Rect.Size().Y)
+		// ratioDst := float32(w) / float32(h)
 
-		var newW, newH int32
-		var offX, offY int32
-		if ratioDst > ratioOrg {
-			// (wi * hs/hi, hs)
-			newW = int32(float32(win.img.Rect.Size().X) * float32(h) / float32(win.img.Rect.Size().Y))
-			newH = int32(h)
-			offX = (int32(w) - newW) / 2
-		} else {
-			// hi * ws/wi
-			newW = int32(w)
-			newH = int32(float32(win.img.Rect.Size().Y) * float32(w) / float32(win.img.Rect.Size().X))
-			offY = (int32(h) - newH) / 2
-		}
+		// var newW, newH int32
+		// var offX, offY int32
+		// if ratioDst > ratioOrg {
+		// 	// (wi * hs/hi, hs)
+		// 	newW = int32(float32(win.img.Rect.Size().X) * float32(h) / float32(win.img.Rect.Size().Y))
+		// 	newH = int32(h)
+		// 	offX = (int32(w) - newW) / 2
+		// } else {
+		// 	// hi * ws/wi
+		// 	newW = int32(w)
+		// 	newH = int32(float32(win.img.Rect.Size().Y) * float32(w) / float32(win.img.Rect.Size().X))
+		// 	offY = (int32(h) - newH) / 2
+		// }
 
-		println(ratioOrg, " - ", ratioDst, " - ", ratioOrg < ratioDst, "  ->  ", w, "x", h)
+		// println(ratioOrg, " - ", ratioDst, " - ", ratioOrg < ratioDst, "  ->  ", w, "x", h)
 
 		gl.BindFramebuffer(gl.READ_FRAMEBUFFER, win.fobID)
 		gl.EnableVertexAttribArray(0)
 		gl.BlitFramebuffer(
 			0, 0, int32(win.img.Rect.Size().X), int32(win.img.Rect.Size().Y),
-			offX, offY, newW, newH,
+			0, 0, int32(w), int32(h),
 			gl.COLOR_BUFFER_BIT, gl.NEAREST,
 		)
 		gl.BindFramebuffer(gl.READ_FRAMEBUFFER, 0)

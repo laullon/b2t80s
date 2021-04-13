@@ -1,8 +1,6 @@
 package cpc
 
 import (
-	"image"
-
 	"fyne.io/fyne/v2"
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/z80"
@@ -169,7 +167,7 @@ func (m *cpc) OnKeyEvent(event *fyne.KeyEvent) {
 	m.ppi.OnKeyEvent(event)
 }
 
-func (monitor *monitor) Screen() *image.RGBA {
+func (monitor *monitor) Screen() *ui.Display {
 	return nil
 }
 

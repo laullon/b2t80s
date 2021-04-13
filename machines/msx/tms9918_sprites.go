@@ -10,6 +10,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	layout "fyne.io/fyne/v2/layout"
 	widget "fyne.io/fyne/v2/widget"
+	"github.com/laullon/b2t80s/ui"
 )
 
 type sprite struct {
@@ -69,7 +70,7 @@ func (vdp *tms9918) drawSprites() {
 	}
 }
 
-func (sprt *sprite) drawSprite(yPos int, si bool, sg uint16, vram []byte, display *image.RGBA) {
+func (sprt *sprite) drawSprite(yPos int, si bool, sg uint16, vram []byte, display *ui.Display) {
 	if sprt.colour == 0 {
 		return
 	}
@@ -130,7 +131,7 @@ func (ctrl *spriteControl) doShow() {
 			size = 16
 		}
 
-		display := image.NewRGBA(image.Rect(0, 0, size, size))
+		display := ui.NewDisplay(image.Rect(0, 0, size, size))
 		draw.Draw(display, display.Bounds(), &image.Uniform{color.RGBA{125, 125, 125, 255}}, image.ZP, draw.Src)
 		for y := 0; y < size; y++ {
 			sprite.drawSprite(y, ctrl.vdp.si, ctrl.vdp.sg, ctrl.vdp.vram, display)

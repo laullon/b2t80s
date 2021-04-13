@@ -8,6 +8,7 @@ import (
 
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/ui"
 )
 
 type ppu struct {
@@ -33,7 +34,7 @@ type ppu struct {
 
 	palette []color.RGBA
 
-	display *image.RGBA
+	display *ui.Display
 	monitor emulator.Monitor
 
 	bus  cpu.Bus
@@ -54,7 +55,7 @@ type ppu struct {
 }
 
 func newPPU(bus cpu.Bus) *ppu {
-	display := image.NewRGBA(image.Rect(0, 0, 160, 144))
+	display := ui.NewDisplay(image.Rect(0, 0, 160, 144))
 	ppu := &ppu{
 		gbp:  []byte{0, 1, 2, 3},
 		obp0: []byte{0, 1, 2, 3},

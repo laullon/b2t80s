@@ -86,6 +86,6 @@ func (envelope *envelope) tick(ch channel) {
 				}
 			}
 		}
-		println("[envelope] volume:", envelope.volume, ",timer:", envelope.timer)
+		// println("[envelope] volume:", envelope.volume, ",timer:", envelope.timer)
 	}
 }

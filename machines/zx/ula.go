@@ -9,6 +9,7 @@ import (
 	"github.com/laullon/b2t80s/cpu/z80"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/storage/cassette"
+	"github.com/laullon/b2t80s/ui"
 )
 
 var palette = []color.RGBA{
@@ -39,7 +40,7 @@ type ula struct {
 	borderColour color.RGBA
 
 	frame   byte
-	display *image.RGBA
+	display *ui.Display
 	monitor emulator.Monitor
 
 	col          int
@@ -69,7 +70,7 @@ func NewULA(mem *memory, bus z80.Bus, plus bool) *ula {
 		scanlinesBorder: make([][]color.RGBA, 313),
 		pixlesData:      make([][]byte, 192),
 		pixlesAttr:      make([][]byte, 192),
-		display:         image.NewRGBA(image.Rect(0, 0, 352, 296)),
+		display:         ui.NewDisplay(image.Rect(0, 0, 352, 296)),
 	}
 
 	ula.monitor = emulator.NewMonitor(ula.display)

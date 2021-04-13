@@ -1,31 +1,31 @@
 package emulator
 
 import (
-	"image"
 	"time"
 
 	"fyne.io/fyne/v2/canvas"
+	"github.com/laullon/b2t80s/ui"
 )
 
 type Monitor interface {
 	Canvas() *canvas.Image
-	Screen() *image.RGBA
+	Screen() *ui.Display
 	FrameDone()
 	FPS() float64
 }
 
 type monitor struct {
-	vram    *image.RGBA
-	screen  *image.RGBA
+	vram    *ui.Display
+	screen  *ui.Display
 	display *canvas.Image
 	start   time.Time
 	frames  float64
 }
 
-func NewMonitor(img *image.RGBA) Monitor {
+func NewMonitor(img *ui.Display) Monitor {
 	monitor := &monitor{
 		vram:   img,
-		screen: image.NewRGBA(img.Bounds()),
+		screen: ui.NewDisplay(img.Bounds()),
 		start:  time.Now(),
 	}
 
@@ -37,7 +37,7 @@ func NewMonitor(img *image.RGBA) Monitor {
 	return monitor
 }
 
-func (monitor *monitor) Screen() *image.RGBA {
+func (monitor *monitor) Screen() *ui.Display {
 	return monitor.screen
 }
 

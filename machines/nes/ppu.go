@@ -8,12 +8,13 @@ import (
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/m6502"
 	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/ui"
 )
 
 type ppu struct {
 	cpu      cpu.CPU
 	bus      m6502.Bus
-	display  *image.RGBA
+	display  *ui.Display
 	monitor  emulator.Monitor
 	debugger cpu.DebuggerCallbacks
 
@@ -63,7 +64,7 @@ type ppu struct {
 }
 
 func newPPU(bus m6502.Bus, m6805 cpu.CPU) *ppu {
-	display := image.NewRGBA(image.Rect(0, 0, 256, 240))
+	display := ui.NewDisplay(image.Rect(0, 0, 256, 240))
 	ppu := &ppu{
 		cpu:     m6805,
 		bus:     bus,
