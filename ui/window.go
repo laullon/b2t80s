@@ -41,6 +41,12 @@ func NewWindow(name string, img *Display) Window {
 	if err != nil {
 		panic(err)
 	}
+
+	window.mainWin.SetSizeCallback(func(w *glfw.Window, width, height int) {
+		gl.Viewport(0, 0, int32(width), int32(height))
+		window.draw()
+	})
+
 	window.mainWin.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 		if action != 2 {
 			window.onKey(key)
@@ -80,56 +86,59 @@ func (win *window) Run() {
 	t := time.Now()
 
 	for !win.mainWin.ShouldClose() {
-		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-
-		w, h := win.mainWin.GetSize()
-		sW, sH := win.mainWin.GetContentScale()
-		w *= int(sW)
-		h *= int(sH)
-
-		gl.BindTexture(gl.TEXTURE_2D, win.texture)
-		gl.TexSubImage2D(gl.TEXTURE_2D, 0,
-			0, 0,
-			int32(win.img.Rect.Size().X), int32(win.img.Rect.Size().Y),
-			gl.RGBA, gl.UNSIGNED_BYTE,
-			gl.Ptr(win.img.Pix))
-		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
-
-		// ratioOrg := float32(win.img.Rect.Size().X) / float32(win.img.Rect.Size().Y)
-		// ratioDst := float32(w) / float32(h)
-
-		// var newW, newH int32
-		// var offX, offY int32
-		// if ratioDst > ratioOrg {
-		// 	// (wi * hs/hi, hs)
-		// 	newW = int32(float32(win.img.Rect.Size().X) * float32(h) / float32(win.img.Rect.Size().Y))
-		// 	newH = int32(h)
-		// 	offX = (int32(w) - newW) / 2
-		// } else {
-		// 	// hi * ws/wi
-		// 	newW = int32(w)
-		// 	newH = int32(float32(win.img.Rect.Size().Y) * float32(w) / float32(win.img.Rect.Size().X))
-		// 	offY = (int32(h) - newH) / 2
-		// }
-
-		// println(ratioOrg, " - ", ratioDst, " - ", ratioOrg < ratioDst, "  ->  ", w, "x", h)
-
-		gl.BindFramebuffer(gl.READ_FRAMEBUFFER, win.fobID)
-		gl.EnableVertexAttribArray(0)
-		gl.BlitFramebuffer(
-			0, 0, int32(win.img.Rect.Size().X), int32(win.img.Rect.Size().Y),
-			0, 0, int32(w), int32(h),
-			gl.COLOR_BUFFER_BIT, gl.NEAREST,
-		)
-		gl.BindFramebuffer(gl.READ_FRAMEBUFFER, 0)
-
-		glfw.PollEvents()
-		win.mainWin.SwapBuffers()
-
+		win.draw()
 		time.Sleep(time.Second/time.Duration(60) - time.Since(t))
 		t = time.Now()
 	}
+}
+
+func (win *window) draw() {
+	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
+	w, h := win.mainWin.GetSize()
+	sW, sH := win.mainWin.GetContentScale()
+	w *= int(sW)
+	h *= int(sH)
+
+	gl.BindTexture(gl.TEXTURE_2D, win.texture)
+	gl.TexSubImage2D(gl.TEXTURE_2D, 0,
+		0, 0,
+		int32(win.img.Rect.Size().X), int32(win.img.Rect.Size().Y),
+		gl.RGBA, gl.UNSIGNED_BYTE,
+		gl.Ptr(win.img.Pix))
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+
+	ratioOrg := float64(win.img.Rect.Size().X) / float64(win.img.Rect.Size().Y)
+	ratioDst := float64(w) / float64(h)
+
+	var newW, newH int32
+	var offX, offY int32
+	if ratioDst > ratioOrg {
+		// (wi * hs/hi, hs)
+		newW = int32(float64(win.img.Rect.Size().X) * float64(h) / float64(win.img.Rect.Size().Y))
+		newH = int32(h)
+		offX = (int32(w) - newW) / 2
+	} else {
+		// hi * ws/wi
+		newW = int32(w)
+		newH = int32(float64(win.img.Rect.Size().Y) * float64(w) / float64(win.img.Rect.Size().X))
+		offY = (int32(h) - newH) / 2
+	}
+
+	// println(ratioOrg, " - ", ratioDst, " - ", ratioOrg < ratioDst, "  ->  ", w, "x", h)
+
+	gl.BindFramebuffer(gl.READ_FRAMEBUFFER, win.fobID)
+	gl.EnableVertexAttribArray(0)
+	gl.BlitFramebuffer(
+		0, 0, int32(win.img.Rect.Size().X), int32(win.img.Rect.Size().Y),
+		offX, offY, int32(newW)+offX, int32(newH)+offY,
+		gl.COLOR_BUFFER_BIT, gl.NEAREST,
+	)
+	gl.BindFramebuffer(gl.READ_FRAMEBUFFER, 0)
+
+	glfw.PollEvents()
+	win.mainWin.SwapBuffers()
 }
 
 func (win *window) SetOnKey(onKey func(glfw.Key)) {
