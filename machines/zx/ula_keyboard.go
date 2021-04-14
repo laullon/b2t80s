@@ -4,110 +4,110 @@ import (
 	"sync"
 	"time"
 
-	"fyne.io/fyne/v2"
+	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
-func (ula *ula) OnKeyEvent(key *fyne.KeyEvent) {
+func (ula *ula) OnKey(key glfw.Key) {
 	//fmt.Println("key:", key.Name)
-	switch key.Name {
+	switch key {
 
-	case fyne.Key1:
+	case glfw.Key1:
 		ula.keyboardRow[3] ^= 0b00000001
-	case fyne.Key2:
+	case glfw.Key2:
 		ula.keyboardRow[3] ^= 0b00000010
-	case fyne.Key3:
+	case glfw.Key3:
 		ula.keyboardRow[3] ^= 0b00000100
-	case fyne.Key4:
+	case glfw.Key4:
 		ula.keyboardRow[3] ^= 0b00001000
-	case fyne.Key5:
+	case glfw.Key5:
 		ula.keyboardRow[3] ^= 0b00010000
 
-	case fyne.Key0:
+	case glfw.Key0:
 		ula.keyboardRow[4] ^= 0b00000001
-	case fyne.Key9:
+	case glfw.Key9:
 		ula.keyboardRow[4] ^= 0b00000010
-	case fyne.Key8:
+	case glfw.Key8:
 		ula.keyboardRow[4] ^= 0b00000100
-	case fyne.Key7:
+	case glfw.Key7:
 		ula.keyboardRow[4] ^= 0b00001000
-	case fyne.Key6:
+	case glfw.Key6:
 		ula.keyboardRow[4] ^= 0b00010000
 
-	case fyne.KeyQ:
+	case glfw.KeyQ:
 		ula.keyboardRow[2] ^= 0b00000001
-	case fyne.KeyW:
+	case glfw.KeyW:
 		ula.keyboardRow[2] ^= 0b00000010
-	case fyne.KeyE:
+	case glfw.KeyE:
 		ula.keyboardRow[2] ^= 0b00000100
-	case fyne.KeyR:
+	case glfw.KeyR:
 		ula.keyboardRow[2] ^= 0b00001000
-	case fyne.KeyT:
+	case glfw.KeyT:
 		ula.keyboardRow[2] ^= 0b00010000
 
-	case fyne.KeyP:
+	case glfw.KeyP:
 		ula.keyboardRow[5] ^= 0b00000001
-	case fyne.KeyO:
+	case glfw.KeyO:
 		ula.keyboardRow[5] ^= 0b00000010
-	case fyne.KeyI:
+	case glfw.KeyI:
 		ula.keyboardRow[5] ^= 0b00000100
-	case fyne.KeyU:
+	case glfw.KeyU:
 		ula.keyboardRow[5] ^= 0b00001000
-	case fyne.KeyY:
+	case glfw.KeyY:
 		ula.keyboardRow[5] ^= 0b00010000
 
-	case fyne.KeyA:
+	case glfw.KeyA:
 		ula.keyboardRow[1] ^= 0b00000001
-	case fyne.KeyS:
+	case glfw.KeyS:
 		ula.keyboardRow[1] ^= 0b00000010
-	case fyne.KeyD:
+	case glfw.KeyD:
 		ula.keyboardRow[1] ^= 0b00000100
-	case fyne.KeyF:
+	case glfw.KeyF:
 		ula.keyboardRow[1] ^= 0b00001000
-	case fyne.KeyG:
+	case glfw.KeyG:
 		ula.keyboardRow[1] ^= 0b00010000
 
-	case fyne.KeyReturn:
+	case glfw.KeyEnter:
 		ula.keyboardRow[6] ^= 0b00000001
-	case fyne.KeyL:
+	case glfw.KeyL:
 		ula.keyboardRow[6] ^= 0b00000010
-	case fyne.KeyK:
+	case glfw.KeyK:
 		ula.keyboardRow[6] ^= 0b00000100
-	case fyne.KeyJ:
+	case glfw.KeyJ:
 		ula.keyboardRow[6] ^= 0b00001000
-	case fyne.KeyH:
+	case glfw.KeyH:
 		ula.keyboardRow[6] ^= 0b00010000
 
-	case "LeftShift", "RightShift":
+	case glfw.KeyLeftShift, glfw.KeyRightShift:
 		ula.keyboardRow[0] ^= 0b00000001
-	case fyne.KeyZ:
+	case glfw.KeyZ:
 		ula.keyboardRow[0] ^= 0b00000010
-	case fyne.KeyX:
+	case glfw.KeyX:
 		ula.keyboardRow[0] ^= 0b00000100
-	case fyne.KeyC:
+	case glfw.KeyC:
 		ula.keyboardRow[0] ^= 0b00001000
-	case fyne.KeyV:
+	case glfw.KeyV:
 		ula.keyboardRow[0] ^= 0b00010000
 
-	case "Space":
+	case glfw.KeySpace:
 		ula.keyboardRow[7] ^= 0b00000001
-	case "LeftControl", "RightControl":
+	case glfw.KeyLeftControl, glfw.KeyRightControl:
 		ula.keyboardRow[7] ^= 0b00000010
-	case fyne.KeyM:
+	case glfw.KeyM:
 		ula.keyboardRow[7] ^= 0b00000100
-	case fyne.KeyN:
+	case glfw.KeyN:
 		ula.keyboardRow[7] ^= 0b00001000
-	case fyne.KeyB:
+	case glfw.KeyB:
 		ula.keyboardRow[7] ^= 0b00010000
 
-	case "BackSpace":
+	case glfw.KeyBackspace:
 		ula.keyboardRow[0] ^= 0b00000001
 		ula.keyboardRow[4] ^= 0b00000001
 
-	case fyne.KeyUp:
+	case glfw.KeyUp:
 		ula.keyboardRow[0] ^= 0b00000001
 		ula.keyboardRow[4] ^= 0b00001000
 
-	case fyne.KeyDown:
+	case glfw.KeyDown:
 		ula.keyboardRow[0] ^= 0b00000001
 		ula.keyboardRow[4] ^= 0b00010000
 	}
@@ -118,23 +118,23 @@ var onlyOnce sync.Once
 func (ula *ula) LoadCommand() {
 	go onlyOnce.Do(func() {
 		time.Sleep(time.Second)
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyJ})
+		ula.OnKey(glfw.KeyJ)
 		time.Sleep(150 * time.Millisecond)
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyJ})
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: "LeftControl"})
+		ula.OnKey(glfw.KeyJ)
+		ula.OnKey(glfw.KeyLeftControl)
 		time.Sleep(150 * time.Millisecond)
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyP})
+		ula.OnKey(glfw.KeyP)
 		time.Sleep(150 * time.Millisecond)
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyP})
+		ula.OnKey(glfw.KeyP)
 		time.Sleep(150 * time.Millisecond)
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyP})
+		ula.OnKey(glfw.KeyP)
 		time.Sleep(150 * time.Millisecond)
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyP})
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: "LeftControl"})
+		ula.OnKey(glfw.KeyP)
+		ula.OnKey(glfw.KeyLeftControl)
 		time.Sleep(150 * time.Millisecond)
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyReturn})
+		ula.OnKey(glfw.KeyEnter)
 		time.Sleep(150 * time.Millisecond)
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyReturn})
+		ula.OnKey(glfw.KeyEnter)
 	})
 	return
 }
@@ -142,9 +142,9 @@ func (ula *ula) LoadCommand() {
 func (ula *ula) LoadCommand128() {
 	go onlyOnce.Do(func() {
 		time.Sleep(time.Second)
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyReturn})
+		ula.OnKey(glfw.KeyEnter)
 		time.Sleep(150 * time.Millisecond)
-		ula.OnKeyEvent(&fyne.KeyEvent{Name: fyne.KeyReturn})
+		ula.OnKey(glfw.KeyEnter)
 	})
 	return
 }

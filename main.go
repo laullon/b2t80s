@@ -107,7 +107,9 @@ func main() {
 		}()
 	}()
 
-	ui.NewWindow(name, machine.Monitor().Screen()).Run()
+	win := ui.NewWindow(name, machine.Monitor().Screen())
+	win.SetOnKey(machine.OnKey)
+	win.Run()
 
 	// ui.App = app.New()
 

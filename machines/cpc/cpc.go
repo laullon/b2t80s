@@ -1,7 +1,7 @@
 package cpc
 
 import (
-	"fyne.io/fyne/v2"
+	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/z80"
 	"github.com/laullon/b2t80s/data"
@@ -18,7 +18,7 @@ const (
 
 type CPC interface {
 	Debugger() emulator.Debugger
-	OnKeyEvent(event *fyne.KeyEvent)
+	OnKey(key glfw.Key)
 	LoadZ80File(fileName string)
 }
 
@@ -163,8 +163,8 @@ func (m *cpc) Debugger() emulator.Debugger {
 	return m.debugger
 }
 
-func (m *cpc) OnKeyEvent(event *fyne.KeyEvent) {
-	m.ppi.OnKeyEvent(event)
+func (m *cpc) OnKey(key glfw.Key) {
+	m.ppi.OnKey(key)
 }
 
 func (monitor *monitor) Screen() *ui.Display {

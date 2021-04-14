@@ -9,6 +9,7 @@ import (
 
 type Window interface {
 	Run()
+	SetOnKey(func(glfw.Key))
 }
 
 type window struct {
@@ -17,6 +18,8 @@ type window struct {
 
 	texture uint32
 	fobID   uint32
+
+	onKey func(glfw.Key)
 }
 
 func NewWindow(name string, img *Display) Window {
@@ -38,6 +41,12 @@ func NewWindow(name string, img *Display) Window {
 	if err != nil {
 		panic(err)
 	}
+	window.mainWin.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+		if action != 2 {
+			window.onKey(key)
+			println("key:", key, "action:", action)
+		}
+	})
 	window.mainWin.MakeContextCurrent()
 
 	if err := gl.Init(); err != nil {
@@ -121,4 +130,8 @@ func (win *window) Run() {
 		time.Sleep(time.Second/time.Duration(60) - time.Since(t))
 		t = time.Now()
 	}
+}
+
+func (win *window) SetOnKey(onKey func(glfw.Key)) {
+	win.onKey = onKey
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"fyne.io/fyne/v2"
+	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/z80"
 	"github.com/laullon/b2t80s/data"
@@ -166,8 +166,8 @@ func (msx *msx) WritePort(port uint16, data byte) {
 	}
 }
 
-func (msx *msx) OnKeyEvent(event *fyne.KeyEvent) {
-	msx.ppi.OnKeyEvent(event)
+func (msx *msx) OnKey(key glfw.Key) {
+	msx.ppi.OnKey(key)
 }
 
 func (msx *msx) Monitor() emulator.Monitor {

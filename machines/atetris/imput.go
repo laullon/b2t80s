@@ -1,25 +1,23 @@
 package atetris
 
-import (
-	"fyne.io/fyne/v2"
-)
+import "github.com/go-gl/glfw/v3.3/glfw"
 
-func (t *atetris) OnKeyEvent(key *fyne.KeyEvent) {
+func (t *atetris) OnKey(key glfw.Key) {
 	// fmt.Println("key:", key.Name)
-	switch key.Name {
+	switch key {
 
-	case fyne.Key1:
+	case glfw.Key1:
 		t.pokey1.P0 = !t.pokey1.P0
-	case fyne.Key2:
+	case glfw.Key2:
 		t.pokey1.P1 = !t.pokey1.P1
 
-	case fyne.KeySpace:
+	case glfw.KeySpace:
 		t.pokey2.P0 = !t.pokey2.P0
-	case fyne.KeyDown:
+	case glfw.KeyDown:
 		t.pokey2.P1 = !t.pokey2.P1
-	case fyne.KeyRight:
+	case glfw.KeyRight:
 		t.pokey2.P2 = !t.pokey2.P2
-	case fyne.KeyLeft:
+	case glfw.KeyLeft:
 		t.pokey2.P3 = !t.pokey2.P3
 
 	}

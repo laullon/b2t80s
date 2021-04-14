@@ -1,180 +1,180 @@
 package msx
 
-import "fyne.io/fyne/v2"
+import "github.com/go-gl/glfw/v3.3/glfw"
 
-func (ppi *ppi) OnKeyEvent(key *fyne.KeyEvent) {
+func (ppi *ppi) OnKey(key glfw.Key) {
 	// println("key:", key.Name)
 
-	switch key.Name {
+	switch key {
 
-	case fyne.Key0:
+	case glfw.Key0:
 		ppi.keyboardRows[0] ^= 0b00000001
-	case fyne.Key1:
+	case glfw.Key1:
 		ppi.keyboardRows[0] ^= 0b00000010
-	case fyne.Key2:
+	case glfw.Key2:
 		ppi.keyboardRows[0] ^= 0b00000100
-	case fyne.Key3:
+	case glfw.Key3:
 		ppi.keyboardRows[0] ^= 0b00001000
-	case fyne.Key4:
+	case glfw.Key4:
 		ppi.keyboardRows[0] ^= 0b00010000
-	case fyne.Key5:
+	case glfw.Key5:
 		ppi.keyboardRows[0] ^= 0b00100000
-	case fyne.Key6:
+	case glfw.Key6:
 		ppi.keyboardRows[0] ^= 0b01000000
-	case fyne.Key7:
+	case glfw.Key7:
 		ppi.keyboardRows[0] ^= 0b10000000
 
-	case fyne.Key8:
+	case glfw.Key8:
 		ppi.keyboardRows[1] ^= 0b00000001
-	case fyne.Key9:
+	case glfw.Key9:
 		ppi.keyboardRows[1] ^= 0b00000010
-	// case fyne.KeyF7:
+	// case glfw.KeyF7:
 	// 	ppi.keyboardRows[1] ^= 0b00000100
-	// case fyne.KeyF8:
+	// case glfw.KeyF8:
 	// 	ppi.keyboardRows[1] ^= 0b00001000
-	// case fyne.KeyF5:
+	// case glfw.KeyF5:
 	// 	ppi.keyboardRows[1] ^= 0b00010000
-	// case fyne.KeyF1:
+	// case glfw.KeyF1:
 	// 	ppi.keyboardRows[1] ^= 0b00100000
-	// case fyne.KeyF2:
+	// case glfw.KeyF2:
 	// 	ppi.keyboardRows[1] ^= 0b01000000
-	// case fyne.KeyF10:
+	// case glfw.KeyF10:
 	// 	ppi.keyboardRows[1] ^= 0b10000000
 
-	// case fyne.KeyUp:
+	// case glfw.KeyUp:
 	// 	ppi.keyboardRows[2] ^= 0b00000001
-	// case fyne.KeyLeftBracket:
+	// case glfw.KeyLeftBracket:
 	// 	ppi.keyboardRows[2] ^= 0b00000010
-	// case fyne.KeyReturn:
+	// case glfw.KeyReturn:
 	// 	ppi.keyboardRows[2] ^= 0b00000100
-	// case fyne.KeyRightBracket:
+	// case glfw.KeyRightBracket:
 	// 	ppi.keyboardRows[2] ^= 0b00001000
-	// case fyne.KeyF4:
+	// case glfw.KeyF4:
 	// 	ppi.keyboardRows[2] ^= 0b00010000
 	// case "LeftShift", "RightShift":
 	// 	ppi.keyboardRows[2] ^= 0b00100000
-	case fyne.KeyA:
+	case glfw.KeyA:
 		ppi.keyboardRows[2] ^= 0b01000000
-	case fyne.KeyB:
+	case glfw.KeyB:
 		ppi.keyboardRows[2] ^= 0b10000000
 
-	case fyne.KeyC:
+	case glfw.KeyC:
 		ppi.keyboardRows[3] ^= 0b00000001
-	case fyne.KeyD:
+	case glfw.KeyD:
 		ppi.keyboardRows[3] ^= 0b00000010
-	case fyne.KeyE:
+	case glfw.KeyE:
 		ppi.keyboardRows[3] ^= 0b00000100
-	case fyne.KeyF:
+	case glfw.KeyF:
 		ppi.keyboardRows[3] ^= 0b00001000
-	case fyne.KeyG:
+	case glfw.KeyG:
 		ppi.keyboardRows[3] ^= 0b00010000
-	case fyne.KeyH:
+	case glfw.KeyH:
 		ppi.keyboardRows[3] ^= 0b00100000
-	case fyne.KeyI:
+	case glfw.KeyI:
 		ppi.keyboardRows[3] ^= 0b01000000
-	case fyne.KeyJ:
+	case glfw.KeyJ:
 		ppi.keyboardRows[3] ^= 0b10000000
 
-	case fyne.KeyK:
+	case glfw.KeyK:
 		ppi.keyboardRows[4] ^= 0b00000001
-	case fyne.KeyL:
+	case glfw.KeyL:
 		ppi.keyboardRows[4] ^= 0b00000010
-	case fyne.KeyM:
+	case glfw.KeyM:
 		ppi.keyboardRows[4] ^= 0b00000100
-	case fyne.KeyN:
+	case glfw.KeyN:
 		ppi.keyboardRows[4] ^= 0b00001000
-	case fyne.KeyO:
+	case glfw.KeyO:
 		ppi.keyboardRows[4] ^= 0b00010000
-	case fyne.KeyP:
+	case glfw.KeyP:
 		ppi.keyboardRows[4] ^= 0b00100000
-	case fyne.KeyQ:
+	case glfw.KeyQ:
 		ppi.keyboardRows[4] ^= 0b01000000
-	case fyne.KeyR:
+	case glfw.KeyR:
 		ppi.keyboardRows[4] ^= 0b10000000
 
-	case fyne.KeyS:
+	case glfw.KeyS:
 		ppi.keyboardRows[5] ^= 0b00000001
-	case fyne.KeyT:
+	case glfw.KeyT:
 		ppi.keyboardRows[5] ^= 0b00000010
-	case fyne.KeyU:
+	case glfw.KeyU:
 		ppi.keyboardRows[5] ^= 0b00000100
-	case fyne.KeyV:
+	case glfw.KeyV:
 		ppi.keyboardRows[5] ^= 0b00001000
-	case fyne.KeyW:
+	case glfw.KeyW:
 		ppi.keyboardRows[5] ^= 0b00010000
-	case fyne.KeyX:
+	case glfw.KeyX:
 		ppi.keyboardRows[5] ^= 0b00100000
-	case fyne.KeyY:
+	case glfw.KeyY:
 		ppi.keyboardRows[5] ^= 0b01000000
-	case fyne.KeyZ:
+	case glfw.KeyZ:
 		ppi.keyboardRows[5] ^= 0b10000000
 
-	case "LeftShift", "RightShift":
+	case glfw.KeyLeftShift, glfw.KeyRightShift:
 		ppi.keyboardRows[6] ^= 0b00000001
-	case "LeftControl", "RightControl":
+	case glfw.KeyLeftControl, glfw.KeyRightControl:
 		ppi.keyboardRows[6] ^= 0b00000010
-	// case fyne.KeyR:
+	// case glfw.KeyR:
 	// 	ppi.keyboardRows[6] ^= 0b00000100
-	// case fyne.KeyT:
+	// case glfw.KeyT:
 	// 	ppi.keyboardRows[6] ^= 0b00001000
-	// case fyne.KeyG:
+	// case glfw.KeyG:
 	// 	ppi.keyboardRows[6] ^= 0b00010000
-	case fyne.KeyF1:
+	case glfw.KeyF1:
 		ppi.keyboardRows[6] ^= 0b00100000
-	case fyne.KeyF2:
+	case glfw.KeyF2:
 		ppi.keyboardRows[6] ^= 0b01000000
-	case fyne.KeyF3:
+	case glfw.KeyF3:
 		ppi.keyboardRows[6] ^= 0b10000000
 
-	case fyne.KeyF4:
+	case glfw.KeyF4:
 		ppi.keyboardRows[7] ^= 0b00000001
-	case fyne.KeyF5:
+	case glfw.KeyF5:
 		ppi.keyboardRows[7] ^= 0b00000010
-	case fyne.KeyEscape:
+	case glfw.KeyEscape:
 		ppi.keyboardRows[7] ^= 0b00000100
-		// case fyne.KeyF6:
+		// case glfw.KeyF6:
 		// ppi.keyboardRows[7] ^= 0b00001000
-		// case fyne.Key:
+		// case glfw.Key:
 		// 	ppi.keyboardRows[7] ^= 0b00010000
-		// case fyne.KeyD:
+		// case glfw.KeyD:
 		// 	ppi.keyboardRows[7] ^= 0b00100000
-		// case fyne.KeyC:
+		// case glfw.KeyC:
 		// 	ppi.keyboardRows[7] ^= 0b01000000
-	case fyne.KeyReturn:
+	case glfw.KeyEnter:
 		ppi.keyboardRows[7] ^= 0b10000000
 
-	case fyne.KeySpace:
+	case glfw.KeySpace:
 		ppi.keyboardRows[8] ^= 0b00000001
-	case fyne.KeyHome:
+	case glfw.KeyHome:
 		ppi.keyboardRows[8] ^= 0b00000010
-	case fyne.KeyInsert:
+	case glfw.KeyInsert:
 		ppi.keyboardRows[8] ^= 0b00000100
-	case fyne.KeyDelete:
+	case glfw.KeyDelete:
 		ppi.keyboardRows[8] ^= 0b00001000
-	case fyne.KeyLeft:
+	case glfw.KeyLeft:
 		ppi.keyboardRows[8] ^= 0b00010000
-	case fyne.KeyUp:
+	case glfw.KeyUp:
 		ppi.keyboardRows[8] ^= 0b00100000
-	case fyne.KeyDown:
+	case glfw.KeyDown:
 		ppi.keyboardRows[8] ^= 0b01000000
-	case fyne.KeyRight:
+	case glfw.KeyRight:
 		ppi.keyboardRows[8] ^= 0b10000000
 
-		// case fyne.KeyUp: JOY1
+		// case glfw.KeyUp: JOY1
 		// 	ppi.keyboardRows[9] ^= 0b00000001
-		// case fyne.KeyRight:
+		// case glfw.KeyRight:
 		// 	ppi.keyboardRows[9] ^= 0b00000010
-		// case fyne.KeyDown:
+		// case glfw.KeyDown:
 		// 	ppi.keyboardRows[9] ^= 0b00000100
-		// case fyne.KeyF9:
+		// case glfw.KeyF9:
 		// 	ppi.keyboardRows[9] ^= 0b00001000
-		// case fyne.KeyF6:
+		// case glfw.KeyF6:
 		// 	ppi.keyboardRows[9] ^= 0b00010000
-		// case fyne.KeyF3:
+		// case glfw.KeyF3:
 		// 	ppi.keyboardRows[9] ^= 0b00100000
-		// case fyne.KeyEnter:
+		// case glfw.KeyEnter:
 		// 	ppi.keyboardRows[9] ^= 0b01000000
-		// case fyne.KeyDelete, "BackSpace":
+		// case glfw.KeyDelete, "BackSpace":
 		// 	ppi.keyboardRows[9] ^= 0b10000000
 
 		// default:

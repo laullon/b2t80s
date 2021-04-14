@@ -3,7 +3,7 @@ package nes
 import (
 	"fmt"
 
-	"fyne.io/fyne/v2"
+	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/m6502"
 )
@@ -141,25 +141,25 @@ func (apu *apu) WritePort(addr uint16, data byte) {
 	}
 }
 
-func (apu *apu) onKeyEvent(key *fyne.KeyEvent) {
+func (apu *apu) OnKey(key glfw.Key) {
 	// fmt.Println("key:", key.Name)
-	switch key.Name {
+	switch key {
 
-	case fyne.KeyZ: // A
+	case glfw.KeyZ: // A
 		apu.ctrl0 ^= 0b00000001
-	case fyne.KeyX: // B
+	case glfw.KeyX: // B
 		apu.ctrl0 ^= 0b00000010
-	case fyne.Key1: //select
+	case glfw.Key1: //select
 		apu.ctrl0 ^= 0b00000100
-	case fyne.Key2: // start
+	case glfw.Key2: // start
 		apu.ctrl0 ^= 0b00001000
-	case fyne.KeyUp:
+	case glfw.KeyUp:
 		apu.ctrl0 ^= 0b00010000
-	case fyne.KeyDown:
+	case glfw.KeyDown:
 		apu.ctrl0 ^= 0b00100000
-	case fyne.KeyLeft:
+	case glfw.KeyLeft:
 		apu.ctrl0 ^= 0b01000000
-	case fyne.KeyRight:
+	case glfw.KeyRight:
 		apu.ctrl0 ^= 0b10000000
 	}
 }

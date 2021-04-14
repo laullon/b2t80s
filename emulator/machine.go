@@ -1,7 +1,7 @@
 package emulator
 
 import (
-	"fyne.io/fyne/v2"
+	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/ui"
 )
@@ -18,7 +18,7 @@ var RomFile *string
 var CartFile *string
 
 type Machine interface {
-	OnKeyEvent(event *fyne.KeyEvent)
+	OnKey(key glfw.Key)
 	Monitor() Monitor
 	Clock() Clock
 	UIControls() []ui.Control

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"fyne.io/fyne/v2"
+	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/lr35902"
 	"github.com/laullon/b2t80s/emulator"
@@ -196,26 +196,26 @@ func (gb *gb) WritePort(addr uint16, data byte) {
 	}
 }
 
-func (gb *gb) OnKeyEvent(key *fyne.KeyEvent) {
+func (gb *gb) OnKey(key glfw.Key) {
 	// fmt.Println("key:", key.Name)
-	switch key.Name {
+	switch key {
 
-	case fyne.KeyZ: // A
+	case glfw.KeyZ: // A
 		gb.buttons ^= 0b00000001
-	case fyne.KeyX: // B
+	case glfw.KeyX: // B
 		gb.buttons ^= 0b00000010
-	case fyne.Key1: //select
+	case glfw.Key1: //select
 		gb.buttons ^= 0b00000100
-	case fyne.Key2: // start
+	case glfw.Key2: // start
 		gb.buttons ^= 0b00001000
 
-	case fyne.KeyRight:
+	case glfw.KeyRight:
 		gb.pad ^= 0b00000001
-	case fyne.KeyLeft:
+	case glfw.KeyLeft:
 		gb.pad ^= 0b00000010
-	case fyne.KeyUp:
+	case glfw.KeyUp:
 		gb.pad ^= 0b00000100
-	case fyne.KeyDown:
+	case glfw.KeyDown:
 		gb.pad ^= 0b00001000
 	}
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"fyne.io/fyne/v2"
+	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/z80"
 	"github.com/laullon/b2t80s/emulator"
@@ -20,7 +20,7 @@ const (
 
 type ZX interface {
 	Debugger() emulator.Debugger
-	OnKeyEvent(event *fyne.KeyEvent)
+	OnKey(key glfw.Key)
 	LoadZ80File(fileName string)
 }
 
@@ -96,8 +96,8 @@ func (zx *zx) Debugger() emulator.Debugger {
 	return zx.debugger
 }
 
-func (zx *zx) OnKeyEvent(event *fyne.KeyEvent) {
-	zx.ula.OnKeyEvent(event)
+func (zx *zx) OnKey(key glfw.Key) {
+	zx.ula.OnKey(key)
 }
 
 func (zx *zx) Monitor() emulator.Monitor {
