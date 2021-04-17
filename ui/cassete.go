@@ -38,6 +38,8 @@ func NewCasseteControl(cassette cassette.Cassette, disable bool) *CasseteControl
 	return cas
 }
 
+func (ui *CasseteControl) HTML() string { return "" }
+
 func (cas *CasseteControl) Widget() fyne.CanvasObject {
 	return cas.ui
 }

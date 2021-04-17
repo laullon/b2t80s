@@ -113,6 +113,36 @@ func NewLR35902UI(cpu lr35902.LR35902) Control {
 	return ui
 }
 
+func (ui *lr35902UI) HTML() string {
+	var sb strings.Builder
+	sb.WriteString("<pre>")
+	sb.WriteString(strings.Join(ui.log, "\n"))
+	sb.WriteString("</pre>")
+
+	sb.WriteString("<pre>")
+	sb.WriteString(ui.nextOP)
+	sb.WriteString("</pre>")
+
+	pc := ui.lastPC
+	if ui.getMemory != nil {
+		sb.WriteString("<pre>")
+		data := ui.getMemory(pc, 40)
+		diss := make([]string, 10)
+		for i := 0; (len(data) > 4) && (i < 10); i++ {
+			op := lr35902.OPCodes[data[0]]
+			if op != nil {
+				diss[i] = op.Dump(pc, data)
+				pc += uint16(op.Len)
+				data = data[op.Len:]
+			}
+		}
+		sb.WriteString(strings.Join(diss, "\n"))
+		sb.WriteString("</pre>")
+	}
+
+	return sb.String()
+}
+
 func (ui *lr35902UI) Widget() fyne.CanvasObject {
 	return ui.widget
 }

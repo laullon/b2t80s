@@ -9,6 +9,7 @@ import (
 
 type Control interface {
 	Widget() fyne.CanvasObject
+	HTML() string
 	Update()
 }
 

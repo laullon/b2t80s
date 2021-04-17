@@ -2,30 +2,27 @@ package emulator
 
 import (
 	"time"
-
-	"fyne.io/fyne/v2/canvas"
-	"github.com/laullon/b2t80s/ui"
 )
 
 type Monitor interface {
-	Canvas() *canvas.Image
-	Screen() *ui.Display
+	Screen() *Display
 	FrameDone()
 	FPS() float64
+	SetRedraw(redraw func())
 }
 
 type monitor struct {
-	vram    *ui.Display
-	screen  *ui.Display
-	display *canvas.Image
-	start   time.Time
-	frames  float64
+	vram   *Display
+	screen *Display
+	start  time.Time
+	frames float64
+	redraw func()
 }
 
-func NewMonitor(img *ui.Display) Monitor {
+func NewMonitor(img *Display) Monitor {
 	monitor := &monitor{
 		vram:   img,
-		screen: ui.NewDisplay(img.Bounds()),
+		screen: NewDisplay(img.Bounds()),
 		start:  time.Now(),
 	}
 
@@ -37,20 +34,18 @@ func NewMonitor(img *ui.Display) Monitor {
 	return monitor
 }
 
-func (monitor *monitor) Screen() *ui.Display {
-	return monitor.screen
+func (monitor *monitor) SetRedraw(redraw func()) {
+	monitor.redraw = redraw
 }
 
-func (monitor *monitor) Canvas() *canvas.Image {
-	return monitor.display
+func (monitor *monitor) Screen() *Display {
+	return monitor.screen
 }
 
 func (monitor *monitor) FrameDone() {
 	monitor.frames++
 	copy(monitor.screen.Pix, monitor.vram.Pix)
-	// go func() {
-	// monitor.display.Refresh()
-	// }()
+	monitor.redraw()
 }
 
 func (monitor *monitor) FPS() float64 {

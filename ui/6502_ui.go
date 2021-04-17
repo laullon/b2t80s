@@ -73,6 +73,8 @@ func NewM6502UI(cpu m6502.M6502) Control {
 	return ui
 }
 
+func (ui *m6502UI) HTML() string { return "" }
+
 func (ui *m6502UI) Widget() fyne.CanvasObject {
 	return ui.widget
 }

@@ -9,7 +9,6 @@ import (
 
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/emulator"
-	"github.com/laullon/b2t80s/ui"
 )
 
 var vdpMasks = []byte{0x03, 0xFB, 0x0F, 0xFF, 0x07, 0x7F, 0x07, 0xFF}
@@ -28,7 +27,7 @@ type tms9918 struct {
 	registers []byte
 
 	monitor emulator.Monitor
-	display *ui.Display
+	display *emulator.Display
 
 	m1, m2, m3     bool
 	pc, pg, pn     uint16
@@ -65,7 +64,7 @@ func newTMS9918(cpu cpu.CPU) *tms9918 {
 	res := &tms9918{
 		vram:      make([]byte, 0x4000),
 		registers: make([]byte, 8),
-		display:   ui.NewDisplay(image.Rect(-37, -64, 345-37, 313-64)),
+		display:   emulator.NewDisplay(image.Rect(-37, -64, 345-37, 313-64)),
 		cpu:       cpu,
 	}
 	res.monitor = emulator.NewMonitor(res.display)

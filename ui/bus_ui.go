@@ -38,6 +38,8 @@ func NewBusUI(name string, bus cpu.Bus) Control {
 	return ctrl
 }
 
+func (ui *busUI) HTML() string { return "" }
+
 func (ui *busUI) Widget() fyne.CanvasObject {
 	return ui.widget
 }

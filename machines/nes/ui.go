@@ -57,6 +57,8 @@ func newPalleteControl(ppu *ppu) *ppuDebugControl {
 	return ctrl
 }
 
+func (ui *ppuDebugControl) HTML() string { return "" }
+
 func (ctrl *ppuDebugControl) Widget() fyne.CanvasObject {
 	return ctrl.ui
 }

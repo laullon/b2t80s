@@ -1,4 +1,6 @@
 //go:generate $HOME/go/bin/go-bindata -pkg data -o data/data.go data/...
+//go:generate $HOME/go/bin/go-bindata -fs -pkg debug -o debug/data.go debug/static/...
+
 package main
 
 import (
@@ -8,7 +10,6 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
-	"time"
 
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/machines/atetris"
@@ -17,12 +18,9 @@ import (
 	"github.com/laullon/b2t80s/machines/msx"
 	"github.com/laullon/b2t80s/machines/nes"
 	"github.com/laullon/b2t80s/machines/zx"
-	"github.com/laullon/b2t80s/ui"
 
 	_ "net/http/pprof"
 )
-
-func init() { runtime.LockOSThread() }
 
 func main() {
 	emulator.CartFile = flag.String("cart", "", "NESncart file to load")
@@ -96,20 +94,21 @@ func main() {
 		}
 	}
 
+	win := emulator.NewDebugWindow(name, machine)
+	win.SetOnKey(machine.OnKey)
 	go func() {
 		machine.Clock().Run()
-		wait := time.Duration(time.Second)
-		ticker := time.NewTicker(wait)
-		go func() {
-			for range ticker.C {
-				fmt.Printf("time: %s - FPS: %03.2f\n", machine.Clock().Stats(), machine.Monitor().FPS())
-			}
-		}()
 	}()
-
-	win := ui.NewWindow(name, machine.Monitor().Screen())
-	win.SetOnKey(machine.OnKey)
 	win.Run()
+
+	// 	wait := time.Duration(time.Second)
+	// 	ticker := time.NewTicker(wait)
+	// 	go func() {
+	// 		for range ticker.C {
+	// 			// w.Eval(`alert("pp")`)
+	// 			fmt.Printf("time: %s - FPS: %03.2f\n", machine.Clock().Stats(), machine.Monitor().FPS())
+	// 		}
+	// 	}()
 
 	// ui.App = app.New()
 

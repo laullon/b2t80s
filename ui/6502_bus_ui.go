@@ -37,6 +37,8 @@ func NewM6502BusUI(name string, bus m6502.Bus) Control {
 	return ctrl
 }
 
+func (ui *m6502BusUI) HTML() string { return "" }
+
 func (ui *m6502BusUI) Widget() fyne.CanvasObject {
 	return ui.widget
 }

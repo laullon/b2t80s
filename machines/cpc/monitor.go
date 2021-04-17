@@ -15,6 +15,7 @@ type monitor struct {
 	canvas        *canvas.Image
 	start         time.Time
 	frames        float64
+	redraw        func()
 }
 
 func NewMonitor() *monitor {
@@ -32,6 +33,10 @@ func NewMonitor() *monitor {
 	return monitor
 }
 
+func (monitor *monitor) SetRedraw(redraw func()) {
+	monitor.redraw = redraw
+}
+
 func (monitor *monitor) Canvas() *canvas.Image {
 	return monitor.canvas
 }
@@ -41,10 +46,7 @@ func (monitor *monitor) FrameDone() {
 	// TODO write a custom function to double horizontal lines, no need for this
 	draw.NearestNeighbor.Scale(monitor.displayScaled, monitor.displayScaled.Bounds(), monitor.display, monitor.display.Bounds(), draw.Over, nil)
 	// copy(monitor.displayScaled.Pix, monitor.display.Pix)
-
-	go func() {
-		monitor.canvas.Refresh()
-	}()
+	monitor.redraw()
 }
 
 func (monitor *monitor) FPS() float64 {

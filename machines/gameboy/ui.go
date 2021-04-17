@@ -74,6 +74,8 @@ func newPPUControl(ppu *ppu) *ppuDebugControl {
 	return ctrl
 }
 
+func (ui *ppuDebugControl) HTML() string { return "" }
+
 func (ctrl *ppuDebugControl) Widget() fyne.CanvasObject {
 	return ctrl.ui
 }
@@ -167,6 +169,8 @@ func newTimerControl(cpu lr35902.LR35902, timer *timer) *timerDebugControl {
 	return ctrl
 }
 
+func (ui *timerDebugControl) HTML() string { return ui.cpu.HTML() }
+
 func (ctrl *timerDebugControl) Widget() fyne.CanvasObject {
 	return ctrl.ui
 }
@@ -204,6 +208,8 @@ func newSerialControl(buffer *[]byte) *serialDebugControl {
 
 	return ctrl
 }
+
+func (ui *serialDebugControl) HTML() string { return "" }
 
 func (ctrl *serialDebugControl) Widget() fyne.CanvasObject {
 	return ctrl.ui
@@ -263,6 +269,8 @@ func newSoundCtrl(apu *apu) *soundCtrl {
 
 	return ctrl
 }
+
+func (ui *soundCtrl) HTML() string { return "" }
 
 func (ctrl *soundCtrl) Widget() fyne.CanvasObject {
 	return ctrl.ui

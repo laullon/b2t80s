@@ -10,7 +10,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	layout "fyne.io/fyne/v2/layout"
 	widget "fyne.io/fyne/v2/widget"
-	"github.com/laullon/b2t80s/ui"
+	"github.com/laullon/b2t80s/emulator"
 )
 
 type sprite struct {
@@ -70,7 +70,7 @@ func (vdp *tms9918) drawSprites() {
 	}
 }
 
-func (sprt *sprite) drawSprite(yPos int, si bool, sg uint16, vram []byte, display *ui.Display) {
+func (sprt *sprite) drawSprite(yPos int, si bool, sg uint16, vram []byte, display *emulator.Display) {
 	if sprt.colour == 0 {
 		return
 	}
@@ -111,6 +111,8 @@ func newSpriteControl(vdp *tms9918) *spriteControl {
 	return ctrl
 }
 
+func (ui *spriteControl) HTML() string { return "" }
+
 func (ctrl *spriteControl) Widget() fyne.CanvasObject {
 	return ctrl.ui
 }
@@ -131,7 +133,7 @@ func (ctrl *spriteControl) doShow() {
 			size = 16
 		}
 
-		display := ui.NewDisplay(image.Rect(0, 0, size, size))
+		display := emulator.NewDisplay(image.Rect(0, 0, size, size))
 		draw.Draw(display, display.Bounds(), &image.Uniform{color.RGBA{125, 125, 125, 255}}, image.ZP, draw.Src)
 		for y := 0; y < size; y++ {
 			sprite.drawSprite(y, ctrl.vdp.si, ctrl.vdp.sg, ctrl.vdp.vram, display)

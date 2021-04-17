@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+
+<head>
+  <style>
+    .sidenav {
+      height: 100%;
+      width: 600px;
+      position: fixed;
+      z-index: 1;
+      top: 0;
+      left: 0;
+      background-color: #111;
+      overflow-x: hidden;
+    }
+
+    .main {
+      margin-left: 600px;
+      padding: 0px 10px;
+    }
+
+    .footer {
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      background-color: white;
+      color: black;
+      text-align: left;
+      font-family: 'Courier New', Courier, monospace;
+      z-index: 1;
+    }
+  </style>
+
+  <script>
+    function update() {
+      getStatus().then(function (status) {
+        document.getElementById("status").innerHTML = status;
+      })
+
+      getCPU().then(function (status) {
+        document.getElementById("debuger").innerHTML = status;
+      })
+
+    }
+
+    var myVar = setInterval(update, 1000);
+  </script>
+
+</head>
+
+<body style="background-color: white;">
+  <div>
+    <div class="sidenav">
+      <img src="/video">
+    </div>
+
+    <div class="main">
+      <strong>Debuger</strong>
+      <div id="debuger">
+      </div>
+    </div>
+
+
+  </div>
+  <footer class="footer">
+    <p id="status">
+      status
+    </p>
+  </footer>
+</body>
+
+</html>

@@ -1,4 +1,4 @@
-package ui
+package emulator
 
 import (
 	"time"
@@ -53,7 +53,6 @@ func NewWindow(name string, img *Display) Window {
 			println("key:", key, "action:", action)
 		}
 	})
-	window.mainWin.MakeContextCurrent()
 
 	if err := gl.Init(); err != nil {
 		panic(err)
@@ -67,6 +66,7 @@ func NewWindow(name string, img *Display) Window {
 }
 
 func (win *window) iniTexture() {
+	win.mainWin.MakeContextCurrent()
 	gl.GenTextures(1, &win.texture)
 	gl.BindTexture(gl.TEXTURE_2D, win.texture)
 	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGB,
@@ -86,13 +86,17 @@ func (win *window) Run() {
 	t := time.Now()
 
 	for !win.mainWin.ShouldClose() {
-		win.draw()
+		// win.draw()
 		time.Sleep(time.Second/time.Duration(60) - time.Since(t))
 		t = time.Now()
 	}
 }
 
 func (win *window) draw() {
+	win.mainWin.MakeContextCurrent()
+
+	println("- draw -", win.mainWin.ShouldClose())
+
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 	w, h := win.mainWin.GetSize()

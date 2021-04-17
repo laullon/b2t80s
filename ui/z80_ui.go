@@ -88,6 +88,8 @@ func NewZ80UI(cpu z80.Z80) Control {
 	return ui
 }
 
+func (ui *z80UI) HTML() string { return "" }
+
 func (ui *z80UI) Widget() fyne.CanvasObject {
 	return ui.widget
 }

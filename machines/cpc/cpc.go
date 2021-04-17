@@ -167,7 +167,7 @@ func (m *cpc) OnKey(key glfw.Key) {
 	m.ppi.OnKey(key)
 }
 
-func (monitor *monitor) Screen() *ui.Display {
+func (monitor *monitor) Screen() *emulator.Display {
 	return nil
 }
 

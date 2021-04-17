@@ -31,6 +31,8 @@ func NewVolumenControl(setVolume func(float64)) *VolumenControl {
 	return vc
 }
 
+func (ui *VolumenControl) HTML() string { return "" }
+
 func (vc *VolumenControl) Widget() fyne.CanvasObject {
 	return vc.ui
 }
