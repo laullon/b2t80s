@@ -2,6 +2,9 @@
 <html>
 
 <head>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css">
+
   <style>
     .sidenav {
       height: 100%;
@@ -44,7 +47,8 @@
 
     }
 
-    var myVar = setInterval(update, 1000);
+    initUI()
+    var myVar = setInterval(update, 500);
   </script>
 
 </head>
@@ -57,6 +61,24 @@
 
     <div class="main">
       <strong>Debuger</strong>
+
+      <div id="debugStop" class="columns">
+        <div class="column is-6"><button class="button is-fullwidth" onclick="debugerStop()">Stop</button></div>
+        <div class="column is-6"><button class="button is-fullwidth" onclick="debugerStopNextInterrupt()">Stop on
+            Interrup</button></div>
+      </div>
+      <div id="debugStep" class="columns">
+        <div class="column is-3"><button class="button is-fullwidth" onclick="debugerContinue()">Continue</button></div>
+        <div class="column is-3"><button class="button is-fullwidth" onclick="debugerStep()">Step</button></div>
+        <div class="column is-3"><button class="button is-fullwidth" onclick="debugerStepLine()">Step Line</button></div>
+        <div class="column is-3"><button class="button is-fullwidth" onclick="StepFrame()">Step Frame</button></div>
+      </div>
+
+      <div class="tabs is-boxed">
+        <ul id="tabs">
+        </ul>
+      </div>
+
       <div id="debuger">
       </div>
     </div>

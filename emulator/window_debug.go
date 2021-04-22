@@ -1,32 +1,30 @@
 package emulator
 
 import (
+	"C"
 	"bufio"
 	"bytes"
 	"fmt"
 	"image/jpeg"
 	"log"
+	"net"
 	"net/http"
 	"sync"
 	"time"
 
-	"fyne.io/fyne/v2/app"
 	"github.com/disintegration/imaging"
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/laullon/b2t80s/debug"
-	"github.com/laullon/b2t80s/ui"
 	"github.com/webview/webview"
 )
 
 type debugWindow struct {
 	web    webview.WebView
 	stream *Stream
+	tabs   Tabs
 }
 
 func NewDebugWindow(name string, machine Machine) Window {
-	// TODO: REMOVE, just to prevent crashed
-	ui.App = app.NewWithID("io.fyne.test")
-
 	win := &debugWindow{
 		web:    initDebugWindow(name, machine),
 		stream: NewStream(),
@@ -36,16 +34,30 @@ func NewDebugWindow(name string, machine Machine) Window {
 		return fmt.Sprintf("time: %s - FPS: %03.2f\n", machine.Clock().Stats(), machine.Monitor().FPS())
 	})
 
-	cpuUI := machine.Control()["CPU"]
 	win.web.Bind("getCPU", func() string {
-		return cpuUI.HTML()
+		ui := machine.Control()[win.tabs.Selected()]
+		return ui.HTML()
+	})
+
+	win.web.Bind("initUI", func() {
+		win.tabs.Show()
 	})
 
 	http.Handle("/video", win.stream)
 	http.Handle("/", http.FileServer(debug.AssetFile()))
+	listener, err := net.Listen("tcp", ":")
+	if err != nil {
+		panic(err)
+	}
+
 	go func() {
-		log.Fatal(http.ListenAndServe(":8080", nil))
+		panic(http.Serve(listener, nil))
 	}()
+
+	fmt.Println("Using port:", listener.Addr())
+	url := fmt.Sprintf("http://0:%d/app/?%d", listener.Addr().(*net.TCPAddr).Port, time.Now().Local().Second())
+	println("url:", url)
+	win.web.Navigate(url)
 
 	machine.Monitor().SetRedraw(func() {
 		go func() {
@@ -60,6 +72,9 @@ func NewDebugWindow(name string, machine Machine) Window {
 
 		}()
 	})
+
+	win.tabs = NewTabs("tabs", win.web, machine)
+
 	return win
 }
 
@@ -68,12 +83,8 @@ func (win *debugWindow) SetOnKey(onKey func(glfw.Key)) {
 }
 
 func (win *debugWindow) Run() {
-
-	println(1)
 	win.web.Run()
-	println(2)
 	win.web.Destroy()
-	println(3)
 }
 
 func initDebugWindow(title string, machine Machine) webview.WebView {
@@ -81,7 +92,7 @@ func initDebugWindow(title string, machine Machine) webview.WebView {
 	w := webview.New(debug)
 	w.SetTitle(title)
 	w.SetSize(1200, 600, webview.HintNone)
-	w.Navigate(fmt.Sprint("http://localhost:8080/debug/static/?", time.Now().Local().Second()))
+	// println(w.Window())
 	return w
 }
 

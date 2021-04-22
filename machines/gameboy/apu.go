@@ -219,7 +219,7 @@ func (ch *tomeChannel) update() {
 	ch.rt.pulseLengths[1] = uint(l) - ch.rt.pulseLengths[0]
 }
 
-func (ch *tomeChannel) tick() {
+func (ch *tomeChannel) _tick() {
 	ch.rt.mux.Lock()
 	defer ch.rt.mux.Unlock()
 

@@ -1,5 +1,5 @@
 //go:generate $HOME/go/bin/go-bindata -pkg data -o data/data.go data/...
-//go:generate $HOME/go/bin/go-bindata -fs -pkg debug -o debug/data.go debug/static/...
+//go:generate $HOME/go/bin/go-bindata -fs -prefix debug -pkg debug -o debug/data.go debug/...
 
 package main
 
@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"runtime/pprof"
 
+	"fyne.io/fyne/v2/app"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/machines/atetris"
 	"github.com/laullon/b2t80s/machines/cpc"
@@ -18,11 +19,15 @@ import (
 	"github.com/laullon/b2t80s/machines/msx"
 	"github.com/laullon/b2t80s/machines/nes"
 	"github.com/laullon/b2t80s/machines/zx"
+	"github.com/laullon/b2t80s/ui"
 
 	_ "net/http/pprof"
 )
 
 func main() {
+	// TODO: REMOVE, just to prevent crashed
+	ui.App = app.NewWithID("io.fyne.test")
+
 	emulator.CartFile = flag.String("cart", "", "NESncart file to load")
 	emulator.TapFile = flag.String("tap", "", "tap file to load")
 	emulator.RomFile = flag.String("rom", "", "msx1 rom file to load - format: [mapper::]filename - Mappers:konami")

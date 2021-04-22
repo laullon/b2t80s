@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Photon</title>
+  <link rel="stylesheet" href="../css/photon.min.css">
+  <script>
+    function update() {
+      getStatus().then(function (status) {
+        document.getElementById("status").innerHTML = status;
+      })
+
+      getCPU().then(function (status) {
+        document.getElementById("debuger").innerHTML = status;
+      })
+
+    }
+
+    initUI()
+    var myVar = setInterval(update, 500);
+  </script>
+
+  <style>
+    .dbgbth {
+      width: 100%;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <div class="window">
+    <div class="window-content">
+      <div class="pane-group">
+        <div class="pane">
+          <img src="/video">
+        </div>
+        <div class="pane">
+          <div class="main">
+            <strong>Debuger</strong>
+
+            <div id="debugStop" class="btn-group dbgbth">
+              <div class="btn btn-default" onclick="debugerStop()">Stop</div>
+              <div class="btn btn-default" onclick="debugerStopNextInterrupt()">Stop on Interrup</div>
+            </div>
+            <div id="debugStep" class="btn-group dbgbth">
+              <div class="btn btn-default" onclick="debugerContinue()">Continue</div>
+              <div class="btn btn-default" onclick="debugerStep()">Step</div>
+              <div class="btn btn-default" onclick="debugerStepLine()">Step Line</div>
+              <div class="btn btn-default" onclick="StepFrame()">Step Frame</div>
+            </div>
+
+            <div id="tabs" class="tab-group">
+            </div>
+
+            <div id="debuger">
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="toolbar toolbar-footer">
+      <h1 id="status" class="title">Footer</h1>
+    </footer>
+
+  </div>
+</body>
+
+</html>

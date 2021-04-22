@@ -26,6 +26,8 @@ type gb struct {
 	serial       chan byte
 	serialBuffer []byte
 
+	uiControls map[string]ui.Control
+
 	controls     *byte
 	pad, buttons byte
 }
@@ -106,6 +108,13 @@ func New(serial ...chan byte) emulator.Machine {
 
 	// panic(-1)
 
+	m.uiControls = map[string]ui.Control{
+		"CPU":    newTimerControl(m.cpu, m.timer),
+		"PPU":    newPPUControl(m.ppu),
+		"SERIAL": newSerialControl(&m.serialBuffer),
+		"Sound":  newSoundCtrl(m.apu),
+	}
+
 	return m
 }
 
@@ -123,12 +132,7 @@ func (gb *gb) UIControls() []ui.Control {
 }
 
 func (gb *gb) Control() map[string]ui.Control {
-	return map[string]ui.Control{
-		"CPU":    newTimerControl(gb.cpu, gb.timer),
-		"PPU":    newPPUControl(gb.ppu),
-		"SERIAL": newSerialControl(&gb.serialBuffer),
-		"Sound":  newSoundCtrl(gb.apu),
-	}
+	return gb.uiControls
 }
 
 func (gb *gb) Monitor() emulator.Monitor       { return gb.ppu.monitor }

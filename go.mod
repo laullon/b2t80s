@@ -2,6 +2,8 @@ module github.com/laullon/b2t80s
 
 go 1.16
 
+// replace github.com/webview/webview => github.com/oka-ouki/webview v0.0.0-20210420164853-facdd07fccf2
+
 require (
 	fyne.io/fyne/v2 v2.0.2
 	github.com/disintegration/imaging v1.6.2 // indirect
