@@ -2,7 +2,7 @@ module github.com/laullon/b2t80s
 
 go 1.16
 
-// replace github.com/webview/webview => github.com/oka-ouki/webview v0.0.0-20210420164853-facdd07fccf2
+replace github.com/laullon/webview => /Users/glaullon/go/src/github.com/laullon/webview
 
 require (
 	fyne.io/fyne/v2 v2.0.2
@@ -13,7 +13,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/srwiley/oksvg v0.0.0-20210320200257-875f767ac39a // indirect
 	github.com/stretchr/testify v1.7.0
-	github.com/webview/webview v0.0.0-20210330151455-f540d88dde4e
+	github.com/laullon/webview v0.0.0-20210330151455-f540d88dde4e
 	golang.org/x/exp v0.0.0-20210405174845-4513512abef3 // indirect
 	golang.org/x/image v0.0.0-20210220032944-ac19c3e999fb
 	golang.org/x/mobile v0.0.0-20210220033013-bdb1ca9a1e08 // indirect

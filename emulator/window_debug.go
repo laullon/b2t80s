@@ -15,7 +15,7 @@ import (
 	"github.com/disintegration/imaging"
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/laullon/b2t80s/debug"
-	"github.com/webview/webview"
+	"github.com/laullon/webview"
 )
 
 type debugWindow struct {
@@ -44,6 +44,7 @@ func NewDebugWindow(name string, machine Machine) Window {
 	})
 
 	http.Handle("/video", win.stream)
+	http.Handle("/cmd/", win.web)
 	http.Handle("/", http.FileServer(debug.AssetFile()))
 	listener, err := net.Listen("tcp", ":")
 	if err != nil {
@@ -88,11 +89,7 @@ func (win *debugWindow) Run() {
 }
 
 func initDebugWindow(title string, machine Machine) webview.WebView {
-	debug := true
-	w := webview.New(debug)
-	w.SetTitle(title)
-	w.SetSize(1200, 600, webview.HintNone)
-	// println(w.Window())
+	w := webview.New(title, 1200, 600)
 	return w
 }
 

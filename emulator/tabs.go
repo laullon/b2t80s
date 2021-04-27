@@ -3,7 +3,7 @@ package emulator
 import (
 	"fmt"
 
-	"github.com/webview/webview"
+	"github.com/laullon/webview"
 )
 
 var tabHTML = `<div id="tab_%s" class="tab-item" onclick="tabsSelect(\'%s\');">%s</div>`
