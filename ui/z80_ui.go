@@ -1,18 +1,11 @@
 package ui
 
 import (
-	"strings"
-
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/layout"
-	"fyne.io/fyne/v2/widget"
 	"github.com/laullon/b2t80s/cpu/z80"
 )
 
 type z80UI struct {
-	regs   *z80.Z80Registers
-	widget *fyne.Container
+	regs *z80.Z80Registers
 
 	a, f, b, c, d, e, h, l *RegText
 	af, bc, de, hl         *RegText
@@ -20,7 +13,6 @@ type z80UI struct {
 	ix, iy                 *RegText
 	sp, pc, flag           *RegText
 
-	logTxt *widget.Label
 	log    []string
 	nextOP string
 }
@@ -51,48 +43,45 @@ func NewZ80UI(cpu z80.Z80) Control {
 	ui.pc = NewRegText("PC:")
 	ui.flag = NewRegText("FLAG:")
 
-	c1 := container.New(layout.NewFormLayout(),
-		ui.a.Label, ui.a.Value,
-		ui.b.Label, ui.b.Value,
-		ui.d.Label, ui.d.Value,
-		ui.h.Label, ui.h.Value,
-		ui.ixh.Label, ui.ixh.Value,
-		ui.iyh.Label, ui.iyh.Value,
-		ui.pc.Label, ui.pc.Value,
-	)
-	c2 := container.New(layout.NewFormLayout(),
-		ui.f.Label, ui.f.Value,
-		ui.c.Label, ui.c.Value,
-		ui.e.Label, ui.e.Value,
-		ui.l.Label, ui.l.Value,
-		ui.ixl.Label, ui.ixl.Value,
-		ui.iyl.Label, ui.iyl.Value,
-		ui.sp.Label, ui.sp.Value,
-	)
-	c3 := container.New(layout.NewFormLayout(),
-		ui.af.Label, ui.af.Value,
-		ui.bc.Label, ui.bc.Value,
-		ui.de.Label, ui.de.Value,
-		ui.hl.Label, ui.hl.Value,
-		ui.ix.Label, ui.ix.Value,
-		ui.iy.Label, ui.iy.Value,
-		ui.flag.Label, ui.flag.Value,
-	)
+	// c1 := container.New(layout.NewFormLayout(),
+	// 	ui.a.Label, ui.a.Value,
+	// 	ui.b.Label, ui.b.Value,
+	// 	ui.d.Label, ui.d.Value,
+	// 	ui.h.Label, ui.h.Value,
+	// 	ui.ixh.Label, ui.ixh.Value,
+	// 	ui.iyh.Label, ui.iyh.Value,
+	// 	ui.pc.Label, ui.pc.Value,
+	// )
+	// c2 := container.New(layout.NewFormLayout(),
+	// 	ui.f.Label, ui.f.Value,
+	// 	ui.c.Label, ui.c.Value,
+	// 	ui.e.Label, ui.e.Value,
+	// 	ui.l.Label, ui.l.Value,
+	// 	ui.ixl.Label, ui.ixl.Value,
+	// 	ui.iyl.Label, ui.iyl.Value,
+	// 	ui.sp.Label, ui.sp.Value,
+	// )
+	// c3 := container.New(layout.NewFormLayout(),
+	// 	ui.af.Label, ui.af.Value,
+	// 	ui.bc.Label, ui.bc.Value,
+	// 	ui.de.Label, ui.de.Value,
+	// 	ui.hl.Label, ui.hl.Value,
+	// 	ui.ix.Label, ui.ix.Value,
+	// 	ui.iy.Label, ui.iy.Value,
+	// 	ui.flag.Label, ui.flag.Value,
+	// )
 
-	regs := container.New(layout.NewGridLayoutWithColumns(3), c1, c2, c3)
+	// regs := container.New(layout.NewGridLayoutWithColumns(3), c1, c2, c3)
 
-	ui.logTxt = widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
+	// ui.logTxt = widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
 
-	ui.widget = container.New(layout.NewVBoxLayout(), regs, ui.logTxt)
+	// ui.widget = container.New(layout.NewVBoxLayout(), regs, ui.logTxt)
 
 	return ui
 }
 
-func (ui *z80UI) HTML() string { return "" }
-
-func (ui *z80UI) Widget() fyne.CanvasObject {
-	return ui.widget
-}
+func (ui *z80UI) GetRegisters() string { return "" }
+func (ui *z80UI) GetOutput() string    { return "" }
 
 func (ui *z80UI) Update() {
 	af := toHex16(uint16(ui.regs.A)<<8 | uint16(ui.regs.F.GetByte()))
@@ -118,9 +107,8 @@ func (ui *z80UI) Update() {
 	ui.pc.Update(toHex16(ui.regs.PC))
 	ui.flag.Update(af)
 
-	ui.logTxt.Text = strings.Join(append(ui.log, "\n", ui.nextOP), "\n")
+	// ui.logTxt.Text = strings.Join(append(ui.log, "\n", ui.nextOP), "\n")
 
-	ui.widget.Refresh()
 }
 
 func (ui *z80UI) DoTrace(on bool) { // TODO: implement

@@ -4,18 +4,16 @@ import (
 	"image"
 	"time"
 
-	"fyne.io/fyne/v2"
-	canvas "fyne.io/fyne/v2/canvas"
 	"golang.org/x/image/draw"
 )
 
 type monitor struct {
 	display       *image.RGBA
 	displayScaled *image.RGBA
-	canvas        *canvas.Image
-	start         time.Time
-	frames        float64
-	redraw        func()
+	// canvas        *canvas.Image
+	start  time.Time
+	frames float64
+	redraw func()
 }
 
 func NewMonitor() *monitor {
@@ -25,10 +23,10 @@ func NewMonitor() *monitor {
 		start:         time.Now(),
 	}
 
-	monitor.canvas = canvas.NewImageFromImage(monitor.displayScaled)
-	monitor.canvas.FillMode = canvas.ImageFillOriginal
-	monitor.canvas.ScaleMode = canvas.ImageScalePixels
-	monitor.canvas.SetMinSize(fyne.NewSize(352*2, 296*2))
+	// monitor.canvas = canvas.NewImageFromImage(monitor.displayScaled)
+	// monitor.canvas.FillMode = canvas.ImageFillOriginal
+	// monitor.canvas.ScaleMode = canvas.ImageScalePixels
+	// monitor.canvas.SetMinSize(fyne.NewSize(352*2, 296*2))
 
 	return monitor
 }
@@ -37,9 +35,9 @@ func (monitor *monitor) SetRedraw(redraw func()) {
 	monitor.redraw = redraw
 }
 
-func (monitor *monitor) Canvas() *canvas.Image {
-	return monitor.canvas
-}
+// func (monitor *monitor) Canvas() *canvas.Image {
+// 	return monitor.canvas
+// }
 
 func (monitor *monitor) FrameDone() {
 	monitor.frames++

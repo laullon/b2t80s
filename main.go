@@ -11,7 +11,6 @@ import (
 	"runtime"
 	"runtime/pprof"
 
-	"fyne.io/fyne/v2/app"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/machines/atetris"
 	"github.com/laullon/b2t80s/machines/cpc"
@@ -19,14 +18,13 @@ import (
 	"github.com/laullon/b2t80s/machines/msx"
 	"github.com/laullon/b2t80s/machines/nes"
 	"github.com/laullon/b2t80s/machines/zx"
-	"github.com/laullon/b2t80s/ui"
 
 	_ "net/http/pprof"
 )
 
 func main() {
 	// TODO: REMOVE, just to prevent crashed
-	ui.App = app.NewWithID("io.fyne.test")
+	// ui.App = app.NewWithID("io.fyne.test")
 
 	emulator.CartFile = flag.String("cart", "", "NESncart file to load")
 	emulator.TapFile = flag.String("tap", "", "tap file to load")

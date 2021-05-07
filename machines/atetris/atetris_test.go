@@ -5,17 +5,13 @@ import (
 	"os"
 	"testing"
 
-	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/canvas"
 	"github.com/laullon/b2t80s/emulator"
-	"github.com/laullon/b2t80s/ui"
 	"github.com/laullon/b2t80s/utils"
 	"github.com/stretchr/testify/assert"
 )
 
 func init() {
 	emulator.Debug = new(bool)
-	ui.App = app.NewWithID("io.fyne.test")
 }
 
 func TestTestMode(t *testing.T) {
@@ -39,6 +35,5 @@ func TestTestMode(t *testing.T) {
 
 type dummyMonitor struct{}
 
-func (m *dummyMonitor) Canvas() *canvas.Image { return nil }
-func (m *dummyMonitor) FrameDone()            {}
-func (m *dummyMonitor) FPS() float64          { return 0 }
+func (m *dummyMonitor) FrameDone()   {}
+func (m *dummyMonitor) FPS() float64 { return 0 }

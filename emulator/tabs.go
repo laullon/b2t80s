@@ -6,7 +6,7 @@ import (
 	"github.com/laullon/webview"
 )
 
-var tabHTML = `<div id="tab_%s" class="tab-item" onclick="tabsSelect(\'%s\');">%s</div>`
+var tabHTML = `<button id="tab_%s" onclick="tabsSelect(\'%s\');">%s</button>`
 
 type Tabs interface {
 	Show()
@@ -38,6 +38,7 @@ func (tabs *tabs) Show() {
 
 	for _, name := range keys {
 		html := fmt.Sprintf(tabHTML, name, name, name)
+		println(html)
 		tabs.web.Eval(fmt.Sprintf("document.getElementById('%s').innerHTML += '%s'", tabs.div, html))
 	}
 	tabs.changeSelected(keys[0])

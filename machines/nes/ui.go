@@ -5,15 +5,10 @@ import (
 	"image/draw"
 	"strconv"
 
-	"fyne.io/fyne/v2"
-	canvas "fyne.io/fyne/v2/canvas"
-	"fyne.io/fyne/v2/container"
-	layout "fyne.io/fyne/v2/layout"
 	"github.com/laullon/b2t80s/ui"
 )
 
 type ppuDebugControl struct {
-	ui      fyne.CanvasObject
 	ppu     *ppu
 	display *image.RGBA
 
@@ -26,9 +21,9 @@ func newPalleteControl(ppu *ppu) *ppuDebugControl {
 		display: image.NewRGBA(image.Rect(0, 0, (64*8)+4+84, (64*8)+2)),
 	}
 
-	img := canvas.NewImageFromImage(ctrl.display)
-	img.SetMinSize(fyne.NewSize((64*8)+4+84, (64*8)+2))
-	img.ScaleMode = canvas.ImageScalePixels
+	// img := canvas.NewImageFromImage(ctrl.display)
+	// img.SetMinSize(fyne.NewSize((64*8)+4+84, (64*8)+2))
+	// img.ScaleMode = canvas.ImageScalePixels
 
 	ctrl.v = ui.NewRegText("V:")
 	ctrl.h = ui.NewRegText("H:")
@@ -36,32 +31,29 @@ func newPalleteControl(ppu *ppu) *ppuDebugControl {
 	ctrl.y = ui.NewRegText("Scroll Y:")
 	ctrl.p = ui.NewRegText("Page:")
 
-	c1 := container.New(layout.NewFormLayout(),
-		ctrl.h.Label, ctrl.h.Value,
-		ctrl.v.Label, ctrl.v.Value,
-	)
+	// c1 := container.New(layout.NewFormLayout(),
+	// 	ctrl.h.Label, ctrl.h.Value,
+	// 	ctrl.v.Label, ctrl.v.Value,
+	// )
 
-	c2 := container.New(layout.NewFormLayout(),
-		ctrl.x.Label, ctrl.x.Value,
-		ctrl.y.Label, ctrl.y.Value,
-	)
+	// c2 := container.New(layout.NewFormLayout(),
+	// 	ctrl.x.Label, ctrl.x.Value,
+	// 	ctrl.y.Label, ctrl.y.Value,
+	// )
 
-	c3 := container.New(layout.NewFormLayout(),
-		ctrl.p.Label, ctrl.p.Value,
-	)
+	// c3 := container.New(layout.NewFormLayout(),
+	// 	ctrl.p.Label, ctrl.p.Value,
+	// )
 
-	regs := container.New(layout.NewGridLayoutWithColumns(3), c1, c2, c3)
+	// regs := container.New(layout.NewGridLayoutWithColumns(3), c1, c2, c3)
 
-	ctrl.ui = fyne.NewContainerWithLayout(layout.NewBorderLayout(regs, nil, nil, nil), regs, img)
+	// ctrl.ui = fyne.NewContainerWithLayout(layout.NewBorderLayout(regs, nil, nil, nil), regs, img)
 
 	return ctrl
 }
 
-func (ui *ppuDebugControl) HTML() string { return "" }
-
-func (ctrl *ppuDebugControl) Widget() fyne.CanvasObject {
-	return ctrl.ui
-}
+func (ui *ppuDebugControl) GetRegisters() string { return "" }
+func (ui *ppuDebugControl) GetOutput() string    { return "" }
 
 func (ctrl *ppuDebugControl) Update() {
 	ctrl.v.Update(strconv.Itoa(ctrl.ppu.v))
@@ -116,5 +108,4 @@ func (ctrl *ppuDebugControl) Update() {
 			}
 		}
 	}
-	ctrl.ui.Refresh()
 }

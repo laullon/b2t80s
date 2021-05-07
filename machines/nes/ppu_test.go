@@ -5,9 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"fyne.io/fyne/v2/app"
 	"github.com/laullon/b2t80s/emulator"
-	"github.com/laullon/b2t80s/ui"
 	"github.com/laullon/b2t80s/utils"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,7 +13,6 @@ import (
 func init() {
 	emulator.Debug = new(bool)
 	emulator.CartFile = new(string)
-	ui.App = app.NewWithID("io.fyne.test")
 }
 
 func Test_test_cpu_exec_space_ppuio(t *testing.T) {

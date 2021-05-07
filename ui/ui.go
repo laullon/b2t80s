@@ -1,48 +1,50 @@
 package ui
 
-import (
-	"image/color"
-
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/canvas"
-)
+import "strings"
 
 type Control interface {
-	Widget() fyne.CanvasObject
-	HTML() string
-	Update()
+	GetRegisters() string
+	GetOutput() string
 }
 
-var App fyne.App
+type RegTable [][]*RegText
+
+func (t RegTable) Dump() string {
+	var sb strings.Builder
+	sb.WriteString("<table>")
+	for _, row := range t {
+		sb.WriteString("<tr>")
+		for _, reg := range row {
+			sb.WriteString("<td>")
+			sb.WriteString(reg.label)
+			sb.WriteString("</td><td>")
+			sb.WriteString(reg.value)
+			sb.WriteString("</td>")
+		}
+		sb.WriteString("</tr>")
+	}
+	sb.WriteString("</table>")
+	return sb.String()
+}
 
 type RegText struct {
-	Label *canvas.Text
-	Value *canvas.Text
+	label string
+	value string
+	style string
 }
 
 func NewRegText(label string) *RegText {
 	rt := &RegText{
-		Label: &canvas.Text{},
-		Value: &canvas.Text{},
+		label: label,
 	}
-	rt.Label.Text = label
-	rt.Label.Color = color.Black
-	rt.Label.TextSize = fyne.CurrentApp().Settings().Theme().Size("text")
-	rt.Label.TextStyle = fyne.TextStyle{Monospace: true}
-	rt.Label.Alignment = fyne.TextAlignTrailing
-
-	rt.Value.Color = color.Black
-	rt.Value.TextSize = fyne.CurrentApp().Settings().Theme().Size("text")
-	rt.Value.TextStyle = fyne.TextStyle{Monospace: true}
-
 	return rt
 }
 
 func (rt *RegText) Update(text string) {
-	if rt.Value.Text != text {
-		rt.Value.Text = text
-		rt.Value.Color = color.RGBA{0x00, 0x00, 0xff, 0xff}
+	if rt.value != text {
+		rt.value = text
+		rt.style = `style="updated"`
 	} else {
-		rt.Value.Color = color.Black
+		rt.style = ``
 	}
 }

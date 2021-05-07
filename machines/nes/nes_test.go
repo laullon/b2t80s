@@ -7,9 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"fyne.io/fyne/v2/app"
 	"github.com/laullon/b2t80s/emulator"
-	"github.com/laullon/b2t80s/ui"
 	"github.com/laullon/b2t80s/utils"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,14 +15,13 @@ import (
 func init() {
 	emulator.Debug = new(bool)
 	emulator.CartFile = new(string)
-	ui.App = app.NewWithID("io.fyne.test")
 }
 
 func TestCPU(t *testing.T) {
 	*emulator.CartFile = string("tests/nestest.nes")
 	nes := NewNES().(*nes)
 
-	nes.apu.onKeyEvent(&glfw.KeyEvent{Name: glfw.Key2})
+	// nes.apu.onKeyEvent(&glfw.KeyEvent{Name: glfw.Key2})
 	nes.Clock().RunFor(4)
 
 	result, _, err := utils.ImgCompare("tests/nestest_ok.png", nes.ppu.display)

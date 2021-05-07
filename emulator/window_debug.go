@@ -34,9 +34,14 @@ func NewDebugWindow(name string, machine Machine) Window {
 		return fmt.Sprintf("time: %s - FPS: %03.2f\n", machine.Clock().Stats(), machine.Monitor().FPS())
 	})
 
-	win.web.Bind("getCPU", func() string {
+	win.web.Bind("getRegisters", func() string {
 		ui := machine.Control()[win.tabs.Selected()]
-		return ui.HTML()
+		return ui.GetRegisters()
+	})
+
+	win.web.Bind("getOutput", func() string {
+		ui := machine.Control()[win.tabs.Selected()]
+		return ui.GetOutput()
 	})
 
 	win.web.Bind("initUI", func() {
@@ -46,7 +51,7 @@ func NewDebugWindow(name string, machine Machine) Window {
 	http.Handle("/video", win.stream)
 	http.Handle("/cmd/", win.web)
 	http.Handle("/", http.FileServer(debug.AssetFile()))
-	listener, err := net.Listen("tcp", ":")
+	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		panic(err)
 	}
@@ -66,11 +71,10 @@ func NewDebugWindow(name string, machine Machine) Window {
 			w := bufio.NewWriter(&b)
 
 			img := imaging.FlipV(machine.Monitor().Screen())
-			img = imaging.Resize(img, 600, 0, imaging.NearestNeighbor)
+			// img = imaging.Resize(img, 600, 0, imaging.NearestNeighbor)
 
 			jpeg.Encode(w, img, &jpeg.Options{Quality: 100})
 			win.stream.UpdateJPEG(b.Bytes())
-
 		}()
 	})
 

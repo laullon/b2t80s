@@ -5,17 +5,14 @@ import (
 	"strings"
 	"testing"
 
-	"fyne.io/fyne/v2/app"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/machines/gameboy"
-	"github.com/laullon/b2t80s/ui"
 	"github.com/stretchr/testify/assert"
 )
 
 func init() {
 	emulator.Debug = new(bool)
 	emulator.CartFile = new(string)
-	ui.App = app.NewWithID("io.fyne.test")
 }
 
 func TestInstrs(t *testing.T) {

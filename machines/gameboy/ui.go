@@ -1,30 +1,21 @@
 package gameboy
 
 import (
-	"encoding/hex"
 	"fmt"
 	"image"
 	"strconv"
 	"strings"
 
-	"fyne.io/fyne/v2"
-	canvas "fyne.io/fyne/v2/canvas"
-	"fyne.io/fyne/v2/container"
-	layout "fyne.io/fyne/v2/layout"
-	"fyne.io/fyne/v2/widget"
 	"github.com/laullon/b2t80s/cpu/lr35902"
 	"github.com/laullon/b2t80s/ui"
 )
 
 type ppuDebugControl struct {
-	ui      fyne.CanvasObject
 	ppu     *ppu
 	display *image.RGBA
 
 	x, y, scX, scY, wx, wy *ui.RegText
 	status, control        *ui.RegText
-
-	sprites *widget.Label
 }
 
 func newPPUControl(ppu *ppu) *ppuDebugControl {
@@ -32,9 +23,6 @@ func newPPUControl(ppu *ppu) *ppuDebugControl {
 		ppu:     ppu,
 		display: image.NewRGBA(image.Rect(0, 0, 32*8, 12*8+2)),
 	}
-
-	img := canvas.NewImageFromImage(ctrl.display)
-	img.ScaleMode = canvas.ImageScalePixels
 
 	ctrl.x = ui.NewRegText("lX:")
 	ctrl.y = ui.NewRegText("lY:")
@@ -45,40 +33,35 @@ func newPPUControl(ppu *ppu) *ppuDebugControl {
 	ctrl.status = ui.NewRegText("Status:")
 	ctrl.control = ui.NewRegText("Control:")
 
-	ctrl.sprites = widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
+	// c1 := container.New(layout.NewFormLayout(),
+	// 	ctrl.x.Label, ctrl.x.Value,
+	// 	ctrl.y.Label, ctrl.y.Value,
+	// )
 
-	c1 := container.New(layout.NewFormLayout(),
-		ctrl.x.Label, ctrl.x.Value,
-		ctrl.y.Label, ctrl.y.Value,
-	)
+	// c2 := container.New(layout.NewFormLayout(),
+	// 	ctrl.scX.Label, ctrl.scX.Value,
+	// 	ctrl.scY.Label, ctrl.scY.Value,
+	// )
 
-	c2 := container.New(layout.NewFormLayout(),
-		ctrl.scX.Label, ctrl.scX.Value,
-		ctrl.scY.Label, ctrl.scY.Value,
-	)
+	// c3 := container.New(layout.NewFormLayout(),
+	// 	ctrl.wx.Label, ctrl.wx.Value,
+	// 	ctrl.wy.Label, ctrl.wy.Value,
+	// )
 
-	c3 := container.New(layout.NewFormLayout(),
-		ctrl.wx.Label, ctrl.wx.Value,
-		ctrl.wy.Label, ctrl.wy.Value,
-	)
+	// c4 := container.New(layout.NewFormLayout(),
+	// 	ctrl.control.Label, ctrl.control.Value,
+	// 	ctrl.status.Label, ctrl.status.Value,
+	// )
 
-	c4 := container.New(layout.NewFormLayout(),
-		ctrl.control.Label, ctrl.control.Value,
-		ctrl.status.Label, ctrl.status.Value,
-	)
+	// regs := container.New(layout.NewGridLayoutWithColumns(4), c1, c2, c3, c4)
 
-	regs := container.New(layout.NewGridLayoutWithColumns(4), c1, c2, c3, c4)
-
-	ctrl.ui = container.New(layout.NewBorderLayout(regs, ctrl.sprites, nil, nil), regs, img, ctrl.sprites)
+	// ctrl.ui = container.New(layout.NewBorderLayout(regs, ctrl.sprites, nil, nil), regs, img, ctrl.sprites)
 
 	return ctrl
 }
 
-func (ui *ppuDebugControl) HTML() string { return "" }
-
-func (ctrl *ppuDebugControl) Widget() fyne.CanvasObject {
-	return ctrl.ui
-}
+func (ui *ppuDebugControl) GetRegisters() string { return "" }
+func (ui *ppuDebugControl) GetOutput() string    { return "" }
 
 func (ctrl *ppuDebugControl) Update() {
 	ctrl.x.Update(strconv.Itoa(ctrl.ppu.lx))
@@ -103,7 +86,7 @@ func (ctrl *ppuDebugControl) Update() {
 			sb.WriteString("\n")
 		}
 	}
-	ctrl.sprites.Text = sb.String()
+	// ctrl.sprites.Text = sb.String()
 
 	for r := uint16(0); r < 12; r++ {
 		y := int(r * 8)
@@ -124,7 +107,6 @@ func (ctrl *ppuDebugControl) Update() {
 		}
 	}
 
-	ctrl.ui.Refresh()
 }
 
 /// *********************************
@@ -132,7 +114,6 @@ func (ctrl *ppuDebugControl) Update() {
 /// *********************************
 
 type timerDebugControl struct {
-	ui    fyne.CanvasObject
 	timer *timer
 
 	div, tima, tma, tac *ui.RegText
@@ -151,37 +132,33 @@ func newTimerControl(cpu lr35902.LR35902, timer *timer) *timerDebugControl {
 	ctrl.tma = ui.NewRegText("tma:")
 	ctrl.tac = ui.NewRegText("tac:")
 
-	c1 := container.New(layout.NewFormLayout(),
-		ctrl.div.Label, ctrl.div.Value,
-		ctrl.tima.Label, ctrl.tima.Value,
-	)
+	// c1 := container.New(layout.NewFormLayout(),
+	// 	ctrl.div.Label, ctrl.div.Value,
+	// 	ctrl.tima.Label, ctrl.tima.Value,
+	// )
 
-	c2 := container.New(layout.NewFormLayout(),
-		ctrl.tma.Label, ctrl.tma.Value,
-		ctrl.tac.Label, ctrl.tac.Value,
-	)
+	// c2 := container.New(layout.NewFormLayout(),
+	// 	ctrl.tma.Label, ctrl.tma.Value,
+	// 	ctrl.tac.Label, ctrl.tac.Value,
+	// )
 
-	regs := container.New(layout.NewGridLayoutWithColumns(3), c1, c2)
-	panel := container.New(layout.NewVBoxLayout(), regs, ctrl.cpu.Widget())
+	// regs := container.New(layout.NewGridLayoutWithColumns(3), c1, c2)
+	// // panel := container.New(layout.NewVBoxLayout(), regs, ctrl.cpu.Widget())
 
-	ctrl.ui = container.New(layout.NewBorderLayout(panel, nil, nil, nil), panel)
+	// ctrl.ui = container.New(layout.NewBorderLayout(panel, nil, nil, nil), panel)
 
 	return ctrl
 }
 
-func (ui *timerDebugControl) HTML() string { return ui.cpu.HTML() }
-
-func (ctrl *timerDebugControl) Widget() fyne.CanvasObject {
-	return ctrl.ui
-}
+func (ui *timerDebugControl) GetRegisters() string { return ui.cpu.GetRegisters() }
+func (ui *timerDebugControl) GetOutput() string    { return ui.cpu.GetOutput() }
 
 func (ctrl *timerDebugControl) Update() {
 	ctrl.div.Update(strconv.Itoa(int(ctrl.timer.div)))
 	ctrl.tima.Update(strconv.Itoa(int(ctrl.timer.tima)))
 	ctrl.tma.Update(strconv.Itoa(int(ctrl.timer.tma)))
 	ctrl.tac.Update(strconv.Itoa(int(ctrl.timer.tac)))
-	ctrl.cpu.Update()
-	ctrl.ui.Refresh()
+	// ctrl.cpu.Update()
 }
 
 /// *********************************
@@ -189,35 +166,29 @@ func (ctrl *timerDebugControl) Update() {
 /// *********************************
 
 type serialDebugControl struct {
-	ui     *fyne.Container
-	text   *widget.Label
 	buffer *[]byte
 }
 
 func newSerialControl(buffer *[]byte) *serialDebugControl {
 	ctrl := &serialDebugControl{
 		buffer: buffer,
-		text:   &widget.Label{},
 	}
 
 	// ctrl.text.Color = color.Black
 	// ctrl.text.TextSize = fyne.CurrentApp().Settings().Theme().Size("text")
-	ctrl.text.TextStyle = fyne.TextStyle{Monospace: true}
+	// ctrl.text.TextStyle = fyne.TextStyle{Monospace: true}
 
-	ctrl.ui = container.New(layout.NewBorderLayout(nil, nil, nil, nil), ctrl.text)
+	// ctrl.ui = container.New(layout.NewBorderLayout(nil, nil, nil, nil), ctrl.text)
 
 	return ctrl
 }
 
-func (ui *serialDebugControl) HTML() string { return "" }
-
-func (ctrl *serialDebugControl) Widget() fyne.CanvasObject {
-	return ctrl.ui
-}
+func (ui *serialDebugControl) GetRegisters() string { return "" }
+func (ui *serialDebugControl) GetOutput() string    { return "" }
 
 func (ctrl *serialDebugControl) Update() {
-	ctrl.text.Text = hex.Dump(*ctrl.buffer)
-	ctrl.ui.Refresh()
+	// ctrl.text.Text = hex.Dump(*ctrl.buffer)
+	// ctrl.ui.Refresh()
 }
 
 /// *********************************
@@ -225,7 +196,6 @@ func (ctrl *serialDebugControl) Update() {
 /// *********************************
 
 type soundCtrl struct {
-	ui  fyne.CanvasObject
 	apu *apu
 
 	ch1On, ch2On, ch3On, ch4On *ui.RegText
@@ -250,31 +220,28 @@ func newSoundCtrl(apu *apu) *soundCtrl {
 		}
 	}
 
-	cols := []fyne.CanvasObject{
-		container.New(layout.NewFormLayout(), ctrl.ch1On.Label, ctrl.ch1On.Value),
-		container.New(layout.NewFormLayout(), ctrl.ch2On.Label, ctrl.ch2On.Value),
-		container.New(layout.NewFormLayout(), ctrl.ch3On.Label, ctrl.ch3On.Value),
-		container.New(layout.NewFormLayout(), ctrl.ch4On.Label, ctrl.ch4On.Value),
-	}
+	// cols := []fyne.CanvasObject{
+	// 	container.New(layout.NewFormLayout(), ctrl.ch1On.Label, ctrl.ch1On.Value),
+	// 	container.New(layout.NewFormLayout(), ctrl.ch2On.Label, ctrl.ch2On.Value),
+	// 	container.New(layout.NewFormLayout(), ctrl.ch3On.Label, ctrl.ch3On.Value),
+	// 	container.New(layout.NewFormLayout(), ctrl.ch4On.Label, ctrl.ch4On.Value),
+	// }
 
-	for c := 0; c < 4; c++ {
-		for r := 0; r < 5; r++ {
-			cols[c].(*fyne.Container).Add(ctrl.regs[c][r].Label)
-			cols[c].(*fyne.Container).Add(ctrl.regs[c][r].Value)
-		}
-	}
+	// for c := 0; c < 4; c++ {
+	// 	for r := 0; r < 5; r++ {
+	// 		cols[c].(*fyne.Container).Add(ctrl.regs[c][r].Label)
+	// 		cols[c].(*fyne.Container).Add(ctrl.regs[c][r].Value)
+	// 	}
+	// }
 
-	regs := container.New(layout.NewGridLayoutWithColumns(4), cols...)
-	ctrl.ui = container.New(layout.NewBorderLayout(regs, nil, nil, nil), regs)
+	// regs := container.New(layout.NewGridLayoutWithColumns(4), cols...)
+	// ctrl.ui = container.New(layout.NewBorderLayout(regs, nil, nil, nil), regs)
 
 	return ctrl
 }
 
-func (ui *soundCtrl) HTML() string { return "" }
-
-func (ctrl *soundCtrl) Widget() fyne.CanvasObject {
-	return ctrl.ui
-}
+func (ui *soundCtrl) GetRegisters() string { return "" }
+func (ui *soundCtrl) GetOutput() string    { return "" }
 
 func (ctrl *soundCtrl) Update() {
 	if ctrl.apu.channels[0].isOn() {
@@ -304,5 +271,4 @@ func (ctrl *soundCtrl) Update() {
 		}
 	}
 
-	ctrl.ui.Refresh()
 }

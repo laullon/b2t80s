@@ -1,72 +1,63 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 
 <head>
-  <title>Photon</title>
-  <link rel="stylesheet" href="../css/photon.min.css">
-  <script>
-    function update() {
-      getStatus().then(function (status) {
-        document.getElementById("status").innerHTML = status;
-      })
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="app.css">
+    <script type="text/javascript" src="drag.js"></script>
+    <script type="text/javascript">
+        function update() {
+            getStatus().then(function (status) {
+                document.getElementById("status").innerHTML = status;
+            })
+            getOutput().then(function (status) {
+                document.getElementById("output").innerHTML = status;
+            })
+            getRegisters().then(function (status) {
+                document.getElementById("registers").innerHTML = status;
+            })
 
-      getCPU().then(function (status) {
-        document.getElementById("debuger").innerHTML = status;
-      })
-
-    }
-
-    initUI()
-    // var myVar = setInterval(update, 500);
-  </script>
-
-  <style>
-    .dbgbth {
-      width: 100%;
-    }
-  </style>
-
+        }
+    </script>
 </head>
 
 <body>
-
-  <div class="window">
-    <div class="window-content">
-      <div class="pane-group">
-        <div class="pane">
-          <img src="/video">
+    <div id="main">
+        <div id="left">
+            <img id="display" src="/video">
         </div>
-        <div class="pane">
-          <div class="main">
-            <strong>Debuger</strong>
-
-            <div id="debugStop" class="btn-group dbgbth">
-              <div class="btn btn-default" onclick="debugerStop()">Stop</div>
-              <div class="btn btn-default" onclick="debugerStopNextInterrupt()">Stop on Interrup</div>
+        <div id="separator"></div>
+        <div id="right">
+            <div class="panel">
+                <div id="debug">
+                    <div id="debugStop">
+                        <button style="width:50%" onclick="debugerStop()">Stop</button>
+                        <button style="width:50%" onclick="debugerStopNextInterrupt()">Stop onInterrup</button>
+                    </div>
+                    <div id="debugStep">
+                        <button style="width:25%" onclick="debugerContinue()">Continue</button>
+                        <button style="width:25%" onclick="debugerStep()">Step</button>
+                        <button style="width:25%" onclick="debugerStepLine()">Step Line</button>
+                        <button style="width:25%" onclick="StepFrame()">Step Frame</button>
+                    </div>
+                </div>
+                <div id="tabs">
+                </div>
+                <div id="registers">
+                </div>
+                <div id="output" class="text-left">
+                </div>
             </div>
-            <div id="debugStep" class="btn-group dbgbth">
-              <div class="btn btn-default" onclick="debugerContinue()">Continue</div>
-              <div class="btn btn-default" onclick="debugerStep()">Step</div>
-              <div class="btn btn-default" onclick="debugerStepLine()">Step Line</div>
-              <div class="btn btn-default" onclick="StepFrame()">Step Frame</div>
-            </div>
-
-            <div id="tabs" class="tab-group">
-            </div>
-
-            <div id="debuger">
-            </div>
-
-          </div>
         </div>
-      </div>
     </div>
-
-    <footer class="toolbar toolbar-footer">
-      <h1 id="status" class="title">Footer</h1>
+    <footer id="status">
     </footer>
-
-  </div>
+    <script type="text/javascript">
+        drag();
+        initUI();
+        setInterval(update, 500);
+    </script>
 </body>
 
 </html>
