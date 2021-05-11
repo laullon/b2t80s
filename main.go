@@ -98,12 +98,12 @@ func main() {
 		}
 	}
 
-	var win emulator.Window
+	var debugWin emulator.Window
 	if *emulator.Debug {
-		win = emulator.NewDebugWindow(name, machine)
-	} else {
-		win = emulator.NewWindow(name, machine)
+		debugWin = emulator.NewDebugWindow(name, machine)
 	}
+
+	win := emulator.NewWindow(name, machine)
 	win.SetOnKey(machine.OnKey)
 
 	wait := time.Duration(time.Second)
@@ -118,6 +118,11 @@ func main() {
 	go func() {
 		machine.Clock().Run()
 	}()
+
+	if debugWin != nil {
+		debugWin.Run()
+	}
+
 	win.Run()
 
 	// ui.App = app.New()

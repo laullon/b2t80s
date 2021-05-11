@@ -6,29 +6,21 @@ import (
 )
 
 type Display struct {
-	image.RGBA
 	ViewPortRect image.Rectangle
 	Size         image.Point
+	Image        *image.RGBA
 }
 
 func NewDisplay(r image.Rectangle) *Display {
 	res := &Display{}
-	res.Pix = make([]uint8, uint64(4)*uint64(r.Max.X)*uint64(r.Max.Y)*2)
-	res.Stride = 4 * r.Dx()
-	res.Rect = r
+	res.Image = image.NewRGBA(r)
 	res.ViewPortRect = r
 	res.Size = r.Size()
 	return res
 }
 
-func (p *Display) SetRGBA(x, y int, c color.RGBA) {
-	if !(image.Point{x, y}.In(p.Rect)) {
-		return
-	}
-	i := p.PixOffset(x, p.Rect.Max.Y-y)
-	s := p.Pix[i : i+4 : i+4] // Small cap improves performance, see https://golang.org/issue/27857
-	s[0] = c.R
-	s[1] = c.G
-	s[2] = c.B
-	s[3] = c.A
-}
+func (p *Display) ColorModel() color.Model        { return p.Image.ColorModel() }
+func (p *Display) Bounds() image.Rectangle        { return p.Image.Bounds() }
+func (p *Display) At(x, y int) color.Color        { return p.Image.At(x, y) }
+func (p *Display) Set(x, y int, c color.Color)    { p.Image.Set(x, p.Image.Bounds().Dy()-y, c) }
+func (p *Display) SetRGBA(x, y int, c color.RGBA) { p.Image.SetRGBA(x, p.Image.Bounds().Dy()-y, c) }

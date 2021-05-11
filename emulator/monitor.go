@@ -44,7 +44,7 @@ func (monitor *monitor) Screen() *Display {
 
 func (monitor *monitor) FrameDone() {
 	monitor.frames++
-	copy(monitor.screen.Pix, monitor.vram.Pix)
+	copy(monitor.screen.Image.Pix, monitor.vram.Image.Pix)
 	monitor.screen.ViewPortRect = monitor.vram.ViewPortRect
 	monitor.screen.Size = monitor.vram.Size
 	go func() {
