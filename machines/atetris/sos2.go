@@ -69,8 +69,8 @@ func (d *sos2) Tick() {
 			cIdx0 := palette | ((pixels >> 4) & 0xf)
 			cIdx1 := palette | (pixels & 0xf)
 
-			d.display.Set(d.h+x, d.v, d.color.colors[cIdx0])
-			d.display.Set(d.h+x+1, d.v, d.color.colors[cIdx1])
+			d.display.SetRGBA(d.h+x, d.v, d.color.colors[cIdx0])
+			d.display.SetRGBA(d.h+x+1, d.v, d.color.colors[cIdx1])
 			char++
 		}
 	}

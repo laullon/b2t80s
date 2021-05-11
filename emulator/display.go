@@ -7,6 +7,8 @@ import (
 
 type Display struct {
 	image.RGBA
+	ViewPortRect image.Rectangle
+	Size         image.Point
 }
 
 func NewDisplay(r image.Rectangle) *Display {
@@ -14,6 +16,8 @@ func NewDisplay(r image.Rectangle) *Display {
 	res.Pix = make([]uint8, uint64(4)*uint64(r.Max.X)*uint64(r.Max.Y)*2)
 	res.Stride = 4 * r.Dx()
 	res.Rect = r
+	res.ViewPortRect = r
+	res.Size = r.Size()
 	return res
 }
 

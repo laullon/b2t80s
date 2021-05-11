@@ -10,6 +10,7 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
+	"time"
 
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/machines/atetris"
@@ -97,21 +98,27 @@ func main() {
 		}
 	}
 
-	win := emulator.NewDebugWindow(name, machine)
+	var win emulator.Window
+	if *emulator.Debug {
+		win = emulator.NewDebugWindow(name, machine)
+	} else {
+		win = emulator.NewWindow(name, machine)
+	}
 	win.SetOnKey(machine.OnKey)
+
+	wait := time.Duration(time.Second)
+	ticker := time.NewTicker(wait)
+	go func() {
+		for range ticker.C {
+			// w.Eval(`alert("pp")`)
+			fmt.Printf("time: %s - FPS: %03.2f\n", machine.Clock().Stats(), machine.Monitor().FPS())
+		}
+	}()
+
 	go func() {
 		machine.Clock().Run()
 	}()
 	win.Run()
-
-	// 	wait := time.Duration(time.Second)
-	// 	ticker := time.NewTicker(wait)
-	// 	go func() {
-	// 		for range ticker.C {
-	// 			// w.Eval(`alert("pp")`)
-	// 			fmt.Printf("time: %s - FPS: %03.2f\n", machine.Clock().Stats(), machine.Monitor().FPS())
-	// 		}
-	// 	}()
 
 	// ui.App = app.New()
 

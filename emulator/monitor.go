@@ -45,11 +45,15 @@ func (monitor *monitor) Screen() *Display {
 func (monitor *monitor) FrameDone() {
 	monitor.frames++
 	copy(monitor.screen.Pix, monitor.vram.Pix)
-	monitor.redraw()
+	monitor.screen.ViewPortRect = monitor.vram.ViewPortRect
+	monitor.screen.Size = monitor.vram.Size
+	go func() {
+		monitor.redraw()
+	}()
 }
 
 func (monitor *monitor) FPS() float64 {
-	seconds := time.Now().Sub(monitor.start).Seconds()
+	seconds := time.Since(monitor.start).Seconds()
 	res := monitor.frames / seconds
 	if seconds > 2 {
 		monitor.frames = 0
