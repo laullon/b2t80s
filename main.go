@@ -24,8 +24,6 @@ import (
 )
 
 func main() {
-	// TODO: REMOVE, just to prevent crashed
-	// ui.App = app.NewWithID("io.fyne.test")
 
 	emulator.CartFile = flag.String("cart", "", "NESncart file to load")
 	emulator.TapFile = flag.String("tap", "", "tap file to load")
@@ -98,30 +96,25 @@ func main() {
 		}
 	}
 
-	var debugWin emulator.Window
-	if *emulator.Debug {
-		debugWin = emulator.NewDebugWindow(name, machine)
-	}
-
 	win := emulator.NewWindow(name, machine)
 	win.SetOnKey(machine.OnKey)
+
+	if *emulator.Debug {
+		emulator.NewDebugWindow(name, machine)
+	}
 
 	wait := time.Duration(time.Second)
 	ticker := time.NewTicker(wait)
 	go func() {
 		for range ticker.C {
-			// w.Eval(`alert("pp")`)
 			fmt.Printf("time: %s - FPS: %03.2f\n", machine.Clock().Stats(), machine.Monitor().FPS())
 		}
 	}()
 
 	go func() {
+		time.Sleep(time.Second * 3)
 		machine.Clock().Run()
 	}()
-
-	if debugWin != nil {
-		debugWin.Run()
-	}
 
 	win.Run()
 

@@ -3,11 +3,10 @@ package cpc
 import (
 	"sync"
 
-	"github.com/go-gl/glfw/v3.3/glfw"
-
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/ay8912"
 	"github.com/laullon/b2t80s/emulator/storage/cassette"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 const (
@@ -229,182 +228,182 @@ func (ppi *ppi) readC() (res byte) {
 	return res
 }
 
-func (ppi *ppi) OnKey(key glfw.Key) {
-	switch key {
+func (ppi *ppi) OnKey(key sdl.Scancode) {
+	// switch key {
 
-	case glfw.KeyUp:
-		ppi.keyboardRows[0] ^= 0b00000001
-	case glfw.KeyRight:
-		ppi.keyboardRows[0] ^= 0b00000010
-	case glfw.KeyDown:
-		ppi.keyboardRows[0] ^= 0b00000100
-	case glfw.KeyF9:
-		ppi.keyboardRows[0] ^= 0b00001000
-	case glfw.KeyF6:
-		ppi.keyboardRows[0] ^= 0b00010000
-	case glfw.KeyF3:
-		ppi.keyboardRows[0] ^= 0b00100000
-	case glfw.KeyEnter:
-		ppi.keyboardRows[0] ^= 0b01000000
-	case glfw.KeyF11:
-		ppi.keyboardRows[0] ^= 0b10000000
-
-	case glfw.KeyLeft:
-		ppi.keyboardRows[1] ^= 0b00000001
-	// case glfw.Key: COPY
-	// 	ppi.keyboardRows[1] ^= 0b00000010
-	case glfw.KeyF7:
-		ppi.keyboardRows[1] ^= 0b00000100
-	case glfw.KeyF8:
-		ppi.keyboardRows[1] ^= 0b00001000
-	case glfw.KeyF5:
-		ppi.keyboardRows[1] ^= 0b00010000
-	case glfw.KeyF1:
-		ppi.keyboardRows[1] ^= 0b00100000
-	case glfw.KeyF2:
-		ppi.keyboardRows[1] ^= 0b01000000
-	case glfw.KeyF10:
-		ppi.keyboardRows[1] ^= 0b10000000
-
-	// case glfw.KeyUp: CLR
-	// 	ppi.keyboardRows[2] ^= 0b00000001
-	case glfw.KeyLeftBracket:
-		ppi.keyboardRows[2] ^= 0b00000010
-	case glfw.KeyKPEnter:
-		ppi.keyboardRows[2] ^= 0b00000100
-	case glfw.KeyRightBracket:
-		ppi.keyboardRows[2] ^= 0b00001000
-	case glfw.KeyF4:
-		ppi.keyboardRows[2] ^= 0b00010000
-	case glfw.KeyLeftShift, glfw.KeyRightShift:
-		ppi.keyboardRows[2] ^= 0b00100000
-	case glfw.KeyBackslash:
-		ppi.keyboardRows[2] ^= 0b01000000
-	case glfw.KeyLeftControl, glfw.KeyRightControl:
-		ppi.keyboardRows[2] ^= 0b10000000
-
-	// case glfw.KeyUp: ^
-	// 	ppi.keyboardRows[3] ^= 0b00000001
-	case glfw.KeyMinus:
-		ppi.keyboardRows[3] ^= 0b00000010
-	case glfw.KeyApostrophe:
-		ppi.keyboardRows[3] ^= 0b00000100
-	case glfw.KeyP:
-		ppi.keyboardRows[3] ^= 0b00001000
-	case glfw.KeySemicolon:
-		ppi.keyboardRows[3] ^= 0b00010000
-	// case fyne.Ke: :
-	// 	ppi.keyboardRows[3] ^= 0b00100000
-	case glfw.KeySlash:
-		ppi.keyboardRows[3] ^= 0b01000000
-	case glfw.KeyPeriod:
-		ppi.keyboardRows[3] ^= 0b10000000
-
-	case glfw.Key0:
-		ppi.keyboardRows[4] ^= 0b00000001
-	case glfw.Key9:
-		ppi.keyboardRows[4] ^= 0b00000010
-	case glfw.KeyO:
-		ppi.keyboardRows[4] ^= 0b00000100
-	case glfw.KeyI:
-		ppi.keyboardRows[4] ^= 0b00001000
-	case glfw.KeyL:
-		ppi.keyboardRows[4] ^= 0b00010000
-	case glfw.KeyK:
-		ppi.keyboardRows[4] ^= 0b00100000
-	case glfw.KeyM:
-		ppi.keyboardRows[4] ^= 0b01000000
-	case glfw.KeyComma:
-		ppi.keyboardRows[4] ^= 0b10000000
-
-	case glfw.Key8:
-		ppi.keyboardRows[5] ^= 0b00000001
-	case glfw.Key7:
-		ppi.keyboardRows[5] ^= 0b00000010
-	case glfw.KeyU:
-		ppi.keyboardRows[5] ^= 0b00000100
-	case glfw.KeyY:
-		ppi.keyboardRows[5] ^= 0b00001000
-	case glfw.KeyH:
-		ppi.keyboardRows[5] ^= 0b00010000
-	case glfw.KeyJ:
-		ppi.keyboardRows[5] ^= 0b00100000
-	case glfw.KeyN:
-		ppi.keyboardRows[5] ^= 0b01000000
-	case glfw.KeySpace:
-		ppi.keyboardRows[5] ^= 0b10000000
-
-	case glfw.Key6:
-		ppi.keyboardRows[6] ^= 0b00000001
-	case glfw.Key5:
-		ppi.keyboardRows[6] ^= 0b00000010
-	case glfw.KeyR:
-		ppi.keyboardRows[6] ^= 0b00000100
-	case glfw.KeyT:
-		ppi.keyboardRows[6] ^= 0b00001000
-	case glfw.KeyG:
-		ppi.keyboardRows[6] ^= 0b00010000
-	case glfw.KeyF:
-		ppi.keyboardRows[6] ^= 0b00100000
-	case glfw.KeyB:
-		ppi.keyboardRows[6] ^= 0b01000000
-	case glfw.KeyV:
-		ppi.keyboardRows[6] ^= 0b10000000
-
-	case glfw.Key4:
-		ppi.keyboardRows[7] ^= 0b00000001
-	case glfw.Key3:
-		ppi.keyboardRows[7] ^= 0b00000010
-	case glfw.KeyE:
-		ppi.keyboardRows[7] ^= 0b00000100
-	case glfw.KeyW:
-		ppi.keyboardRows[7] ^= 0b00001000
-	case glfw.KeyS:
-		ppi.keyboardRows[7] ^= 0b00010000
-	case glfw.KeyD:
-		ppi.keyboardRows[7] ^= 0b00100000
-	case glfw.KeyC:
-		ppi.keyboardRows[7] ^= 0b01000000
-	case glfw.KeyX:
-		ppi.keyboardRows[7] ^= 0b10000000
-
-	case glfw.Key1:
-		ppi.keyboardRows[8] ^= 0b00000001
-	case glfw.Key2:
-		ppi.keyboardRows[8] ^= 0b00000010
-	case glfw.KeyEscape:
-		ppi.keyboardRows[8] ^= 0b00000100
-	case glfw.KeyQ:
-		ppi.keyboardRows[8] ^= 0b00001000
-	case glfw.KeyTab:
-		ppi.keyboardRows[8] ^= 0b00010000
-	case glfw.KeyA:
-		ppi.keyboardRows[8] ^= 0b00100000
-	// case glfw.Key: CAPSLOCK
-	// ppi.keyboardRows[8] ^= 0b01000000
-	case glfw.KeyZ:
-		ppi.keyboardRows[8] ^= 0b10000000
-
-	// case glfw.KeyUp: JOY1
-	// 	ppi.keyboardRows[9] ^= 0b00000001
+	// case glfw.KeyUp:
+	// 	ppi.keyboardRows[0] ^= 0b00000001
 	// case glfw.KeyRight:
-	// 	ppi.keyboardRows[9] ^= 0b00000010
+	// 	ppi.keyboardRows[0] ^= 0b00000010
 	// case glfw.KeyDown:
-	// 	ppi.keyboardRows[9] ^= 0b00000100
+	// 	ppi.keyboardRows[0] ^= 0b00000100
 	// case glfw.KeyF9:
-	// 	ppi.keyboardRows[9] ^= 0b00001000
+	// 	ppi.keyboardRows[0] ^= 0b00001000
 	// case glfw.KeyF6:
-	// 	ppi.keyboardRows[9] ^= 0b00010000
+	// 	ppi.keyboardRows[0] ^= 0b00010000
 	// case glfw.KeyF3:
-	// 	ppi.keyboardRows[9] ^= 0b00100000
+	// 	ppi.keyboardRows[0] ^= 0b00100000
 	// case glfw.KeyEnter:
-	// 	ppi.keyboardRows[9] ^= 0b01000000
-	case glfw.KeyDelete, glfw.KeyBackspace:
-		ppi.keyboardRows[9] ^= 0b10000000
+	// 	ppi.keyboardRows[0] ^= 0b01000000
+	// case glfw.KeyF11:
+	// 	ppi.keyboardRows[0] ^= 0b10000000
 
-		// default:
-		// fmt.Println("key:", key.Name)
-	}
+	// case glfw.KeyLeft:
+	// 	ppi.keyboardRows[1] ^= 0b00000001
+	// // case glfw.Key: COPY
+	// // 	ppi.keyboardRows[1] ^= 0b00000010
+	// case glfw.KeyF7:
+	// 	ppi.keyboardRows[1] ^= 0b00000100
+	// case glfw.KeyF8:
+	// 	ppi.keyboardRows[1] ^= 0b00001000
+	// case glfw.KeyF5:
+	// 	ppi.keyboardRows[1] ^= 0b00010000
+	// case glfw.KeyF1:
+	// 	ppi.keyboardRows[1] ^= 0b00100000
+	// case glfw.KeyF2:
+	// 	ppi.keyboardRows[1] ^= 0b01000000
+	// case glfw.KeyF10:
+	// 	ppi.keyboardRows[1] ^= 0b10000000
+
+	// // case glfw.KeyUp: CLR
+	// // 	ppi.keyboardRows[2] ^= 0b00000001
+	// case glfw.KeyLeftBracket:
+	// 	ppi.keyboardRows[2] ^= 0b00000010
+	// case glfw.KeyKPEnter:
+	// 	ppi.keyboardRows[2] ^= 0b00000100
+	// case glfw.KeyRightBracket:
+	// 	ppi.keyboardRows[2] ^= 0b00001000
+	// case glfw.KeyF4:
+	// 	ppi.keyboardRows[2] ^= 0b00010000
+	// case glfw.KeyLeftShift, glfw.KeyRightShift:
+	// 	ppi.keyboardRows[2] ^= 0b00100000
+	// case glfw.KeyBackslash:
+	// 	ppi.keyboardRows[2] ^= 0b01000000
+	// case glfw.KeyLeftControl, glfw.KeyRightControl:
+	// 	ppi.keyboardRows[2] ^= 0b10000000
+
+	// // case glfw.KeyUp: ^
+	// // 	ppi.keyboardRows[3] ^= 0b00000001
+	// case glfw.KeyMinus:
+	// 	ppi.keyboardRows[3] ^= 0b00000010
+	// case glfw.KeyApostrophe:
+	// 	ppi.keyboardRows[3] ^= 0b00000100
+	// case glfw.KeyP:
+	// 	ppi.keyboardRows[3] ^= 0b00001000
+	// case glfw.KeySemicolon:
+	// 	ppi.keyboardRows[3] ^= 0b00010000
+	// // case fyne.Ke: :
+	// // 	ppi.keyboardRows[3] ^= 0b00100000
+	// case glfw.KeySlash:
+	// 	ppi.keyboardRows[3] ^= 0b01000000
+	// case glfw.KeyPeriod:
+	// 	ppi.keyboardRows[3] ^= 0b10000000
+
+	// case glfw.Key0:
+	// 	ppi.keyboardRows[4] ^= 0b00000001
+	// case glfw.Key9:
+	// 	ppi.keyboardRows[4] ^= 0b00000010
+	// case glfw.KeyO:
+	// 	ppi.keyboardRows[4] ^= 0b00000100
+	// case glfw.KeyI:
+	// 	ppi.keyboardRows[4] ^= 0b00001000
+	// case glfw.KeyL:
+	// 	ppi.keyboardRows[4] ^= 0b00010000
+	// case glfw.KeyK:
+	// 	ppi.keyboardRows[4] ^= 0b00100000
+	// case glfw.KeyM:
+	// 	ppi.keyboardRows[4] ^= 0b01000000
+	// case glfw.KeyComma:
+	// 	ppi.keyboardRows[4] ^= 0b10000000
+
+	// case glfw.Key8:
+	// 	ppi.keyboardRows[5] ^= 0b00000001
+	// case glfw.Key7:
+	// 	ppi.keyboardRows[5] ^= 0b00000010
+	// case glfw.KeyU:
+	// 	ppi.keyboardRows[5] ^= 0b00000100
+	// case glfw.KeyY:
+	// 	ppi.keyboardRows[5] ^= 0b00001000
+	// case glfw.KeyH:
+	// 	ppi.keyboardRows[5] ^= 0b00010000
+	// case glfw.KeyJ:
+	// 	ppi.keyboardRows[5] ^= 0b00100000
+	// case glfw.KeyN:
+	// 	ppi.keyboardRows[5] ^= 0b01000000
+	// case glfw.KeySpace:
+	// 	ppi.keyboardRows[5] ^= 0b10000000
+
+	// case glfw.Key6:
+	// 	ppi.keyboardRows[6] ^= 0b00000001
+	// case glfw.Key5:
+	// 	ppi.keyboardRows[6] ^= 0b00000010
+	// case glfw.KeyR:
+	// 	ppi.keyboardRows[6] ^= 0b00000100
+	// case glfw.KeyT:
+	// 	ppi.keyboardRows[6] ^= 0b00001000
+	// case glfw.KeyG:
+	// 	ppi.keyboardRows[6] ^= 0b00010000
+	// case glfw.KeyF:
+	// 	ppi.keyboardRows[6] ^= 0b00100000
+	// case glfw.KeyB:
+	// 	ppi.keyboardRows[6] ^= 0b01000000
+	// case glfw.KeyV:
+	// 	ppi.keyboardRows[6] ^= 0b10000000
+
+	// case glfw.Key4:
+	// 	ppi.keyboardRows[7] ^= 0b00000001
+	// case glfw.Key3:
+	// 	ppi.keyboardRows[7] ^= 0b00000010
+	// case glfw.KeyE:
+	// 	ppi.keyboardRows[7] ^= 0b00000100
+	// case glfw.KeyW:
+	// 	ppi.keyboardRows[7] ^= 0b00001000
+	// case glfw.KeyS:
+	// 	ppi.keyboardRows[7] ^= 0b00010000
+	// case glfw.KeyD:
+	// 	ppi.keyboardRows[7] ^= 0b00100000
+	// case glfw.KeyC:
+	// 	ppi.keyboardRows[7] ^= 0b01000000
+	// case glfw.KeyX:
+	// 	ppi.keyboardRows[7] ^= 0b10000000
+
+	// case glfw.Key1:
+	// 	ppi.keyboardRows[8] ^= 0b00000001
+	// case glfw.Key2:
+	// 	ppi.keyboardRows[8] ^= 0b00000010
+	// case glfw.KeyEscape:
+	// 	ppi.keyboardRows[8] ^= 0b00000100
+	// case glfw.KeyQ:
+	// 	ppi.keyboardRows[8] ^= 0b00001000
+	// case glfw.KeyTab:
+	// 	ppi.keyboardRows[8] ^= 0b00010000
+	// case glfw.KeyA:
+	// 	ppi.keyboardRows[8] ^= 0b00100000
+	// // case glfw.Key: CAPSLOCK
+	// // ppi.keyboardRows[8] ^= 0b01000000
+	// case glfw.KeyZ:
+	// 	ppi.keyboardRows[8] ^= 0b10000000
+
+	// // case glfw.KeyUp: JOY1
+	// // 	ppi.keyboardRows[9] ^= 0b00000001
+	// // case glfw.KeyRight:
+	// // 	ppi.keyboardRows[9] ^= 0b00000010
+	// // case glfw.KeyDown:
+	// // 	ppi.keyboardRows[9] ^= 0b00000100
+	// // case glfw.KeyF9:
+	// // 	ppi.keyboardRows[9] ^= 0b00001000
+	// // case glfw.KeyF6:
+	// // 	ppi.keyboardRows[9] ^= 0b00010000
+	// // case glfw.KeyF3:
+	// // 	ppi.keyboardRows[9] ^= 0b00100000
+	// // case glfw.KeyEnter:
+	// // 	ppi.keyboardRows[9] ^= 0b01000000
+	// case glfw.KeyDelete, glfw.KeyBackspace:
+	// 	ppi.keyboardRows[9] ^= 0b10000000
+
+	// 	// default:
+	// 	// fmt.Println("key:", key.Name)
+	// }
 }
 
 func (ppi *ppi) SoundTick() {

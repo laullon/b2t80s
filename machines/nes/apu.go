@@ -3,9 +3,9 @@ package nes
 import (
 	"fmt"
 
-	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/m6502"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 type apu struct {
@@ -141,25 +141,25 @@ func (apu *apu) WritePort(addr uint16, data byte) {
 	}
 }
 
-func (apu *apu) OnKey(key glfw.Key) {
+func (apu *apu) OnKey(key sdl.Scancode) {
 	// fmt.Println("key:", key.Name)
-	switch key {
+	// switch key {
 
-	case glfw.KeyZ: // A
-		apu.ctrl0 ^= 0b00000001
-	case glfw.KeyX: // B
-		apu.ctrl0 ^= 0b00000010
-	case glfw.Key1: //select
-		apu.ctrl0 ^= 0b00000100
-	case glfw.Key2: // start
-		apu.ctrl0 ^= 0b00001000
-	case glfw.KeyUp:
-		apu.ctrl0 ^= 0b00010000
-	case glfw.KeyDown:
-		apu.ctrl0 ^= 0b00100000
-	case glfw.KeyLeft:
-		apu.ctrl0 ^= 0b01000000
-	case glfw.KeyRight:
-		apu.ctrl0 ^= 0b10000000
-	}
+	// case glfw.KeyZ: // A
+	// 	apu.ctrl0 ^= 0b00000001
+	// case glfw.KeyX: // B
+	// 	apu.ctrl0 ^= 0b00000010
+	// case glfw.Key1: //select
+	// 	apu.ctrl0 ^= 0b00000100
+	// case glfw.Key2: // start
+	// 	apu.ctrl0 ^= 0b00001000
+	// case glfw.KeyUp:
+	// 	apu.ctrl0 ^= 0b00010000
+	// case glfw.KeyDown:
+	// 	apu.ctrl0 ^= 0b00100000
+	// case glfw.KeyLeft:
+	// 	apu.ctrl0 ^= 0b01000000
+	// case glfw.KeyRight:
+	// 	apu.ctrl0 ^= 0b10000000
+	// }
 }

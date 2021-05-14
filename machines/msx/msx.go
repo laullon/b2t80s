@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/z80"
 	"github.com/laullon/b2t80s/data"
@@ -14,6 +13,7 @@ import (
 	"github.com/laullon/b2t80s/machines/msx/cartridge"
 	"github.com/laullon/b2t80s/ui"
 	"github.com/laullon/b2t80s/utils"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 const (
@@ -166,7 +166,7 @@ func (msx *msx) WritePort(port uint16, data byte) {
 	}
 }
 
-func (msx *msx) OnKey(key glfw.Key) {
+func (msx *msx) OnKey(key sdl.Scancode) {
 	msx.ppi.OnKey(key)
 }
 

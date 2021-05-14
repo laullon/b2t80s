@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/lr35902"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/machines/gameboy/mappers"
 	"github.com/laullon/b2t80s/ui"
 	"github.com/laullon/b2t80s/utils"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 type gb struct {
@@ -200,28 +200,28 @@ func (gb *gb) WritePort(addr uint16, data byte) {
 	}
 }
 
-func (gb *gb) OnKey(key glfw.Key) {
-	// fmt.Println("key:", key.Name)
-	switch key {
+func (gb *gb) OnKey(key sdl.Scancode) {
+	// // fmt.Println("key:", key.Name)
+	// switch key {
 
-	case glfw.KeyZ: // A
-		gb.buttons ^= 0b00000001
-	case glfw.KeyX: // B
-		gb.buttons ^= 0b00000010
-	case glfw.Key1: //select
-		gb.buttons ^= 0b00000100
-	case glfw.Key2: // start
-		gb.buttons ^= 0b00001000
+	// case glfw.KeyZ: // A
+	// 	gb.buttons ^= 0b00000001
+	// case glfw.KeyX: // B
+	// 	gb.buttons ^= 0b00000010
+	// case glfw.Key1: //select
+	// 	gb.buttons ^= 0b00000100
+	// case glfw.Key2: // start
+	// 	gb.buttons ^= 0b00001000
 
-	case glfw.KeyRight:
-		gb.pad ^= 0b00000001
-	case glfw.KeyLeft:
-		gb.pad ^= 0b00000010
-	case glfw.KeyUp:
-		gb.pad ^= 0b00000100
-	case glfw.KeyDown:
-		gb.pad ^= 0b00001000
-	}
+	// case glfw.KeyRight:
+	// 	gb.pad ^= 0b00000001
+	// case glfw.KeyLeft:
+	// 	gb.pad ^= 0b00000010
+	// case glfw.KeyUp:
+	// 	gb.pad ^= 0b00000100
+	// case glfw.KeyDown:
+	// 	gb.pad ^= 0b00001000
+	// }
 }
 
 // ************************

@@ -48,7 +48,7 @@ func (monitor *monitor) FrameDone() {
 	monitor.screen.ViewPortRect = monitor.vram.ViewPortRect
 	monitor.screen.Size = monitor.vram.Size
 	go func() {
-		monitor.redraw()
+		// monitor.redraw()
 	}()
 }
 

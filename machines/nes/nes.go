@@ -1,12 +1,12 @@
 package nes
 
 import (
-	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/m6502"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/machines/nes/mappers"
 	"github.com/laullon/b2t80s/ui"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 var ntscClock = uint(1_789_773)
@@ -107,7 +107,7 @@ func (t *nes) Debugger() emulator.Debugger     { return t.debugger }
 func (t *nes) Monitor() emulator.Monitor       { return t.ppu.monitor }
 func (t *nes) Clock() emulator.Clock           { return t.clock }
 func (t *nes) GetVolumeControl() func(float64) { return func(f float64) {} }
-func (t *nes) OnKey(key glfw.Key)              { t.apu.OnKey(key) }
+func (t *nes) OnKey(key sdl.Scancode)          { t.apu.OnKey(key) }
 
 func (t *nes) SetDebugger(db cpu.DebuggerCallbacks) {
 	t.cpu.SetDebugger(db)

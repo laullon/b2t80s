@@ -1,13 +1,15 @@
 package emulator
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
+	"log"
 	"runtime"
 
-	"github.com/go-gl/gl/all-core/gl"
-	"github.com/go-gl/glfw/v3.3/glfw"
+	"github.com/go-gl/gl/v2.1/gl"
+	"github.com/veandco/go-sdl2/sdl"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/math/fixed"
@@ -19,12 +21,11 @@ func init() {
 
 type Window interface {
 	Run()
-	SetOnKey(func(glfw.Key))
+	SetOnKey(interface{})
 }
 
 type window struct {
-	mainWin *glfw.Window
-	img     *Display
+	img *Display
 
 	displayTexture uint32
 	displayFrameID uint32
@@ -32,61 +33,79 @@ type window struct {
 	statusTexture uint32
 	statusFrameID uint32
 
-	onKey func(glfw.Key)
+	a, b, c, d, e, f uint32 //// do not remove
 
-	redraw chan struct{}
+	window  *sdl.Window
+	context sdl.GLContext
 }
 
 func NewWindow(name string, machine Machine) Window {
-	var err error
-	window := &window{
-		img:    machine.Monitor().Screen(),
-		redraw: make(chan struct{}),
+	win := &window{
+		img: machine.Monitor().Screen(),
 	}
-	if err = glfw.Init(); err != nil {
+
+	if err := sdl.Init(sdl.INIT_EVERYTHING); err != nil {
 		panic(err)
 	}
-	glfw.WindowHint(glfw.Resizable, glfw.True)
-	glfw.WindowHint(glfw.ContextVersionMajor, 4)
-	glfw.WindowHint(glfw.ContextVersionMinor, 1)
-	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
-	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
 
-	window.mainWin, err = glfw.CreateWindow(800, 600, name, nil, nil)
+	window, err := sdl.CreateWindow("Game", 50, sdl.WINDOWPOS_UNDEFINED,
+		800, 600, sdl.WINDOW_OPENGL|sdl.WINDOW_RESIZABLE|sdl.WINDOW_SHOWN)
 	if err != nil {
 		panic(err)
 	}
+	win.window = window
 
-	window.mainWin.SetSizeCallback(func(w *glfw.Window, width, height int) {
-		gl.Viewport(0, 0, int32(width), int32(height))
-	})
-
-	window.mainWin.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
-		if action != 2 {
-			if window.onKey != nil {
-				window.onKey(key)
-			}
-			// println("key:", key, "action:", action)
-		}
-	})
-
-	if err := gl.Init(); err != nil {
+	context, err := window.GLCreateContext()
+	if err != nil {
 		panic(err)
 	}
-	version := gl.GoStr(gl.GetString(gl.VERSION))
-	println("OpenGL version", version)
+	win.context = context
 
-	window.iniTexture()
+	gl.Init()
+	log.Printf("opengl version %s", gl.GoStr(gl.GetString(gl.VERSION)))
 
-	machine.Monitor().SetRedraw(func() {
-		window.redraw <- struct{}{}
-	})
-
-	return window
+	win.realize()
+	return win
 }
 
-func (win *window) iniTexture() {
-	win.mainWin.MakeContextCurrent()
+func (win *window) Run() {
+	println("run")
+
+	for running := true; running; {
+		for e := sdl.PollEvent(); e != nil; e = sdl.PollEvent() {
+			switch event := e.(type) {
+			case *sdl.QuitEvent:
+				running = false
+				sdl.Quit()
+			case *sdl.KeyboardEvent:
+				if event.Repeat == 0 {
+					fmt.Printf("%d\n", event.Keysym.Scancode)
+				}
+				// win.onKey(event.Keysym.)
+			}
+		}
+
+		gl.ClearColor(0, 0, 0, 1)
+		gl.Clear(gl.COLOR_BUFFER_BIT)
+
+		win.render()
+
+		win.window.GLSwap()
+	}
+}
+
+func (win *window) SetOnKey(i interface{}) {
+}
+
+// func (win *window) resize(glarea *gtk.GLArea, w, h int32) {
+// 	println("resize", w, "x", h)
+// 	glarea.MakeCurrent()
+// 	gl.BindFramebuffer(gl.READ_FRAMEBUFFER, 0)
+// 	gl.Viewport(0, 0, w, h)
+// }
+
+func (win *window) realize() {
+	println("realize")
 
 	// DISPLAY
 	gl.GenTextures(1, &win.displayTexture)
@@ -117,22 +136,14 @@ func (win *window) iniTexture() {
 	gl.BindFramebuffer(gl.READ_FRAMEBUFFER, win.statusFrameID)
 	gl.FramebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, win.statusTexture, 0)
 	gl.BindFramebuffer(gl.READ_FRAMEBUFFER, 0)
-
 }
 
-func (win *window) Run() {
-	for {
-		<-win.redraw
-		win.draw()
-		glfw.PollEvents()
-		if win.mainWin.ShouldClose() {
-			return
-		}
-	}
+func (win *window) unrealize() {
+	println("unrealize")
 }
 
-func (win *window) draw() {
-	win.mainWin.MakeContextCurrent()
+func (win *window) render() bool {
+	// println("render")
 
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
@@ -168,10 +179,10 @@ func (win *window) draw() {
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 	//*****
 
-	w, h := win.mainWin.GetSize()
-	sW, sH := win.mainWin.GetContentScale()
-	w *= int(sW)
-	h *= int(sH)
+	w, h := win.window.GetSize()
+	// sW, sH := win.mainWin.GetContentScale()
+	// w *= int(sW)
+	// h *= int(sH)
 
 	ratioOrg := float64(win.img.Size.X) / float64(win.img.Size.Y)
 	ratioDst := float64(w) / float64(h)
@@ -210,9 +221,6 @@ func (win *window) draw() {
 
 	gl.BindFramebuffer(gl.READ_FRAMEBUFFER, 0)
 
-	win.mainWin.SwapBuffers()
-}
-
-func (win *window) SetOnKey(onKey func(glfw.Key)) {
-	win.onKey = onKey
+	gl.Flush()
+	return true
 }

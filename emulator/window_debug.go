@@ -1,26 +1,47 @@
 package emulator
 
 import (
-	"C"
 	"fmt"
 	"net"
 	"net/http"
 	"time"
 
-	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/laullon/b2t80s/debug"
-	"github.com/laullon/webview"
+	"github.com/veandco/go-sdl2/sdl"
+	"github.com/webview/webview"
 )
 
 type debugWindow struct {
-	web  webview.WebView
-	tabs Tabs
+	window *sdl.Window
+	web    webview.WebView
+	tabs   Tabs
 }
 
 func NewDebugWindow(name string, machine Machine) Window {
-	win := &debugWindow{
-		web: initDebugWindow(name, machine),
+	win := &debugWindow{}
+
+	window, err := sdl.CreateWindow("Debug", 850, sdl.WINDOWPOS_UNDEFINED,
+		800, 600, sdl.WINDOW_RESIZABLE|sdl.WINDOW_SHOWN)
+	if err != nil {
+		panic(err)
 	}
+	win.window = window
+
+	wmInfo, err := window.GetWMInfo()
+	if err != nil {
+		panic(err)
+	}
+
+	win.web = webview.NewWindow(true, wmInfo.GetWindowsInfo().Window)
+
+	renderer, err := window.GetRenderer()
+	if err != nil {
+		panic(err)
+	}
+	rect := sdl.Rect{W: 200, H: 200}
+	renderer.SetViewport(&rect)
+
+	window.UpdateSurface()
 
 	win.web.Bind("getStatus", func() string {
 		return fmt.Sprintf("time: %s - FPS: %03.2f\n", machine.Clock().Stats(), machine.Monitor().FPS())
@@ -40,7 +61,6 @@ func NewDebugWindow(name string, machine Machine) Window {
 		win.tabs.Show()
 	})
 
-	http.Handle("/cmd/", win.web)
 	http.Handle("/", http.FileServer(debug.AssetFile()))
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
@@ -61,16 +81,11 @@ func NewDebugWindow(name string, machine Machine) Window {
 	return win
 }
 
-func (win *debugWindow) SetOnKey(onKey func(glfw.Key)) {
+func (win *debugWindow) SetOnKey(onKey interface{}) {
 	// win.main.onKey = onKey
 }
 
 func (win *debugWindow) Run() {
 	win.web.Run()
 	win.web.Destroy()
-}
-
-func initDebugWindow(title string, machine Machine) webview.WebView {
-	w := webview.New(title, 1200, 600)
-	return w
 }

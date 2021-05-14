@@ -1,9 +1,9 @@
 package emulator
 
 import (
-	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/ui"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 var LoadSlow *bool
@@ -18,7 +18,7 @@ var RomFile *string
 var CartFile *string
 
 type Machine interface {
-	OnKey(key glfw.Key)
+	OnKey(key sdl.Scancode)
 	Monitor() Monitor
 	Clock() Clock
 	UIControls() []ui.Control
