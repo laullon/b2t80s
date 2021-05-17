@@ -64,9 +64,12 @@ func newTMS9918(cpu cpu.CPU) *tms9918 {
 	res := &tms9918{
 		vram:      make([]byte, 0x4000),
 		registers: make([]byte, 8),
-		display:   emulator.NewDisplay(image.Rect(-37, -64, 345-37, 313-64)),
 		cpu:       cpu,
 	}
+
+	res.display = emulator.NewDisplay(image.Rect(0, 0, 342, 313))
+	res.display.Start = image.Pt(37, 64)
+
 	res.monitor = emulator.NewMonitor(res.display)
 	return res
 }
@@ -174,12 +177,12 @@ func (vdp *tms9918) Tick() {
 		vdp.display.SetRGBA(vdp.x, vdp.y, palette[c])
 
 		vdp.x++
-		if vdp.x == 342-37 {
+		if vdp.x == 342 {
 			if vdp.y >= 0 && vdp.y < 192 {
 				vdp.drawSprites()
 			}
 
-			vdp.x = -37
+			vdp.x = 0
 			vdp.y++
 
 			if vdp.y == 193 {
@@ -189,8 +192,8 @@ func (vdp *tms9918) Tick() {
 				}
 			}
 
-			if vdp.y == 313-64 {
-				vdp.y = -64
+			if vdp.y == 313 {
+				vdp.y = 0
 				vdp.monitor.FrameDone()
 			}
 		}

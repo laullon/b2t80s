@@ -21,7 +21,7 @@ func TestCPU(t *testing.T) {
 	*emulator.CartFile = string("tests/nestest.nes")
 	nes := NewNES().(*nes)
 
-	// nes.apu.onKeyEvent(&glfw.KeyEvent{Name: glfw.Key2})
+	// nes.apu.onKeyEvent(&glfw.KeyEvent{Name:SCANCODE_2})
 	nes.Clock().RunFor(4)
 
 	result, _, err := utils.ImgCompare("tests/nestest_ok.png", nes.ppu.display)

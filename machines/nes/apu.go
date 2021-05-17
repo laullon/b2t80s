@@ -142,24 +142,22 @@ func (apu *apu) WritePort(addr uint16, data byte) {
 }
 
 func (apu *apu) OnKey(key sdl.Scancode) {
-	// fmt.Println("key:", key.Name)
-	// switch key {
-
-	// case glfw.KeyZ: // A
-	// 	apu.ctrl0 ^= 0b00000001
-	// case glfw.KeyX: // B
-	// 	apu.ctrl0 ^= 0b00000010
-	// case glfw.Key1: //select
-	// 	apu.ctrl0 ^= 0b00000100
-	// case glfw.Key2: // start
-	// 	apu.ctrl0 ^= 0b00001000
-	// case glfw.KeyUp:
-	// 	apu.ctrl0 ^= 0b00010000
-	// case glfw.KeyDown:
-	// 	apu.ctrl0 ^= 0b00100000
-	// case glfw.KeyLeft:
-	// 	apu.ctrl0 ^= 0b01000000
-	// case glfw.KeyRight:
-	// 	apu.ctrl0 ^= 0b10000000
-	// }
+	switch key {
+	case sdl.SCANCODE_Z: // A
+		apu.ctrl0 ^= 0b00000001
+	case sdl.SCANCODE_X: // B
+		apu.ctrl0 ^= 0b00000010
+	case sdl.SCANCODE_1: //select
+		apu.ctrl0 ^= 0b00000100
+	case sdl.SCANCODE_2: // start
+		apu.ctrl0 ^= 0b00001000
+	case sdl.SCANCODE_UP:
+		apu.ctrl0 ^= 0b00010000
+	case sdl.SCANCODE_DOWN:
+		apu.ctrl0 ^= 0b00100000
+	case sdl.SCANCODE_LEFT:
+		apu.ctrl0 ^= 0b01000000
+	case sdl.SCANCODE_RIGHT:
+		apu.ctrl0 ^= 0b10000000
+	}
 }

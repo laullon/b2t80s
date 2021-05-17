@@ -201,27 +201,25 @@ func (gb *gb) WritePort(addr uint16, data byte) {
 }
 
 func (gb *gb) OnKey(key sdl.Scancode) {
-	// // fmt.Println("key:", key.Name)
-	// switch key {
+	switch key {
+	case sdl.SCANCODE_Z: // A
+		gb.buttons ^= 0b00000001
+	case sdl.SCANCODE_X: // B
+		gb.buttons ^= 0b00000010
+	case sdl.SCANCODE_1: //select
+		gb.buttons ^= 0b00000100
+	case sdl.SCANCODE_2: // start
+		gb.buttons ^= 0b00001000
 
-	// case glfw.KeyZ: // A
-	// 	gb.buttons ^= 0b00000001
-	// case glfw.KeyX: // B
-	// 	gb.buttons ^= 0b00000010
-	// case glfw.Key1: //select
-	// 	gb.buttons ^= 0b00000100
-	// case glfw.Key2: // start
-	// 	gb.buttons ^= 0b00001000
-
-	// case glfw.KeyRight:
-	// 	gb.pad ^= 0b00000001
-	// case glfw.KeyLeft:
-	// 	gb.pad ^= 0b00000010
-	// case glfw.KeyUp:
-	// 	gb.pad ^= 0b00000100
-	// case glfw.KeyDown:
-	// 	gb.pad ^= 0b00001000
-	// }
+	case sdl.SCANCODE_RIGHT:
+		gb.pad ^= 0b00000001
+	case sdl.SCANCODE_LEFT:
+		gb.pad ^= 0b00000010
+	case sdl.SCANCODE_UP:
+		gb.pad ^= 0b00000100
+	case sdl.SCANCODE_DOWN:
+		gb.pad ^= 0b00001000
+	}
 }
 
 // ************************

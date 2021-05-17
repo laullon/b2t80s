@@ -112,7 +112,6 @@ func main() {
 	}()
 
 	go func() {
-		time.Sleep(time.Second * 3)
 		machine.Clock().Run()
 	}()
 

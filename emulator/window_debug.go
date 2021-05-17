@@ -34,13 +34,6 @@ func NewDebugWindow(name string, machine Machine) Window {
 
 	win.web = webview.NewWindow(true, wmInfo.GetWindowsInfo().Window)
 
-	renderer, err := window.GetRenderer()
-	if err != nil {
-		panic(err)
-	}
-	rect := sdl.Rect{W: 200, H: 200}
-	renderer.SetViewport(&rect)
-
 	window.UpdateSurface()
 
 	win.web.Bind("getStatus", func() string {
@@ -81,8 +74,7 @@ func NewDebugWindow(name string, machine Machine) Window {
 	return win
 }
 
-func (win *debugWindow) SetOnKey(onKey interface{}) {
-	// win.main.onKey = onKey
+func (win *debugWindow) SetOnKey(func(sdl.Scancode)) {
 }
 
 func (win *debugWindow) Run() {

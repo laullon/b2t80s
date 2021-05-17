@@ -1,7 +1,6 @@
 package emulator
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -21,11 +20,12 @@ func init() {
 
 type Window interface {
 	Run()
-	SetOnKey(interface{})
+	SetOnKey(func(sdl.Scancode))
 }
 
 type window struct {
-	img *Display
+	img   *Display
+	onKey func(sdl.Scancode)
 
 	displayTexture uint32
 	displayFrameID uint32
@@ -37,11 +37,14 @@ type window struct {
 
 	window  *sdl.Window
 	context sdl.GLContext
+
+	redraw chan struct{}
 }
 
 func NewWindow(name string, machine Machine) Window {
 	win := &window{
-		img: machine.Monitor().Screen(),
+		img:    machine.Monitor().Screen(),
+		redraw: make(chan struct{}),
 	}
 
 	if err := sdl.Init(sdl.INIT_EVERYTHING); err != nil {
@@ -64,7 +67,12 @@ func NewWindow(name string, machine Machine) Window {
 	gl.Init()
 	log.Printf("opengl version %s", gl.GoStr(gl.GetString(gl.VERSION)))
 
-	win.realize()
+	win.init()
+
+	machine.Monitor().SetRedraw(func() {
+		win.redraw <- struct{}{}
+	})
+
 	return win
 }
 
@@ -72,41 +80,39 @@ func (win *window) Run() {
 	println("run")
 
 	for running := true; running; {
+		// select {
+		// case <-win.redraw:
+		<-win.redraw
+		gl.ClearColor(0, 0, 0, 1)
+		gl.Clear(gl.COLOR_BUFFER_BIT)
+		win.render()
+		win.window.GLSwap()
+		// default:
+		// }
 		for e := sdl.PollEvent(); e != nil; e = sdl.PollEvent() {
 			switch event := e.(type) {
+			case *sdl.WindowEvent:
+				if event.Event == sdl.WINDOWEVENT_CLOSE {
+					running = false
+					sdl.Quit()
+				}
 			case *sdl.QuitEvent:
 				running = false
 				sdl.Quit()
 			case *sdl.KeyboardEvent:
 				if event.Repeat == 0 {
-					fmt.Printf("%d\n", event.Keysym.Scancode)
+					win.onKey(event.Keysym.Scancode)
 				}
-				// win.onKey(event.Keysym.)
 			}
 		}
-
-		gl.ClearColor(0, 0, 0, 1)
-		gl.Clear(gl.COLOR_BUFFER_BIT)
-
-		win.render()
-
-		win.window.GLSwap()
 	}
 }
 
-func (win *window) SetOnKey(i interface{}) {
+func (win *window) SetOnKey(onKey func(sdl.Scancode)) {
+	win.onKey = onKey
 }
 
-// func (win *window) resize(glarea *gtk.GLArea, w, h int32) {
-// 	println("resize", w, "x", h)
-// 	glarea.MakeCurrent()
-// 	gl.BindFramebuffer(gl.READ_FRAMEBUFFER, 0)
-// 	gl.Viewport(0, 0, w, h)
-// }
-
-func (win *window) realize() {
-	println("realize")
-
+func (win *window) init() {
 	// DISPLAY
 	gl.GenTextures(1, &win.displayTexture)
 	gl.BindTexture(gl.TEXTURE_2D, win.displayTexture)
@@ -136,10 +142,6 @@ func (win *window) realize() {
 	gl.BindFramebuffer(gl.READ_FRAMEBUFFER, win.statusFrameID)
 	gl.FramebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, win.statusTexture, 0)
 	gl.BindFramebuffer(gl.READ_FRAMEBUFFER, 0)
-}
-
-func (win *window) unrealize() {
-	println("unrealize")
 }
 
 func (win *window) render() bool {
