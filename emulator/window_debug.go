@@ -1,20 +1,14 @@
 package emulator
 
 import (
-	"fmt"
-	"net"
-	"net/http"
-	"time"
-
-	"github.com/laullon/b2t80s/debug"
+	"github.com/laullon/b2t80s/gui"
 	"github.com/veandco/go-sdl2/sdl"
-	"github.com/webview/webview"
 )
 
 type debugWindow struct {
-	window *sdl.Window
-	web    webview.WebView
-	tabs   Tabs
+	window  *sdl.Window
+	context sdl.GLContext
+	ui      gui.GUIObject
 }
 
 func NewDebugWindow(name string, machine Machine) Window {
@@ -27,57 +21,49 @@ func NewDebugWindow(name string, machine Machine) Window {
 	}
 	win.window = window
 
-	wmInfo, err := window.GetWMInfo()
+	context, err := window.GLCreateContext()
 	if err != nil {
 		panic(err)
 	}
+	win.context = context
 
-	win.web = webview.NewWindow(true, wmInfo.GetWindowsInfo().Window)
+	gui.RegisterWindow(window, context, win.Render)
 
-	window.UpdateSurface()
+	bt := gui.NewButton("staus", gui.Rect{330, 0, 330, 50})
+	bt2 := gui.NewButton("staus", gui.Rect{330, 0, 330, 50})
 
-	win.web.Bind("getStatus", func() string {
-		return fmt.Sprintf("time: %s - FPS: %03.2f\n", machine.Clock().Stats(), machine.Monitor().FPS())
-	})
+	grid := gui.NewHGrid(3, 50)
+	grid.Add(bt, bt)
+	grid.Add(bt, bt2)
+	grid.Resize(gui.Rect{0, 0, 800, 600})
 
-	win.web.Bind("getRegisters", func() string {
-		ui := machine.Control()[win.tabs.Selected()]
-		return ui.GetRegisters()
-	})
-
-	win.web.Bind("getOutput", func() string {
-		ui := machine.Control()[win.tabs.Selected()]
-		return ui.GetOutput()
-	})
-
-	win.web.Bind("initUI", func() {
-		win.tabs.Show()
-	})
-
-	http.Handle("/", http.FileServer(debug.AssetFile()))
-	listener, err := net.Listen("tcp", ":8080")
-	if err != nil {
-		panic(err)
-	}
-
-	go func() {
-		panic(http.Serve(listener, nil))
-	}()
-
-	fmt.Println("Using port:", listener.Addr())
-	url := fmt.Sprintf("http://0:%d/app/?%d", listener.Addr().(*net.TCPAddr).Port, time.Now().Local().Second())
-	println("url:", url)
-	win.web.Navigate(url)
-
-	win.tabs = NewTabs("tabs", win.web, machine)
+	win.ui = grid
 
 	return win
+}
+
+func (win *debugWindow) SetStatus(txt string) {
 }
 
 func (win *debugWindow) SetOnKey(func(sdl.Scancode)) {
 }
 
 func (win *debugWindow) Run() {
-	win.web.Run()
-	win.web.Destroy()
+	// wait := time.Duration(time.Second)
+	// ticker := time.NewTicker(wait)
+	// go func() {
+	// 	for range ticker.C {
+	// 		win.window.GLMakeCurrent(win.context)
+	// 		gl.ClearColor(0, rand.Float32(), 0, 1)
+	// 		gl.Clear(gl.COLOR_BUFFER_BIT)
+	// 		win.ui.Render()
+	// 		win.window.GLSwap()
+	// 	}
+	// }()
+}
+
+func (win *debugWindow) Render() {
+	// gl.ClearColor(0, rand.Float32(), 0, 1)
+	// gl.Clear(gl.COLOR_BUFFER_BIT)
+	win.ui.Render()
 }

@@ -12,13 +12,16 @@ import (
 	"runtime/pprof"
 	"time"
 
+	"github.com/go-gl/gl/all-core/gl"
 	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/gui"
 	"github.com/laullon/b2t80s/machines/atetris"
 	"github.com/laullon/b2t80s/machines/cpc"
 	"github.com/laullon/b2t80s/machines/gameboy"
 	"github.com/laullon/b2t80s/machines/msx"
 	"github.com/laullon/b2t80s/machines/nes"
 	"github.com/laullon/b2t80s/machines/zx"
+	"github.com/veandco/go-sdl2/sdl"
 
 	_ "net/http/pprof"
 )
@@ -96,8 +99,18 @@ func main() {
 		}
 	}
 
+	if err := sdl.Init(sdl.INIT_EVERYTHING); err != nil {
+		panic(err)
+	}
+
+	if err := gl.Init(); err != nil {
+		panic(err)
+	}
+
 	win := emulator.NewWindow(name, machine)
 	win.SetOnKey(machine.OnKey)
+
+	log.Printf("opengl version %s", gl.GoStr(gl.GetString(gl.VERSION)))
 
 	if *emulator.Debug {
 		emulator.NewDebugWindow(name, machine)
@@ -107,7 +120,9 @@ func main() {
 	ticker := time.NewTicker(wait)
 	go func() {
 		for range ticker.C {
-			fmt.Printf("time: %s - FPS: %03.2f\n", machine.Clock().Stats(), machine.Monitor().FPS())
+			str := fmt.Sprintf("time: %s - FPS: %03.2f", machine.Clock().Stats(), machine.Monitor().FPS())
+			println(str)
+			win.SetStatus(str)
 		}
 	}()
 
@@ -115,7 +130,7 @@ func main() {
 		machine.Clock().Run()
 	}()
 
-	win.Run()
+	gui.PoolEvents()
 
 	// ui.App = app.New()
 
