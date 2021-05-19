@@ -6,38 +6,23 @@ import (
 )
 
 type debugWindow struct {
-	window  *sdl.Window
-	context sdl.GLContext
-	ui      gui.GUIObject
+	win gui.Window
 }
 
 func NewDebugWindow(name string, machine Machine) Window {
-	win := &debugWindow{}
-
-	window, err := sdl.CreateWindow("Debug", 850, sdl.WINDOWPOS_UNDEFINED,
-		800, 600, sdl.WINDOW_RESIZABLE|sdl.WINDOW_SHOWN)
-	if err != nil {
-		panic(err)
+	win := &debugWindow{
+		win: gui.NewWindow(name, gui.Size{800, 600}),
 	}
-	win.window = window
 
-	context, err := window.GLCreateContext()
-	if err != nil {
-		panic(err)
-	}
-	win.context = context
-
-	gui.RegisterWindow(window, context, win.Render)
-
-	bt := gui.NewButton("staus", gui.Rect{330, 0, 330, 50})
-	bt2 := gui.NewButton("staus", gui.Rect{330, 0, 330, 50})
+	bt1 := gui.NewButton("staus 1", gui.Rect{330, 0, 330, 50})
+	bt2 := gui.NewButton("staus 2", gui.Rect{330, 0, 330, 50})
 
 	grid := gui.NewHGrid(3, 50)
-	grid.Add(bt, bt)
-	grid.Add(bt, bt2)
+	grid.Add(bt1, bt2)
 	grid.Resize(gui.Rect{0, 0, 800, 600})
 
-	win.ui = grid
+	win.win.SetMainUI(grid)
+	win.win.AddMouseListeners(bt1, bt2)
 
 	return win
 }
@@ -65,5 +50,5 @@ func (win *debugWindow) Run() {
 func (win *debugWindow) Render() {
 	// gl.ClearColor(0, rand.Float32(), 0, 1)
 	// gl.Clear(gl.COLOR_BUFFER_BIT)
-	win.ui.Render()
+	// win.ui.Render()
 }

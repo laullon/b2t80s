@@ -19,49 +19,25 @@ type Window interface {
 }
 
 type window struct {
-	img   *Display
-	onKey func(sdl.Scancode)
+	img *Display
+
+	win gui.Window
 
 	status gui.Label
 
 	displayTexture uint32
 	displayFrameID uint32
-
-	window  *sdl.Window
-	context sdl.GLContext
-
-	redraw chan struct{}
-
-	ui       gui.GUIObject
-	ui_mouse []gui.MouseTarget
 }
 
 func NewWindow(name string, machine Machine) Window {
 	win := &window{
-		img:    machine.Monitor().Screen(),
-		redraw: make(chan struct{}),
+		img: machine.Monitor().Screen(),
+		win: gui.NewWindow(name, gui.Size{800, 600}),
 	}
-
-	window, err := sdl.CreateWindow("Game", 50, sdl.WINDOWPOS_UNDEFINED,
-		800, 600, sdl.WINDOW_OPENGL|sdl.WINDOW_RESIZABLE|sdl.WINDOW_SHOWN)
-	if err != nil {
-		panic(err)
-	}
-	win.window = window
-
-	context, err := window.GLCreateContext()
-	if err != nil {
-		panic(err)
-	}
-	win.context = context
-
-	gui.RegisterWindow(window, context, win.Render)
 
 	win.init()
 
-	machine.Monitor().SetRedraw(func() {
-		win.redraw <- struct{}{}
-	})
+	machine.Monitor().SetRedraw(func() {}) // TODO: need it?
 
 	win.status = gui.NewLabel("staus", gui.Rect{0, 0, 330, 50})
 	bt := gui.NewButton("staus", gui.Rect{330, 0, 330, 50})
@@ -70,8 +46,8 @@ func NewWindow(name string, machine Machine) Window {
 	grid.Add(bt, win.status)
 	grid.Resize(gui.Rect{0, 0, 800, 600})
 
-	win.ui = grid
-	win.ui_mouse = append(win.ui_mouse, bt)
+	win.win.SetMainUI(grid)
+	win.win.AddMouseListeners(bt)
 
 	return win
 }
@@ -94,7 +70,7 @@ func (win *window) Run() {
 }
 
 func (win *window) SetOnKey(onKey func(sdl.Scancode)) {
-	win.onKey = onKey
+	win.win.SetOnKey(onKey)
 }
 
 func (win *window) init() {
@@ -126,7 +102,7 @@ func (win *window) Render() {
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 
-	w, h := win.window.GetSize()
+	w, h := 10, 10 // win.win.GetSize()
 	// sW, sH := win.mainWin.GetContentScale()
 	// w *= int(sW)
 	// h *= int(sH)
@@ -158,7 +134,7 @@ func (win *window) Render() {
 		gl.COLOR_BUFFER_BIT, gl.NEAREST,
 	)
 
-	win.ui.Render()
+	// win.ui.Render()
 
 	gl.BindFramebuffer(gl.READ_FRAMEBUFFER, 0)
 	gl.Flush()

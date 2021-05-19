@@ -32,6 +32,7 @@ func (b *button) OnMouseOver(over bool) {
 }
 
 func (b *button) OnMouseClick(up bool) {
+	println("-----")
 	if up {
 		if b.selected {
 			println("click")
