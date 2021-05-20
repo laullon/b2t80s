@@ -22,6 +22,7 @@ import (
 	"github.com/laullon/b2t80s/machines/nes"
 	"github.com/laullon/b2t80s/machines/zx"
 	"github.com/veandco/go-sdl2/sdl"
+	"golang.design/x/mainthread"
 
 	_ "net/http/pprof"
 )
@@ -130,8 +131,21 @@ func main() {
 		machine.Clock().Run()
 	}()
 
-	gui.PoolEvents()
-
+	mainthread.Init(func() {
+		stop := make(chan struct{}, 1)
+		poolWait := time.Duration(time.Second / 120)
+		poolTicker := time.NewTicker(poolWait)
+		for {
+			select {
+			case <-poolTicker.C:
+				mainthread.Call(func() {
+					gui.PoolEvents(stop)
+				})
+			case <-stop:
+				return
+			}
+		}
+	})
 	// ui.App = app.New()
 
 	// w := ui.App.NewWindow(name + " - b2t80s Emulator")

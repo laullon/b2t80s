@@ -9,5 +9,6 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/veandco/go-sdl2 v0.4.7
 	github.com/webview/webview v0.0.0-20210330151455-f540d88dde4e
+	golang.design/x/mainthread v0.2.1
 	golang.org/x/image v0.0.0-20180708004352-c73c2afc3b81
 )
