@@ -48,6 +48,8 @@ func (w *window) SetOnKey(onKey func(sdl.Scancode)) {
 
 func (w *window) SetMainUI(ui GUIObject) {
 	w.ui = ui
+	wi, he := w.sdlWin.GetSize()
+	ui.Resize(Rect{0, 0, wi, he})
 }
 
 func (w *window) AddMouseListeners(list ...MouseTarget) {

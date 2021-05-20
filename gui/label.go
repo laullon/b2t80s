@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"image/draw"
 
-	"github.com/go-gl/gl/all-core/gl"
+	"github.com/go-gl/gl/v3.3-core/gl"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/font/inconsolata"

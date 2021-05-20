@@ -2,12 +2,12 @@ package cpc
 
 import (
 	"fmt"
-	"image"
 
 	// "image"
 	"image/color"
 
 	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/gui"
 )
 
 type gatearray struct {
@@ -25,7 +25,7 @@ type gatearray struct {
 	palette []color.RGBA
 
 	monitor emulator.Monitor
-	display *emulator.Display
+	display *gui.Display
 
 	prevHSync, prevVSync           bool
 	hSyncCount, hSyncsInVSyncCount byte
@@ -73,14 +73,14 @@ func newGateArray(mem *memory, crtc *crtc) *gatearray {
 		mem:     mem,
 		crtc:    crtc,
 		palette: make([]color.RGBA, 16),
-		display: emulator.NewDisplay(image.Rect(0, 0, 960, 312)),
+		display: gui.NewDisplay(gui.Size{960, 312}),
 
 		decode: to1bpp,
 		ppc:    16,
 	}
 
-	ga.display.Size.X = 768
-	ga.display.Size.Y = 576
+	ga.display.ViewSize.W = 768
+	ga.display.ViewSize.H = 576
 	ga.monitor = emulator.NewMonitor(ga.display)
 
 	return ga
@@ -94,8 +94,10 @@ func (ga *gatearray) Tick() {
 
 	if !ga.prevVSync && ga.crtc.status.vSync {
 		ga.y = 0
-		ga.display.ViewPortRect.Min = image.Point{X: (int(ga.crtc.regs[3]&0x0f) * 8) * 2, Y: 34}
-		ga.display.ViewPortRect.Max = image.Point{X: (int(ga.crtc.regs[3]&0x0f)*8 + 384) * 2, Y: (34 + 272)}
+		ga.display.ViewPortRect.X = (int32(ga.crtc.regs[3]&0x0f) * 8) * 2
+		ga.display.ViewPortRect.Y = 34
+		ga.display.ViewPortRect.W = 384 * 2
+		ga.display.ViewPortRect.H = 272
 		ga.monitor.FrameDone()
 	}
 

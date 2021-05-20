@@ -4,11 +4,11 @@ package msx
 
 import (
 	"fmt"
-	"image"
 	"image/color"
 
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/gui"
 )
 
 var vdpMasks = []byte{0x03, 0xFB, 0x0F, 0xFF, 0x07, 0x7F, 0x07, 0xFF}
@@ -27,7 +27,7 @@ type tms9918 struct {
 	registers []byte
 
 	monitor emulator.Monitor
-	display *emulator.Display
+	display *gui.Display
 
 	m1, m2, m3     bool
 	pc, pg, pn     uint16
@@ -67,8 +67,8 @@ func newTMS9918(cpu cpu.CPU) *tms9918 {
 		cpu:       cpu,
 	}
 
-	res.display = emulator.NewDisplay(image.Rect(0, 0, 342, 313))
-	res.display.Start = image.Pt(37, 64)
+	res.display = gui.NewDisplay(gui.Size{342, 313})
+	res.display.Start = gui.Point{37, 64}
 
 	res.monitor = emulator.NewMonitor(res.display)
 	return res

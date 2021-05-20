@@ -2,12 +2,12 @@ package gameboy
 
 import (
 	"fmt"
-	"image"
 	"image/color"
 	"math/bits"
 
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/gui"
 )
 
 type ppu struct {
@@ -33,7 +33,7 @@ type ppu struct {
 
 	palette []color.RGBA
 
-	display *emulator.Display
+	display *gui.Display
 	monitor emulator.Monitor
 
 	bus  cpu.Bus
@@ -54,7 +54,7 @@ type ppu struct {
 }
 
 func newPPU(bus cpu.Bus) *ppu {
-	display := emulator.NewDisplay(image.Rect(0, 0, 160, 144))
+	display := gui.NewDisplay(gui.Size{160, 144})
 	ppu := &ppu{
 		gbp:  []byte{0, 1, 2, 3},
 		obp0: []byte{0, 1, 2, 3},

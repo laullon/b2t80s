@@ -1,8 +1,6 @@
 package msx
 
-import (
-	"github.com/laullon/b2t80s/emulator"
-)
+import "github.com/laullon/b2t80s/gui"
 
 type sprite struct {
 	x, y    int
@@ -61,7 +59,7 @@ func (vdp *tms9918) drawSprites() {
 	}
 }
 
-func (sprt *sprite) drawSprite(yPos int, si bool, sg uint16, vram []byte, display *emulator.Display) {
+func (sprt *sprite) drawSprite(yPos int, si bool, sg uint16, vram []byte, display *gui.Display) {
 	if sprt.colour == 0 {
 		return
 	}

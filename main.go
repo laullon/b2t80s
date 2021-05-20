@@ -12,7 +12,7 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"github.com/go-gl/gl/all-core/gl"
+	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/gui"
 	"github.com/laullon/b2t80s/machines/atetris"
@@ -107,8 +107,8 @@ func main() {
 		panic(err)
 	}
 
-	win := emulator.NewWindow(name, machine)
-	win.SetOnKey(machine.OnKey)
+	game := emulator.NewGame(name, machine)
+	game.SetOnKey(machine.OnKey)
 
 	log.Printf("opengl version %s", gl.GoStr(gl.GetString(gl.VERSION)))
 
@@ -122,7 +122,7 @@ func main() {
 		for range ticker.C {
 			str := fmt.Sprintf("time: %s - FPS: %03.2f", machine.Clock().Stats(), machine.Monitor().FPS())
 			println(str)
-			win.SetStatus(str)
+			game.SetStatus(str)
 		}
 	}()
 
