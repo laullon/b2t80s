@@ -1,14 +1,13 @@
 package emulator
 
 import (
-	"runtime"
-
 	"github.com/laullon/b2t80s/gui"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
-func init() {
-	runtime.LockOSThread()
+type Game interface {
+	SetStatus(txt string)
+	SetOnKey(onKey func(sdl.Scancode))
 }
 
 type game struct {
@@ -16,7 +15,7 @@ type game struct {
 	status gui.Label
 }
 
-func NewGame(name string, machine Machine) *game {
+func NewGame(name string, machine Machine) Game {
 	game := &game{
 		window: gui.NewWindow(name, gui.Size{800, 600}),
 	}
@@ -24,7 +23,7 @@ func NewGame(name string, machine Machine) *game {
 	machine.Monitor().SetRedraw(func() {}) // TODO: need it?
 
 	img := gui.NewDisplayViewer(machine.Monitor().Screen())
-	game.status = gui.NewLabel("staus", gui.Rect{0, 0, 330, 50})
+	game.status = gui.NewLabel("")
 
 	hct := gui.NewVerticalHCT()
 	hct.SetCenter(img)

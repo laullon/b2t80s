@@ -2,6 +2,7 @@ package ui
 
 import (
 	"github.com/laullon/b2t80s/cpu"
+	"github.com/laullon/b2t80s/gui"
 )
 
 type busUI struct {
@@ -12,7 +13,7 @@ type busUI struct {
 	selected string
 }
 
-func NewBusUI(name string, bus cpu.Bus) Control {
+func NewBusUI(name string, bus cpu.Bus) gui.GUIObject {
 	ctrl := &busUI{
 		bus: bus,
 	}
@@ -29,6 +30,12 @@ func NewBusUI(name string, bus cpu.Bus) Control {
 	// )
 
 	return ctrl
+}
+
+func (ui *busUI) Render() {
+}
+
+func (ui *busUI) Resize(r gui.Rect) {
 }
 
 func (ui *busUI) GetRegisters() string { return "" }

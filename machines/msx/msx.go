@@ -10,8 +10,8 @@ import (
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/ay8912"
 	"github.com/laullon/b2t80s/emulator/storage/cassette"
+	"github.com/laullon/b2t80s/gui"
 	"github.com/laullon/b2t80s/machines/msx/cartridge"
-	"github.com/laullon/b2t80s/ui"
 	"github.com/laullon/b2t80s/utils"
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -178,15 +178,15 @@ func (msx *msx) Clock() emulator.Clock {
 	return msx.clock
 }
 
-func (msx *msx) UIControls() []ui.Control {
-	var res []ui.Control
-	res = append(res, ui.NewVolumenControl(msx.sound.SetVolume))
-	res = append(res, newSpriteControl(msx.vdp))
+func (msx *msx) UIControls() []gui.GUIObject {
+	var res []gui.GUIObject
+	// res = append(res, ui.NewVolumenControl(msx.sound.SetVolume))
+	// res = append(res, newSpriteControl(msx.vdp))
 	return res
 }
 
-func (msx *msx) Control() map[string]ui.Control {
-	return map[string]ui.Control{"CPU": ui.NewZ80UI(msx.cpu)}
+func (msx *msx) Control() map[string]gui.GUIObject {
+	return nil //map[string]gui.GUIObject{"CPU": ui.NewZ80UI(msx.cpu)}
 }
 
 func (msx *msx) SetDebugger(db cpu.DebuggerCallbacks) { msx.cpu.SetDebugger(db) }

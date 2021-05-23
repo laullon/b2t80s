@@ -2,6 +2,7 @@ package ui
 
 import (
 	"github.com/laullon/b2t80s/cpu/z80"
+	"github.com/laullon/b2t80s/gui"
 )
 
 type z80UI struct {
@@ -17,7 +18,7 @@ type z80UI struct {
 	nextOP string
 }
 
-func NewZ80UI(cpu z80.Z80) Control {
+func NewZ80UI(cpu z80.Z80) gui.GUIObject {
 	ui := &z80UI{regs: cpu.Registers()}
 	cpu.SetTracer(ui)
 
@@ -78,6 +79,12 @@ func NewZ80UI(cpu z80.Z80) Control {
 	// ui.widget = container.New(layout.NewVBoxLayout(), regs, ui.logTxt)
 
 	return ui
+}
+
+func (ui *z80UI) Render() {
+}
+
+func (ui *z80UI) Resize(r gui.Rect) {
 }
 
 func (ui *z80UI) GetRegisters() string { return "" }

@@ -34,6 +34,7 @@ func (g *grid) Resize(r Rect) {
 	for idx, obj := range g.objects {
 		row := int32(idx) / g.sections
 		col := int32(idx) % g.sections
-		obj.Resize(Rect{w * col, g.fix * row, w, g.fix})
+		rec := r.Relative(Rect{w * col, r.H - g.fix - g.fix*row, w, g.fix})
+		obj.Resize(rec)
 	}
 }

@@ -4,8 +4,8 @@ import (
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/m6502"
 	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/gui"
 	"github.com/laullon/b2t80s/machines/nes/mappers"
-	"github.com/laullon/b2t80s/ui"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -89,18 +89,18 @@ func NewNES() emulator.Machine {
 func (t *nes) Reset() {
 }
 
-func (t *nes) UIControls() []ui.Control {
-	return []ui.Control{
-		ui.NewM6502BusUI("cpu", t.cpuBus),
-		ui.NewM6502BusUI("ppu", t.ppuBus),
-	}
+func (t *nes) UIControls() []gui.GUIObject {
+	return nil //} // []gui.GUIObject{
+	// 	ui.NewM6502BusUI("cpu", t.cpuBus),
+	// 	ui.NewM6502BusUI("ppu", t.ppuBus),
+	// }
 }
 
-func (t *nes) Control() map[string]ui.Control {
-	return map[string]ui.Control{
-		"CPU": ui.NewM6502UI(t.cpu),
-		"PPU": newPalleteControl(t.ppu),
-	}
+func (t *nes) Control() map[string]gui.GUIObject {
+	return nil //map[string]gui.GUIObject{
+	// 	"CPU": ui.NewM6502UI(t.cpu),
+	// 	"PPU": newPalleteControl(t.ppu),
+	// }
 }
 
 func (t *nes) Debugger() emulator.Debugger     { return t.debugger }

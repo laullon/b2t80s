@@ -5,7 +5,7 @@ import (
 	"github.com/laullon/b2t80s/cpu/m6502"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/pokey"
-	"github.com/laullon/b2t80s/ui"
+	"github.com/laullon/b2t80s/gui"
 )
 
 type atetris struct {
@@ -86,11 +86,11 @@ func (t *atetris) Monitor() emulator.Monitor {
 	return t.monitor
 }
 
-func (t *atetris) Control() map[string]ui.Control {
-	return map[string]ui.Control{"CPU": ui.NewM6502UI(t.cpu)}
+func (t *atetris) Control() map[string]gui.GUIObject {
+	return nil //map[string]gui.GUIObject{"CPU": ui.NewM6502UI(t.cpu)}
 }
 
 func (t *atetris) Clock() emulator.Clock                { return t.clock }
-func (t *atetris) UIControls() []ui.Control             { return []ui.Control{ui.NewM6502BusUI("", t.bus)} }
+func (t *atetris) UIControls() []gui.GUIObject          { return nil } // []gui.GUIObject{ui.NewM6502BusUI("", t.bus)} }
 func (t *atetris) GetVolumeControl() func(float64)      { return func(f float64) {} }
 func (t *atetris) SetDebugger(db cpu.DebuggerCallbacks) { t.cpu.SetDebugger(db) }

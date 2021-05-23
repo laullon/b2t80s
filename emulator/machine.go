@@ -2,7 +2,7 @@ package emulator
 
 import (
 	"github.com/laullon/b2t80s/cpu"
-	"github.com/laullon/b2t80s/ui"
+	"github.com/laullon/b2t80s/gui"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -21,8 +21,8 @@ type Machine interface {
 	OnKey(key sdl.Scancode)
 	Monitor() Monitor
 	Clock() Clock
-	UIControls() []ui.Control
-	Control() map[string]ui.Control
+	UIControls() []gui.GUIObject
+	Control() map[string]gui.GUIObject
 	GetVolumeControl() func(float64)
 	SetDebugger(cpu.DebuggerCallbacks)
 	Reset()

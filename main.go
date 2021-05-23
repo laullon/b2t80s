@@ -160,7 +160,7 @@ func main() {
 	// display := machine.Monitor().Canvas()
 
 	// var debugTabs *container.AppTabs
-	// var controls map[string]ui.Control
+	// var controls map[string]gui.GUIObject
 
 	// if *emulator.Debug {
 	// 	var breaks []uint16

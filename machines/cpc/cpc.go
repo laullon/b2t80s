@@ -8,7 +8,7 @@ import (
 	"github.com/laullon/b2t80s/emulator/ay8912"
 	"github.com/laullon/b2t80s/emulator/files"
 	"github.com/laullon/b2t80s/emulator/storage/cassette"
-	"github.com/laullon/b2t80s/ui"
+	"github.com/laullon/b2t80s/gui"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -179,8 +179,8 @@ func (m *cpc) GetVolumeControl() func(float64) {
 	return m.sound.SetVolume
 }
 
-func (m *cpc) Control() map[string]ui.Control {
-	return map[string]ui.Control{"CPU": ui.NewZ80UI(m.cpu)}
+func (m *cpc) Control() map[string]gui.GUIObject {
+	return nil //map[string]gui.GUIObject{"CPU": ui.NewZ80UI(m.cpu)}
 }
 
 func (m *cpc) SetDebugger(db cpu.DebuggerCallbacks) { m.cpu.SetDebugger(db) }

@@ -1,50 +1,29 @@
 package ui
 
-import "strings"
+import (
+	"image/color"
 
-type Control interface {
-	GetRegisters() string
-	GetOutput() string
-}
-
-type RegTable [][]*RegText
-
-func (t RegTable) Dump() string {
-	var sb strings.Builder
-	sb.WriteString("<table>")
-	for _, row := range t {
-		sb.WriteString("<tr>")
-		for _, reg := range row {
-			sb.WriteString("<td>")
-			sb.WriteString(reg.label)
-			sb.WriteString("</td><td>")
-			sb.WriteString(reg.value)
-			sb.WriteString("</td>")
-		}
-		sb.WriteString("</tr>")
-	}
-	sb.WriteString("</table>")
-	return sb.String()
-}
+	"github.com/laullon/b2t80s/gui"
+)
 
 type RegText struct {
-	label string
-	value string
-	style string
+	label gui.Label
+	value gui.Label
 }
 
 func NewRegText(label string) *RegText {
 	rt := &RegText{
-		label: label,
+		label: gui.NewLabel(label),
+		value: gui.NewLabel(""),
 	}
 	return rt
 }
 
 func (rt *RegText) Update(text string) {
-	if rt.value != text {
-		rt.value = text
-		rt.style = `style="updated"`
+	if rt.value.GetText() != text {
+		rt.value.SetText(text)
+		rt.value.SetForeground(color.RGBA{0, 0, 0xff, 0xff})
 	} else {
-		rt.style = ``
+		rt.value.SetForeground(color.RGBA{0, 0, 0, 0xff})
 	}
 }

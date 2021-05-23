@@ -2,6 +2,7 @@ package ui
 
 import (
 	"github.com/laullon/b2t80s/cpu/m6502"
+	"github.com/laullon/b2t80s/gui"
 )
 
 type m6502BusUI struct {
@@ -9,7 +10,7 @@ type m6502BusUI struct {
 	selected string
 }
 
-func NewM6502BusUI(name string, bus m6502.Bus) Control {
+func NewM6502BusUI(name string, bus m6502.Bus) gui.GUIObject {
 	ctrl := &m6502BusUI{
 		bus: bus,
 	}
@@ -26,6 +27,12 @@ func NewM6502BusUI(name string, bus m6502.Bus) Control {
 	// )
 
 	return ctrl
+}
+
+func (ui *m6502BusUI) Render() {
+}
+
+func (ui *m6502BusUI) Resize(r gui.Rect) {
 }
 
 func (ui *m6502BusUI) GetRegisters() string { return "" }

@@ -15,6 +15,8 @@ import (
 type Label interface {
 	GUIObject
 	SetText(txt string)
+	GetText() string
+	SetForeground(c color.Color)
 }
 
 type label struct {
@@ -31,9 +33,8 @@ type label struct {
 	frameID uint32
 }
 
-func NewLabel(txt string, rect Rect) Label {
+func NewLabel(txt string) Label {
 	l := &label{
-		rect: rect,
 		back: image.NewUniform(color.RGBA{255, 255, 255, 255}),
 		fore: image.NewUniform(color.RGBA{0, 0, 0, 255}),
 		face: inconsolata.Regular8x16,
@@ -42,6 +43,15 @@ func NewLabel(txt string, rect Rect) Label {
 	l.init()
 	l.SetText(txt)
 	return l
+}
+
+func (l *label) SetForeground(c color.Color) {
+	l.fore = image.NewUniform(c)
+	l.redraw()
+}
+
+func (l *label) GetText() string {
+	return l.text
 }
 
 func (l *label) SetText(txt string) {
@@ -107,6 +117,7 @@ func (l *label) init() {
 }
 
 func (l *label) Render() {
+	// println("l:", l.text, "t:", l.texture, "f:", l.frameID)
 	// UPDATE TEXTURE
 	if l.needsUpdate {
 		l.needsUpdate = false

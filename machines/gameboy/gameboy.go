@@ -8,6 +8,7 @@ import (
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/lr35902"
 	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/gui"
 	"github.com/laullon/b2t80s/machines/gameboy/mappers"
 	"github.com/laullon/b2t80s/ui"
 	"github.com/laullon/b2t80s/utils"
@@ -25,8 +26,6 @@ type gb struct {
 	clock        emulator.Clock
 	serial       chan byte
 	serialBuffer []byte
-
-	uiControls map[string]ui.Control
 
 	controls     *byte
 	pad, buttons byte
@@ -106,15 +105,6 @@ func New(serial ...chan byte) emulator.Machine {
 	print("cpu bus:\n", m.bus.DumpMap(), "\n")
 	// print("ppu bus:\n", m.ppuBus.DumpMap(), "\n")
 
-	// panic(-1)
-
-	m.uiControls = map[string]ui.Control{
-		"CPU":    newTimerControl(m.cpu, m.timer),
-		"PPU":    newPPUControl(m.ppu),
-		"SERIAL": newSerialControl(&m.serialBuffer),
-		"Sound":  newSoundCtrl(m.apu),
-	}
-
 	return m
 }
 
@@ -125,14 +115,19 @@ func (gb *gb) Reset() {
 	}
 }
 
-func (gb *gb) UIControls() []ui.Control {
-	return []ui.Control{
-		ui.NewBusUI("memory", gb.bus),
-	}
+func (gb *gb) UIControls() []gui.GUIObject {
+	return nil //} // []gui.GUIObject{
+	// 	ui.NewBusUI("memory", gb.bus),
+	// }
 }
 
-func (gb *gb) Control() map[string]ui.Control {
-	return gb.uiControls
+func (gb *gb) Control() map[string]gui.GUIObject {
+	return map[string]gui.GUIObject{
+		"CPU": ui.NewLR35902UI(gb.cpu),
+		// 	"PPU":    newPPUControl(m.ppu),
+		// 	"SERIAL": newSerialControl(&m.serialBuffer),
+		// 	"Sound":  newSoundCtrl(m.apu),
+	}
 }
 
 func (gb *gb) Monitor() emulator.Monitor       { return gb.ppu.monitor }

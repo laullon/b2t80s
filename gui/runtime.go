@@ -1,6 +1,8 @@
 package gui
 
 import (
+	"reflect"
+
 	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -18,13 +20,19 @@ func PoolEvents(stop chan struct{}) {
 	}
 	for e := sdl.PollEvent(); e != nil; e = sdl.PollEvent() {
 		// fmt.Printf("%T\n", e)
+		wid := reflect.ValueOf(e).Elem().FieldByName("WindowID")
+		var win *window
+		if wid.IsValid() {
+			win = windows[uint32(wid.Uint())]
+			win.sdlWin.GLMakeCurrent(win.context)
+		}
+
 		switch event := e.(type) {
 		case *sdl.WindowEvent:
 			if event.Event == sdl.WINDOWEVENT_CLOSE {
 				sdl.Quit()
 				stop <- struct{}{}
 			} else if event.Event == sdl.WINDOWEVENT_RESIZED {
-				win := windows[event.WindowID]
 				win.ui.Resize(Rect{0, 0, event.Data1, event.Data2})
 			}
 
@@ -34,12 +42,10 @@ func PoolEvents(stop chan struct{}) {
 
 		case *sdl.KeyboardEvent:
 			if event.Repeat == 0 {
-				win := windows[event.WindowID]
 				win.onKey(event.Keysym.Scancode)
 			}
 
 		case *sdl.MouseMotionEvent:
-			win := windows[event.WindowID]
 			_, h := win.sdlWin.GetSize()
 			p := Point{event.X, h - event.Y}
 			for _, obj := range win.mouseListeners {
@@ -47,7 +53,6 @@ func PoolEvents(stop chan struct{}) {
 			}
 
 		case *sdl.MouseButtonEvent:
-			win := windows[event.WindowID]
 			_, h := win.sdlWin.GetSize()
 			p := Point{event.X, h - event.Y}
 			for _, obj := range win.mouseListeners {

@@ -35,13 +35,13 @@ func (hct *hct) Resize(r Rect) {
 	if hct.vertical {
 		sizeCenter := r.H - hct.sizeHead - hct.sizeTail
 		if hct.uiHead != nil {
-			hct.uiHead.Resize(Rect{0, r.H - hct.sizeHead, r.W, hct.sizeHead})
+			hct.uiHead.Resize(r.Relative(Rect{0, r.H - hct.sizeHead, r.W, hct.sizeHead}))
 		}
 		if hct.uiCenter != nil {
-			hct.uiCenter.Resize(Rect{0, hct.sizeTail, r.W, sizeCenter})
+			hct.uiCenter.Resize(r.Relative(Rect{0, hct.sizeTail, r.W, sizeCenter}))
 		}
 		if hct.uiTail != nil {
-			hct.uiTail.Resize(Rect{0, 0, r.W, hct.sizeTail})
+			hct.uiTail.Resize(r.Relative(Rect{0, 0, r.W, hct.sizeTail}))
 		}
 	} else {
 		panic(-1)

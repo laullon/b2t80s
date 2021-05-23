@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/laullon/b2t80s/cpu/lr35902"
+	"github.com/laullon/b2t80s/gui"
 	"github.com/laullon/b2t80s/ui"
 )
 
@@ -118,13 +119,13 @@ type timerDebugControl struct {
 
 	div, tima, tma, tac *ui.RegText
 
-	cpu ui.Control
+	cpu gui.GUIObject
 }
 
 func newTimerControl(cpu lr35902.LR35902, timer *timer) *timerDebugControl {
 	ctrl := &timerDebugControl{
 		timer: timer,
-		cpu:   ui.NewLR35902UI(cpu),
+		// cpu:   ui.NewLR35902UI(cpu),
 	}
 
 	ctrl.div = ui.NewRegText("div:")
@@ -150,8 +151,8 @@ func newTimerControl(cpu lr35902.LR35902, timer *timer) *timerDebugControl {
 	return ctrl
 }
 
-func (ui *timerDebugControl) GetRegisters() string { return ui.cpu.GetRegisters() }
-func (ui *timerDebugControl) GetOutput() string    { return ui.cpu.GetOutput() }
+// func (ui *timerDebugControl) GetRegisters() string { return ui.cpu.GetRegisters() }
+// func (ui *timerDebugControl) GetOutput() string    { return ui.cpu.GetOutput() }
 
 func (ctrl *timerDebugControl) Update() {
 	ctrl.div.Update(strconv.Itoa(int(ctrl.timer.div)))

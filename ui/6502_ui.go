@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/laullon/b2t80s/cpu/m6502"
+	"github.com/laullon/b2t80s/gui"
 )
 
 type m6502UI struct {
@@ -22,7 +23,7 @@ type m6502UI struct {
 	tracefile *os.File
 }
 
-func NewM6502UI(cpu m6502.M6502) Control {
+func NewM6502UI(cpu m6502.M6502) gui.GUIObject {
 	ui := &m6502UI{
 		regs: cpu.Registers(),
 		log:  make([]string, 10),
@@ -61,6 +62,12 @@ func NewM6502UI(cpu m6502.M6502) Control {
 	// ui.widget = container.New(layout.NewVBoxLayout(), dump, regs, ui.logTxt, ui.nextTxt) //, ui.disasTxt)
 
 	return ui
+}
+
+func (ui *m6502UI) Render() {
+}
+
+func (ui *m6502UI) Resize(r gui.Rect) {
 }
 
 func (ui *m6502UI) GetRegisters() string { return "" }

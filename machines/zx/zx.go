@@ -9,7 +9,7 @@ import (
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/ay8912"
 	"github.com/laullon/b2t80s/emulator/storage/cassette"
-	"github.com/laullon/b2t80s/ui"
+	"github.com/laullon/b2t80s/gui"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -112,8 +112,8 @@ func (zx *zx) Clock() emulator.Clock {
 	return zx.clock
 }
 
-func (zx *zx) Control() map[string]ui.Control {
-	return map[string]ui.Control{"CPU": ui.NewZ80UI(zx.cpu)}
+func (zx *zx) Control() map[string]gui.GUIObject {
+	return nil //map[string]gui.GUIObject{"CPU": ui.NewZ80UI(zx.cpu)}
 }
 
 func (zx *zx) SetDebugger(db cpu.DebuggerCallbacks) { zx.cpu.SetDebugger(db) }
