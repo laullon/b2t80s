@@ -124,7 +124,7 @@ func (gb *gb) UIControls() []gui.GUIObject {
 func (gb *gb) Control() map[string]gui.GUIObject {
 	return map[string]gui.GUIObject{
 		"CPU": ui.NewLR35902UI(gb.cpu),
-		// 	"PPU":    newPPUControl(m.ppu),
+		"PPU": newPPUControl(gb.ppu),
 		// 	"SERIAL": newSerialControl(&m.serialBuffer),
 		// 	"Sound":  newSoundCtrl(m.apu),
 	}
@@ -162,6 +162,35 @@ func (gb *gb) ReadPort(addr uint16) (byte, bool) {
 func (gb *gb) WritePort(addr uint16, data byte) {
 	switch addr {
 	case 0xff00:
+		if gui.Joystick1.ON {
+			gb.buttons = 0xff
+			if gui.Joystick1.F { // A
+				gb.buttons ^= 0b00000001
+			}
+			if gui.Joystick1.F2 { // B
+				gb.buttons ^= 0b00000010
+			}
+			if gui.Joystick1.Select { //select
+				gb.buttons ^= 0b00000100
+			}
+			if gui.Joystick1.Start { // start
+				gb.buttons ^= 0b00001000
+			}
+
+			gb.pad = 0xff
+			if gui.Joystick1.R {
+				gb.pad ^= 0b00000001
+			}
+			if gui.Joystick1.L {
+				gb.pad ^= 0b00000010
+			}
+			if gui.Joystick1.U {
+				gb.pad ^= 0b00000100
+			}
+			if gui.Joystick1.D {
+				gb.pad ^= 0b00001000
+			}
+		}
 		if data&0b0001_0000 == 0 {
 			gb.controls = &gb.pad
 		} else if data&0b0010_0000 == 0 {

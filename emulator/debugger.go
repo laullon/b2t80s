@@ -1,6 +1,9 @@
 package emulator
 
 import (
+	"strconv"
+	"strings"
+
 	"github.com/laullon/b2t80s/cpu"
 )
 
@@ -22,13 +25,22 @@ type debugger struct {
 	// ui, stop, step *fyne.Container
 }
 
-func NewDebugger(clock Clock, breaks []uint16) Debugger {
+func NewDebugger(clock Clock) *debugger {
 
 	debug := &debugger{
-		clock:  clock,
-		breaks: breaks,
+		clock: clock,
 	}
 
+	if len(*Breaks) > 0 {
+		bps := strings.Split(*Breaks, ",")
+		for _, bp := range bps {
+			n, err := strconv.ParseUint(bp, 0, 16)
+			if err != nil {
+				panic(err)
+			}
+			debug.breaks = append(debug.breaks, uint16(n))
+		}
+	}
 	return debug
 }
 

@@ -24,7 +24,7 @@ func NewTabs() Tabs {
 
 func (tabs *tabs) AddTabs(name string, panel GUIObject) {
 	tabID := len(tabs.tabs)
-	bt := NewButton(name)
+	bt := NewTab(name)
 	bt.SetAction(func() { tabs.setTab(tabID) })
 	tabs.tabs = append(tabs.tabs, bt)
 	tabs.bar.Add(bt)

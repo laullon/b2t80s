@@ -168,7 +168,7 @@ type kempston struct {
 }
 
 func (k *kempston) ReadPort(port uint16) (byte, bool) {
-	j, _ := emulator.ReadJoystick()
+	j := gui.Joystick1
 	res := byte(0)
 	// 000FUDLR
 	if j.ON {

@@ -114,7 +114,9 @@ func main() {
 	log.Printf("opengl version %s", gl.GoStr(gl.GetString(gl.VERSION)))
 
 	if *emulator.Debug {
-		emulator.NewDebugWindow(name, machine)
+		db := emulator.NewDebugger(machine.Clock())
+		machine.SetDebugger(db)
+		emulator.NewDebugWindow(name, machine, db)
 	}
 
 	wait := time.Duration(time.Second)
@@ -163,20 +165,7 @@ func main() {
 	// var controls map[string]gui.GUIObject
 
 	// if *emulator.Debug {
-	// 	var breaks []uint16
-	// 	if len(*emulator.Breaks) > 0 {
-	// 		bps := strings.Split(*emulator.Breaks, ",")
-	// 		for _, bp := range bps {
-	// 			n, err := strconv.ParseUint(bp, 0, 16)
-	// 			if err != nil {
-	// 				panic(err)
-	// 			}
-	// 			breaks = append(breaks, uint16(n))
-	// 		}
-	// 	}
 
-	// 	db := emulator.NewDebugger(machine.Clock(), breaks)
-	// 	machine.SetDebugger(db)
 	// 	controls = machine.Control()
 
 	// 	debugTabs = container.NewAppTabs()

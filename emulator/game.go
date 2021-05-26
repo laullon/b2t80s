@@ -23,7 +23,7 @@ func NewGame(name string, machine Machine) Game {
 	machine.Monitor().SetRedraw(func() {}) // TODO: need it?
 
 	img := gui.NewDisplayViewer(machine.Monitor().Screen())
-	game.status = gui.NewLabel("")
+	game.status = gui.NewLabel("", gui.Left)
 
 	hct := gui.NewVerticalHCT()
 	hct.SetCenter(img)

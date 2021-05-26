@@ -6,25 +6,32 @@ import (
 	"image/draw"
 
 	"github.com/go-gl/gl/v3.3-core/gl"
-	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/font/inconsolata"
-	"golang.org/x/image/math/fixed"
+)
+
+type LabelAlign int
+
+const (
+	Left LabelAlign = iota
+	Center
+	Right
 )
 
 type Label interface {
 	GUIObject
 	SetText(txt string)
 	GetText() string
-	SetForeground(c color.Color)
+	SetForeground(c color.RGBA)
 }
 
 type label struct {
-	rect Rect
-	text string
-	back *image.Uniform
-	fore *image.Uniform
-	face *basicfont.Face
+	rect  Rect
+	text  string
+	back  *image.Uniform
+	fore  color.RGBA
+	face  *basicfont.Face
+	aling LabelAlign
 
 	needsUpdate bool
 	img         *glImage // TODO: replace by our own image
@@ -33,11 +40,12 @@ type label struct {
 	frameID uint32
 }
 
-func NewLabel(txt string) Label {
+func NewLabel(txt string, aling LabelAlign) Label {
 	l := &label{
-		back: image.NewUniform(color.RGBA{255, 255, 255, 255}),
-		fore: image.NewUniform(color.RGBA{0, 0, 0, 255}),
-		face: inconsolata.Regular8x16,
+		back:  image.NewUniform(color.RGBA{255, 255, 255, 255}),
+		fore:  color.RGBA{0, 0, 0, 255},
+		face:  inconsolata.Regular8x16,
+		aling: aling,
 	}
 
 	l.init()
@@ -45,8 +53,8 @@ func NewLabel(txt string) Label {
 	return l
 }
 
-func (l *label) SetForeground(c color.Color) {
-	l.fore = image.NewUniform(c)
+func (l *label) SetForeground(c color.RGBA) {
+	l.fore = c
 	l.redraw()
 }
 
@@ -68,25 +76,7 @@ func (l *label) Resize(r Rect) {
 func (l *label) redraw() {
 
 	draw.Draw(l.img, l.img.Bounds(), l.back, image.Point{}, draw.Src)
-
-	r, _ := font.BoundString(l.face, l.text)
-	y := l.rect.H/2 - int32(r.Min.Y.Ceil())/2
-	x := l.rect.W/2 - int32(r.Max.X.Ceil())/2
-	p := fixed.P(int(x), int(y))
-	// println("int32(r.Min.Y.Ceil())", int32(r.Min.Y.Ceil()))
-	// fmt.Printf("r:%v\n", r)
-	// fmt.Printf("r:%v\n", l.rect)
-	// println(l.rect.H, "+", int32(r.Min.Y.Ceil()))
-	// fmt.Printf("p:%v\n", p)
-
-	d := &font.Drawer{
-		Dst:  l.img,
-		Src:  l.fore,
-		Face: l.face,
-		Dot:  p,
-	}
-
-	d.DrawString(l.text)
+	drawText(l.text, l.img, l.fore, l.aling)
 	l.needsUpdate = true
 }
 

@@ -7,23 +7,23 @@ import (
 )
 
 type RegText struct {
-	label gui.Label
-	value gui.Label
+	Label gui.Label
+	Value gui.Label
 }
 
 func NewRegText(label string) *RegText {
 	rt := &RegText{
-		label: gui.NewLabel(label),
-		value: gui.NewLabel(""),
+		Label: gui.NewLabel(label, gui.Right),
+		Value: gui.NewLabel("", gui.Left),
 	}
 	return rt
 }
 
 func (rt *RegText) Update(text string) {
-	if rt.value.GetText() != text {
-		rt.value.SetText(text)
-		rt.value.SetForeground(color.RGBA{0, 0, 0xff, 0xff})
+	if rt.Value.GetText() != text {
+		rt.Value.SetText(text)
+		rt.Value.SetForeground(color.RGBA{0, 0, 0xff, 0xff})
 	} else {
-		rt.value.SetForeground(color.RGBA{0, 0, 0, 0xff})
+		rt.Value.SetForeground(color.RGBA{0, 0, 0, 0xff})
 	}
 }

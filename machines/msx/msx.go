@@ -196,9 +196,9 @@ func (msx *msx) GetVolumeControl() func(float64) {
 }
 
 func readJoystick(joy2 bool) byte {
-	j, j2 := emulator.ReadJoystick()
+	j := gui.Joystick1
 	if joy2 {
-		j = j2
+		j = gui.Joystick2
 	}
 	res := byte(0xff)
 	if j.ON {

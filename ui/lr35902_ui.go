@@ -66,7 +66,7 @@ func NewLR35902UI(cpu lr35902.LR35902) gui.GUIObject {
 
 	grid := gui.NewHGrid(10, 20)
 	for _, reg := range regs {
-		grid.Add(reg.label, reg.value)
+		grid.Add(reg.Label, reg.Value)
 	}
 
 	ctl.out = gui.NewText("")

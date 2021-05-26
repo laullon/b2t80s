@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/go-gl/gl/v3.3-core/gl"
@@ -12,7 +13,7 @@ var windows = make(map[uint32]*window)
 func PoolEvents(stop chan struct{}) {
 	for _, win := range windows {
 		win.sdlWin.GLMakeCurrent(win.context)
-		gl.ClearColor(0, 0, 0, 1)
+		gl.ClearColor(1, 1, 1, 1)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 		win.ui.Render()
 		gl.Flush()
@@ -60,6 +61,35 @@ func PoolEvents(stop chan struct{}) {
 					obj.OnMouseClick(event.State == 0)
 				}
 			}
+
+		case *sdl.JoyAxisEvent:
+			switch event.Axis {
+			case 0:
+				joysticks[event.Which].R = event.Value == 32767
+				joysticks[event.Which].L = event.Value == -32768
+			case 1:
+				joysticks[event.Which].D = event.Value == 32767
+				joysticks[event.Which].U = event.Value == -32768
+			}
+
+		case *sdl.JoyButtonEvent:
+			switch true {
+			case event.Button == 8:
+				joysticks[event.Which].Select = event.State == 1
+			case event.Button == 9:
+				joysticks[event.Which].Start = event.State == 1
+			case event.Button%2 == 0:
+				joysticks[event.Which].F = event.State == 1
+			case event.Button%2 == 1:
+				joysticks[event.Which].F2 = event.State == 1
+			}
+
+		case *sdl.JoyDeviceAddedEvent:
+			sdl.JoystickOpen(int(event.Which))
+			joysticks[event.Which].ON = true
+
+		default:
+			fmt.Printf(">> event: %T \n", e)
 		}
 	}
 }

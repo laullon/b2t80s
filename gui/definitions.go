@@ -3,7 +3,18 @@ package gui
 import (
 	"image"
 	"image/color"
+
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/inconsolata"
+	"golang.org/x/image/math/fixed"
 )
+
+var palette = []color.RGBA{ // https://www.slideteam.net/blog/9-beautiful-color-palettes-for-designing-powerful-powerpoint-slides
+	{0xff, 0xff, 0xff, 0xff},
+	{4, 37, 58, 0xff},     //Dark Blue
+	{225, 221, 191, 0xff}, //Tan
+	{76, 131, 122, 0xff},  //Green
+}
 
 type GUIObject interface {
 	Render()
@@ -35,6 +46,80 @@ func (r Rect) Relative(new Rect) Rect {
 	new.X += r.X
 	new.Y += r.Y
 	return new
+}
+
+// ******************************************************
+// ******************************************************
+// ******************************************************
+
+type circle struct {
+	p    image.Point
+	r    int
+	r2   int
+	in   color.RGBA
+	out  color.RGBA
+	line color.RGBA
+}
+
+func (c *circle) ColorModel() color.Model {
+	return color.AlphaModel
+}
+
+func (c *circle) Bounds() image.Rectangle {
+	return image.Rect(c.p.X-c.r, c.p.Y-c.r, c.p.X+c.r, c.p.Y+c.r)
+}
+
+func (c *circle) At(x, y int) color.Color {
+	xx, yy, rr, rr2 := float64(x-c.p.X)+0.5, float64(y-c.p.Y)+0.5, float64(c.r), float64(c.r2)
+	if xx*xx+yy*yy < rr2*rr2 {
+		return c.in
+	} else if xx*xx+yy*yy < rr*rr {
+		return c.line
+	}
+
+	return c.out
+}
+
+// ******************************************************
+// ******************************************************
+// ******************************************************
+type Joystick struct {
+	ON                               bool
+	U, D, R, L, F, F2, Select, Start bool
+}
+
+var Joystick1 = &Joystick{}
+var Joystick2 = &Joystick{}
+var joysticks = []*Joystick{Joystick1, Joystick2}
+
+// ******************************************************
+// ******************************************************
+// ******************************************************
+
+func drawText(text string, img *glImage, color color.RGBA, aling LabelAlign) {
+	face := inconsolata.Regular8x16
+	r, _ := font.BoundString(face, text)
+
+	w, h := r.Max.X.Ceil(), r.Min.Y.Ceil() //face.Height
+
+	y := img.rect.Dy()/2 - h/2
+	x := 0
+	switch aling {
+	case Center:
+		x = img.rect.Dx()/2 - w/2
+	case Right:
+		x = img.rect.Dx() - w
+	}
+	p := fixed.P(int(x), int(y))
+
+	d := &font.Drawer{
+		Dst:  img,
+		Src:  image.NewUniform(color),
+		Face: face,
+		Dot:  p,
+	}
+
+	d.DrawString(text)
 }
 
 // ******************************************************

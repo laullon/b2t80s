@@ -13,7 +13,6 @@ type Clock interface {
 	Stats() string
 	Pause()
 	Resume()
-	SetOnFrameCallback(func())
 }
 
 type Ticker interface {
@@ -34,7 +33,6 @@ type clock struct {
 	tickers         []*ticker
 	lastFrameTime   float64
 	pasued          bool
-	callback        func()
 }
 
 func NewCLock(hz uint, blocks uint) Clock {
@@ -91,14 +89,7 @@ func (c *clock) Run() {
 
 				if !c.pasued {
 					hf = 1 - hf
-					if hf == 0 && c.callback != nil {
-						c.callback()
-					}
-				} else {
-					c.callback()
 				}
-			} else {
-				c.callback()
 			}
 		}
 	}()
@@ -108,8 +99,4 @@ func (c *clock) RunFor(seconds uint) {
 	for c.tStates < c.tStatesPerBlock*c.blocks*seconds {
 		c.tick()
 	}
-}
-
-func (c *clock) SetOnFrameCallback(f func()) {
-	c.callback = f
 }

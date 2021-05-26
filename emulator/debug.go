@@ -15,17 +15,28 @@ type debug struct {
 	window gui.Window
 }
 
-func NewDebugWindow(name string, machine Machine) *debug {
+func NewDebugWindow(name string, machine Machine, debuger *debugger) *debug {
 	debug := &debug{
 		window: gui.NewWindow(name, gui.Size{800, 600}),
 	}
 
 	bt1 := gui.NewButton("Stop")
+	bt1.SetAction(func() { debuger.Stop() })
+
 	bt2 := gui.NewButton("Stop Interrup")
+	bt2.SetAction(func() { debuger.StopNextInterrupt() })
+
 	bt3 := gui.NewButton("Continue")
+	bt3.SetAction(func() { debuger.Continue() })
+
 	bt4 := gui.NewButton("Step")
+	bt4.SetAction(func() { debuger.Step() })
+
 	bt5 := gui.NewButton("Step Line")
+	bt5.SetAction(func() { debuger.StepLine() })
+
 	bt6 := gui.NewButton("Step Frame")
+	bt6.SetAction(func() { debuger.StepFrame() })
 
 	grid := gui.NewHGrid(3, 50)
 	grid.Add(bt1, bt2, bt3, bt4, bt5, bt6)

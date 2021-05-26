@@ -17,6 +17,8 @@ type ppuDebugControl struct {
 
 	x, y, scX, scY, wx, wy *ui.RegText
 	status, control        *ui.RegText
+
+	ui gui.HCT
 }
 
 func newPPUControl(ppu *ppu) *ppuDebugControl {
@@ -34,35 +36,29 @@ func newPPUControl(ppu *ppu) *ppuDebugControl {
 	ctrl.status = ui.NewRegText("Status:")
 	ctrl.control = ui.NewRegText("Control:")
 
-	// c1 := container.New(layout.NewFormLayout(),
-	// 	ctrl.x.Label, ctrl.x.Value,
-	// 	ctrl.y.Label, ctrl.y.Value,
-	// )
+	regs := []*ui.RegText{
+		ctrl.x, ctrl.scX, ctrl.wx, ctrl.status,
+		ctrl.y, ctrl.scY, ctrl.wy, ctrl.control,
+	}
 
-	// c2 := container.New(layout.NewFormLayout(),
-	// 	ctrl.scX.Label, ctrl.scX.Value,
-	// 	ctrl.scY.Label, ctrl.scY.Value,
-	// )
+	grid := gui.NewHGrid(8, 20)
+	for _, reg := range regs {
+		grid.Add(reg.Label, reg.Value)
+	}
 
-	// c3 := container.New(layout.NewFormLayout(),
-	// 	ctrl.wx.Label, ctrl.wx.Value,
-	// 	ctrl.wy.Label, ctrl.wy.Value,
-	// )
-
-	// c4 := container.New(layout.NewFormLayout(),
-	// 	ctrl.control.Label, ctrl.control.Value,
-	// 	ctrl.status.Label, ctrl.status.Value,
-	// )
-
-	// regs := container.New(layout.NewGridLayoutWithColumns(4), c1, c2, c3, c4)
-
-	// ctrl.ui = container.New(layout.NewBorderLayout(regs, ctrl.sprites, nil, nil), regs, img, ctrl.sprites)
+	ctrl.ui = gui.NewVerticalHCT()
+	ctrl.ui.SetHead(grid, 80)
 
 	return ctrl
 }
 
-func (ui *ppuDebugControl) GetRegisters() string { return "" }
-func (ui *ppuDebugControl) GetOutput() string    { return "" }
+func (ctrl *ppuDebugControl) Render() {
+	ctrl.ui.Render()
+}
+
+func (ctrl *ppuDebugControl) Resize(r gui.Rect) {
+	ctrl.ui.Resize(r)
+}
 
 func (ctrl *ppuDebugControl) Update() {
 	ctrl.x.Update(strconv.Itoa(ctrl.ppu.lx))
