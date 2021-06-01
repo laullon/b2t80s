@@ -95,7 +95,7 @@ func (ga *gatearray) Tick() {
 	if !ga.prevVSync && ga.crtc.status.vSync {
 		ga.y = 0
 		ga.display.ViewPortRect.X = (int32(ga.crtc.regs[3]&0x0f) * 8) * 2
-		ga.display.ViewPortRect.Y = 34
+		ga.display.ViewPortRect.Y = 34 / 2
 		ga.display.ViewPortRect.W = 384 * 2
 		ga.display.ViewPortRect.H = 272
 		ga.monitor.FrameDone()

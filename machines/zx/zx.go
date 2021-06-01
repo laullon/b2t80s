@@ -172,7 +172,7 @@ func (k *kempston) ReadPort(port uint16) (byte, bool) {
 	res := byte(0)
 	// 000FUDLR
 	if j.ON {
-		if j.F {
+		if j.F || j.F2 {
 			res |= 0b00010000
 		}
 		if j.U {

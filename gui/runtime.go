@@ -1,7 +1,6 @@
 package gui
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/go-gl/gl/v3.3-core/gl"
@@ -89,7 +88,7 @@ func PoolEvents(stop chan struct{}) {
 			joysticks[event.Which].ON = true
 
 		default:
-			fmt.Printf(">> event: %T \n", e)
+			// fmt.Printf(">> event: %T \n", e)
 		}
 	}
 }
