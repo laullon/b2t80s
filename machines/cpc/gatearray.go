@@ -2,8 +2,12 @@ package cpc
 
 import (
 	"fmt"
-	"image"
+
+	// "image"
 	"image/color"
+
+	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/gui"
 )
 
 type gatearray struct {
@@ -20,7 +24,8 @@ type gatearray struct {
 	pen     byte
 	palette []color.RGBA
 
-	monitor *monitor
+	monitor emulator.Monitor
+	display *gui.Display
 
 	prevHSync, prevVSync           bool
 	hSyncCount, hSyncsInVSyncCount byte
@@ -68,12 +73,15 @@ func newGateArray(mem *memory, crtc *crtc) *gatearray {
 		mem:     mem,
 		crtc:    crtc,
 		palette: make([]color.RGBA, 16),
-
-		monitor: NewMonitor(),
+		display: gui.NewDisplay(gui.Size{960, 312}),
 
 		decode: to1bpp,
 		ppc:    16,
 	}
+
+	ga.display.ViewSize.W = 768
+	ga.display.ViewSize.H = 576
+	ga.monitor = emulator.NewMonitor(ga.display)
 
 	return ga
 }
@@ -86,10 +94,10 @@ func (ga *gatearray) Tick() {
 
 	if !ga.prevVSync && ga.crtc.status.vSync {
 		ga.y = 0
-		ga.monitor.display.Rect.Min = image.Point{X: (int(ga.crtc.regs[3]&0x0f) * 8) * 2, Y: 34}
-		ga.monitor.display.Rect.Max = image.Point{X: (int(ga.crtc.regs[3]&0x0f)*8 + 384) * 2, Y: (34 + 272)}
-		ga.monitor.displayScaled.Rect.Min = image.Point{X: (int(ga.crtc.regs[3]&0x0f) * 8) * 2, Y: 34 * 2}
-		ga.monitor.displayScaled.Rect.Max = image.Point{X: (int(ga.crtc.regs[3]&0x0f)*8 + 384) * 2, Y: (34 + 272) * 2}
+		ga.display.ViewPortRect.X = (int32(ga.crtc.regs[3]&0x0f) * 8) * 2
+		ga.display.ViewPortRect.Y = 34 / 2
+		ga.display.ViewPortRect.W = 384 * 2
+		ga.display.ViewPortRect.H = 272
 		ga.monitor.FrameDone()
 	}
 
@@ -100,27 +108,27 @@ func (ga *gatearray) Tick() {
 		cs := ga.decode(ga.mem.getScreenByte(addr))
 		cs = append(cs, ga.decode(ga.mem.getScreenByte(addr+1))...)
 		for off, c := range cs {
-			ga.monitor.display.SetRGBA(x+off, ga.y, ga.palette[c])
+			ga.display.SetRGBA(x+off, ga.y, ga.palette[c])
 		}
 	} else {
 		for i := 0; i < pixles; i++ {
-			ga.monitor.display.SetRGBA(x+i, ga.y, ga.borderColor)
+			ga.display.SetRGBA(x+i, ga.y, ga.borderColor)
 		}
 
 		// if ga.crtc.status.hSync || ga.crtc.status.vSync {
 		// 	for i := 0; i < pixles; i += 2 {
-		// 		ga.monitor.display.SetRGBA(x+i, ga.y, color.RGBA{0x00, 0x00, 0x00, 0xff})
+		// 		ga.display.SetRGBA(x+i, ga.y, color.RGBA{0x00, 0x00, 0x00, 0xff})
 		// 	}
 		// }
 
 		// if ga.x == 0 {
 		// 	if ga.screenMode == 0 {
 		// 		for i := 0; i < pixles; i++ {
-		// 			ga.monitor.display.SetRGBA(x+i, ga.y, color.RGBA{0x00, 0xff, 0x00, 0xff})
+		// 			ga.display.SetRGBA(x+i, ga.y, color.RGBA{0x00, 0xff, 0x00, 0xff})
 		// 		}
 		// 	} else if ga.screenMode == 1 {
 		// 		for i := 0; i < pixles; i++ {
-		// 			ga.monitor.display.SetRGBA(x+i, ga.y, color.RGBA{0x00, 0x00, 0xff, 0xff})
+		// 			ga.display.SetRGBA(x+i, ga.y, color.RGBA{0x00, 0x00, 0xff, 0xff})
 		// 		}
 		// 	}
 		// }
@@ -128,7 +136,7 @@ func (ga *gatearray) Tick() {
 		// if ga.x == 1 {
 		// 	if ga.hSyncCount == 0 {
 		// 		for i := 0; i < pixles; i++ {
-		// 			ga.monitor.display.SetRGBA(x+i, ga.y, color.RGBA{0xff, 0x00, 0x00, 0xff})
+		// 			ga.display.SetRGBA(x+i, ga.y, color.RGBA{0xff, 0x00, 0x00, 0xff})
 		// 		}
 		// 	}
 		// }
@@ -214,7 +222,7 @@ func (ga *gatearray) WritePort(port uint16, data byte) {
 			if ga.borderColor != colours[data&0x1f] {
 				ga.borderColor = colours[data&0x1f]
 				// println("ga.borderColor:", data&0x1f, ga.y)
-				// draw.Draw(ga.monitor.display, ga.monitor.display.Bounds(), &image.Uniform{ga.borderColor}, image.ZP, draw.Src)
+				// draw.Draw(ga.display, ga.display.Bounds(), &image.Uniform{ga.borderColor}, image.ZP, draw.Src)
 			}
 		}
 	} else if f == 2 {

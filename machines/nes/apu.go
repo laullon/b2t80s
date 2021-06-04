@@ -3,9 +3,9 @@ package nes
 import (
 	"fmt"
 
-	"fyne.io/fyne/v2"
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/m6502"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 type apu struct {
@@ -141,25 +141,23 @@ func (apu *apu) WritePort(addr uint16, data byte) {
 	}
 }
 
-func (apu *apu) onKeyEvent(key *fyne.KeyEvent) {
-	// fmt.Println("key:", key.Name)
-	switch key.Name {
-
-	case fyne.KeyZ: // A
+func (apu *apu) OnKey(key sdl.Scancode) {
+	switch key {
+	case sdl.SCANCODE_Z: // A
 		apu.ctrl0 ^= 0b00000001
-	case fyne.KeyX: // B
+	case sdl.SCANCODE_X: // B
 		apu.ctrl0 ^= 0b00000010
-	case fyne.Key1: //select
+	case sdl.SCANCODE_1: //select
 		apu.ctrl0 ^= 0b00000100
-	case fyne.Key2: // start
+	case sdl.SCANCODE_2: // start
 		apu.ctrl0 ^= 0b00001000
-	case fyne.KeyUp:
+	case sdl.SCANCODE_UP:
 		apu.ctrl0 ^= 0b00010000
-	case fyne.KeyDown:
+	case sdl.SCANCODE_DOWN:
 		apu.ctrl0 ^= 0b00100000
-	case fyne.KeyLeft:
+	case sdl.SCANCODE_LEFT:
 		apu.ctrl0 ^= 0b01000000
-	case fyne.KeyRight:
+	case sdl.SCANCODE_RIGHT:
 		apu.ctrl0 ^= 0b10000000
 	}
 }

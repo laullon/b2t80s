@@ -27,17 +27,19 @@ type ticker struct {
 
 type clock struct {
 	wait            time.Duration
-	tStatesPerFrame uint
+	tStatesPerBlock uint
+	blocks          uint
 	tStates         uint
 	tickers         []*ticker
 	lastFrameTime   float64
 	pasued          bool
 }
 
-func NewCLock(hz uint, fps uint) Clock {
+func NewCLock(hz uint, blocks uint) Clock {
 	clock := &clock{
-		tStatesPerFrame: hz / (fps * 2),
-		wait:            time.Duration(time.Second / time.Duration(fps*2)),
+		tStatesPerBlock: hz / blocks,
+		wait:            time.Duration(time.Second / time.Duration(blocks)),
+		blocks:          blocks,
 	}
 	return clock
 }
@@ -74,20 +76,27 @@ func (c *clock) Stats() string {
 
 func (c *clock) Run() {
 	ticker := time.NewTicker(c.wait)
+	hf := 0
 	go func() {
 		for range ticker.C {
-			start := time.Now()
-			for (c.tStates < c.tStatesPerFrame) && !c.pasued {
-				c.tick()
+			if !c.pasued {
+				start := time.Now()
+				for (c.tStates < c.tStatesPerBlock) && !c.pasued {
+					c.tick()
+				}
+				c.lastFrameTime = float64(time.Since(start).Microseconds()) / 1000.0
+				c.tStates = 0
+
+				if !c.pasued {
+					hf = 1 - hf
+				}
 			}
-			c.lastFrameTime = float64(time.Now().Sub(start).Microseconds()) / 1000.0
-			c.tStates = 0
 		}
 	}()
 }
 
 func (c *clock) RunFor(seconds uint) {
-	for c.tStates < (c.tStatesPerFrame * 50 * seconds) {
+	for c.tStates < c.tStatesPerBlock*c.blocks*seconds {
 		c.tick()
 	}
 }

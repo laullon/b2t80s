@@ -1,56 +1,52 @@
 package emulator
 
 import (
-	"image"
 	"time"
 
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/canvas"
+	"github.com/laullon/b2t80s/gui"
 )
 
 type Monitor interface {
-	Canvas() *canvas.Image
+	Screen() *gui.Display
 	FrameDone()
 	FPS() float64
+	SetRedraw(redraw func())
 }
 
 type monitor struct {
-	vram    *image.RGBA
-	screen  *image.RGBA
-	display *canvas.Image
+	display *gui.Display
 	start   time.Time
 	frames  float64
+	redraw  func()
 }
 
-func NewMonitor(img *image.RGBA) Monitor {
+func NewMonitor(img *gui.Display) Monitor {
 	monitor := &monitor{
-		vram:   img,
-		screen: image.NewRGBA(img.Bounds()),
-		start:  time.Now(),
+		display: img,
+		start:   time.Now(),
 	}
-
-	monitor.display = canvas.NewImageFromImage(monitor.screen)
-	monitor.display.FillMode = canvas.ImageFillOriginal
-	monitor.display.ScaleMode = canvas.ImageScalePixels
-	monitor.display.SetMinSize(fyne.NewSize(352*2, 296*2))
 
 	return monitor
 }
 
-func (monitor *monitor) Canvas() *canvas.Image {
+func (monitor *monitor) SetRedraw(redraw func()) {
+	monitor.redraw = redraw
+}
+
+func (monitor *monitor) Screen() *gui.Display {
 	return monitor.display
 }
 
 func (monitor *monitor) FrameDone() {
 	monitor.frames++
-	copy(monitor.screen.Pix, monitor.vram.Pix)
+	monitor.display.Swap()
 	go func() {
-		monitor.display.Refresh()
+		monitor.redraw()
 	}()
 }
 
 func (monitor *monitor) FPS() float64 {
-	seconds := time.Now().Sub(monitor.start).Seconds()
+	seconds := time.Since(monitor.start).Seconds()
 	res := monitor.frames / seconds
 	if seconds > 2 {
 		monitor.frames = 0

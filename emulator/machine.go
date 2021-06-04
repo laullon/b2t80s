@@ -1,9 +1,9 @@
 package emulator
 
 import (
-	"fyne.io/fyne/v2"
 	"github.com/laullon/b2t80s/cpu"
-	"github.com/laullon/b2t80s/ui"
+	"github.com/laullon/b2t80s/gui"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 var LoadSlow *bool
@@ -15,13 +15,15 @@ var WatchPoints *string
 var DskAFile *string
 var TapFile *string
 var RomFile *string
+var CartFile *string
 
 type Machine interface {
-	OnKeyEvent(event *fyne.KeyEvent)
+	OnKey(key sdl.Scancode)
 	Monitor() Monitor
 	Clock() Clock
-	UIControls() []ui.Control
-	Control() map[string]ui.Control
+	UIControls() []gui.GUIObject
+	Control() map[string]gui.GUIObject
 	GetVolumeControl() func(float64)
 	SetDebugger(cpu.DebuggerCallbacks)
+	Reset()
 }

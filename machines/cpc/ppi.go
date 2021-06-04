@@ -3,10 +3,10 @@ package cpc
 import (
 	"sync"
 
-	"fyne.io/fyne/v2"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/ay8912"
 	"github.com/laullon/b2t80s/emulator/storage/cassette"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 const (
@@ -155,30 +155,7 @@ func (ppi *ppi) readA() (res byte) {
 		if ppi.psgControl == psgREAD {
 			if ppi.psgReg < 16 {
 				if ppi.psgReg == 14 {
-					if (ppi.keyboardLine & 0x0f) == 9 {
-						j, _ := emulator.ReadJoystick()
-						res = byte(0xff)
-						// 000FRLDU
-						if j.ON {
-							if j.F {
-								res ^= 0b00010000
-							}
-							if j.R {
-								res ^= 0b00001000
-							}
-							if j.L {
-								res ^= 0b00000100
-							}
-							if j.D {
-								res ^= 0b00000010
-							}
-							if j.U {
-								res ^= 0b00000001
-							}
-						}
-					} else {
-						res = ppi.keyboardRows[ppi.keyboardLine&0x0f]
-					}
+					res = ppi.keyboardRows[ppi.keyboardLine&0x0f]
 				} else {
 					res = ppi.psg.ReadRegister(ppi.psgReg)
 				}
@@ -228,181 +205,178 @@ func (ppi *ppi) readC() (res byte) {
 	return res
 }
 
-func (ppi *ppi) OnKeyEvent(key *fyne.KeyEvent) {
-	switch key.Name {
+func (ppi *ppi) OnKey(key sdl.Scancode) {
+	switch key {
 
-	case fyne.KeyUp:
+	case sdl.SCANCODE_UP:
 		ppi.keyboardRows[0] ^= 0b00000001
-	case fyne.KeyRight:
+	case sdl.SCANCODE_RIGHT:
 		ppi.keyboardRows[0] ^= 0b00000010
-	case fyne.KeyDown:
+	case sdl.SCANCODE_DOWN:
 		ppi.keyboardRows[0] ^= 0b00000100
-	case fyne.KeyF9:
+	case sdl.SCANCODE_F9:
 		ppi.keyboardRows[0] ^= 0b00001000
-	case fyne.KeyF6:
+	case sdl.SCANCODE_F6:
 		ppi.keyboardRows[0] ^= 0b00010000
-	case fyne.KeyF3:
+	case sdl.SCANCODE_F3:
 		ppi.keyboardRows[0] ^= 0b00100000
-	case fyne.KeyEnter:
+	case sdl.SCANCODE_RETURN:
 		ppi.keyboardRows[0] ^= 0b01000000
-	case fyne.KeyF11:
+	case sdl.SCANCODE_F11:
 		ppi.keyboardRows[0] ^= 0b10000000
 
-	case fyne.KeyLeft:
+	case sdl.SCANCODE_LEFT:
 		ppi.keyboardRows[1] ^= 0b00000001
-	// case fyne.Key: COPY
+	// case sdl.SCANCODE_\U: COPY
 	// 	ppi.keyboardRows[1] ^= 0b00000010
-	case fyne.KeyF7:
+	case sdl.SCANCODE_F7:
 		ppi.keyboardRows[1] ^= 0b00000100
-	case fyne.KeyF8:
+	case sdl.SCANCODE_F8:
 		ppi.keyboardRows[1] ^= 0b00001000
-	case fyne.KeyF5:
+	case sdl.SCANCODE_F5:
 		ppi.keyboardRows[1] ^= 0b00010000
-	case fyne.KeyF1:
+	case sdl.SCANCODE_F1:
 		ppi.keyboardRows[1] ^= 0b00100000
-	case fyne.KeyF2:
+	case sdl.SCANCODE_F2:
 		ppi.keyboardRows[1] ^= 0b01000000
-	case fyne.KeyF10:
+	case sdl.SCANCODE_F10:
 		ppi.keyboardRows[1] ^= 0b10000000
 
-	// case fyne.KeyUp: CLR
+	// case sdl.SCANCODE_UP: CLR
 	// 	ppi.keyboardRows[2] ^= 0b00000001
-	case fyne.KeyLeftBracket:
+	case sdl.SCANCODE_LEFTBRACKET:
 		ppi.keyboardRows[2] ^= 0b00000010
-	case fyne.KeyReturn:
+	case sdl.SCANCODE_KP_ENTER:
 		ppi.keyboardRows[2] ^= 0b00000100
-	case fyne.KeyRightBracket:
+	case sdl.SCANCODE_RIGHTBRACKET:
 		ppi.keyboardRows[2] ^= 0b00001000
-	case fyne.KeyF4:
+	case sdl.SCANCODE_F4:
 		ppi.keyboardRows[2] ^= 0b00010000
-	case "LeftShift", "RightShift":
+	case sdl.SCANCODE_LSHIFT, sdl.SCANCODE_RSHIFT:
 		ppi.keyboardRows[2] ^= 0b00100000
-	case "\\":
+	case sdl.SCANCODE_BACKSLASH:
 		ppi.keyboardRows[2] ^= 0b01000000
-	case "LeftControl", "RightControl":
+	case sdl.SCANCODE_LCTRL, sdl.SCANCODE_RCTRL:
 		ppi.keyboardRows[2] ^= 0b10000000
 
-	// case fyne.KeyUp: ^
+	// case sdl.SCANCODE_UP: ^
 	// 	ppi.keyboardRows[3] ^= 0b00000001
-	case fyne.KeyMinus:
+	case sdl.SCANCODE_MINUS:
 		ppi.keyboardRows[3] ^= 0b00000010
-	case "'":
+	case sdl.SCANCODE_APOSTROPHE:
 		ppi.keyboardRows[3] ^= 0b00000100
-	case fyne.KeyP:
+	case sdl.SCANCODE_P:
 		ppi.keyboardRows[3] ^= 0b00001000
-	case fyne.KeySemicolon:
+	case sdl.SCANCODE_SEMICOLON:
 		ppi.keyboardRows[3] ^= 0b00010000
 	// case fyne.Ke: :
 	// 	ppi.keyboardRows[3] ^= 0b00100000
-	case fyne.KeySlash:
+	case sdl.SCANCODE_SLASH:
 		ppi.keyboardRows[3] ^= 0b01000000
-	case fyne.KeyPeriod:
+	case sdl.SCANCODE_PERIOD:
 		ppi.keyboardRows[3] ^= 0b10000000
 
-	case fyne.Key0:
+	case sdl.SCANCODE_0:
 		ppi.keyboardRows[4] ^= 0b00000001
-	case fyne.Key9:
+	case sdl.SCANCODE_9:
 		ppi.keyboardRows[4] ^= 0b00000010
-	case fyne.KeyO:
+	case sdl.SCANCODE_O:
 		ppi.keyboardRows[4] ^= 0b00000100
-	case fyne.KeyI:
+	case sdl.SCANCODE_I:
 		ppi.keyboardRows[4] ^= 0b00001000
-	case fyne.KeyL:
+	case sdl.SCANCODE_L:
 		ppi.keyboardRows[4] ^= 0b00010000
-	case fyne.KeyK:
+	case sdl.SCANCODE_K:
 		ppi.keyboardRows[4] ^= 0b00100000
-	case fyne.KeyM:
+	case sdl.SCANCODE_M:
 		ppi.keyboardRows[4] ^= 0b01000000
-	case fyne.KeyComma:
+	case sdl.SCANCODE_COMMA:
 		ppi.keyboardRows[4] ^= 0b10000000
 
-	case fyne.Key8:
+	case sdl.SCANCODE_8:
 		ppi.keyboardRows[5] ^= 0b00000001
-	case fyne.Key7:
+	case sdl.SCANCODE_7:
 		ppi.keyboardRows[5] ^= 0b00000010
-	case fyne.KeyU:
+	case sdl.SCANCODE_U:
 		ppi.keyboardRows[5] ^= 0b00000100
-	case fyne.KeyY:
+	case sdl.SCANCODE_Y:
 		ppi.keyboardRows[5] ^= 0b00001000
-	case fyne.KeyH:
+	case sdl.SCANCODE_H:
 		ppi.keyboardRows[5] ^= 0b00010000
-	case fyne.KeyJ:
+	case sdl.SCANCODE_J:
 		ppi.keyboardRows[5] ^= 0b00100000
-	case fyne.KeyN:
+	case sdl.SCANCODE_N:
 		ppi.keyboardRows[5] ^= 0b01000000
-	case fyne.KeySpace:
+	case sdl.SCANCODE_SPACE:
 		ppi.keyboardRows[5] ^= 0b10000000
 
-	case fyne.Key6:
+	case sdl.SCANCODE_6:
 		ppi.keyboardRows[6] ^= 0b00000001
-	case fyne.Key5:
+	case sdl.SCANCODE_5:
 		ppi.keyboardRows[6] ^= 0b00000010
-	case fyne.KeyR:
+	case sdl.SCANCODE_R:
 		ppi.keyboardRows[6] ^= 0b00000100
-	case fyne.KeyT:
+	case sdl.SCANCODE_T:
 		ppi.keyboardRows[6] ^= 0b00001000
-	case fyne.KeyG:
+	case sdl.SCANCODE_G:
 		ppi.keyboardRows[6] ^= 0b00010000
-	case fyne.KeyF:
+	case sdl.SCANCODE_F:
 		ppi.keyboardRows[6] ^= 0b00100000
-	case fyne.KeyB:
+	case sdl.SCANCODE_B:
 		ppi.keyboardRows[6] ^= 0b01000000
-	case fyne.KeyV:
+	case sdl.SCANCODE_V:
 		ppi.keyboardRows[6] ^= 0b10000000
 
-	case fyne.Key4:
+	case sdl.SCANCODE_4:
 		ppi.keyboardRows[7] ^= 0b00000001
-	case fyne.Key3:
+	case sdl.SCANCODE_3:
 		ppi.keyboardRows[7] ^= 0b00000010
-	case fyne.KeyE:
+	case sdl.SCANCODE_E:
 		ppi.keyboardRows[7] ^= 0b00000100
-	case fyne.KeyW:
+	case sdl.SCANCODE_W:
 		ppi.keyboardRows[7] ^= 0b00001000
-	case fyne.KeyS:
+	case sdl.SCANCODE_S:
 		ppi.keyboardRows[7] ^= 0b00010000
-	case fyne.KeyD:
+	case sdl.SCANCODE_D:
 		ppi.keyboardRows[7] ^= 0b00100000
-	case fyne.KeyC:
+	case sdl.SCANCODE_C:
 		ppi.keyboardRows[7] ^= 0b01000000
-	case fyne.KeyX:
+	case sdl.SCANCODE_X:
 		ppi.keyboardRows[7] ^= 0b10000000
 
-	case fyne.Key1:
+	case sdl.SCANCODE_1:
 		ppi.keyboardRows[8] ^= 0b00000001
-	case fyne.Key2:
+	case sdl.SCANCODE_2:
 		ppi.keyboardRows[8] ^= 0b00000010
-	case fyne.KeyEscape:
+	case sdl.SCANCODE_ESCAPE:
 		ppi.keyboardRows[8] ^= 0b00000100
-	case fyne.KeyQ:
+	case sdl.SCANCODE_Q:
 		ppi.keyboardRows[8] ^= 0b00001000
-	case fyne.KeyTab:
+	case sdl.SCANCODE_TAB:
 		ppi.keyboardRows[8] ^= 0b00010000
-	case fyne.KeyA:
+	case sdl.SCANCODE_A:
 		ppi.keyboardRows[8] ^= 0b00100000
-	// case fyne.Key: CAPSLOCK
+	// case sdl.SCANCODE_\U: CAPSLOCK
 	// ppi.keyboardRows[8] ^= 0b01000000
-	case fyne.KeyZ:
+	case sdl.SCANCODE_Z:
 		ppi.keyboardRows[8] ^= 0b10000000
 
-	// case fyne.KeyUp: JOY1
+	// case sdl.SCANCODE_UP: JOY1
 	// 	ppi.keyboardRows[9] ^= 0b00000001
-	// case fyne.KeyRight:
+	// case sdl.SCANCODE_RIGHT:
 	// 	ppi.keyboardRows[9] ^= 0b00000010
-	// case fyne.KeyDown:
+	// case sdl.SCANCODE_DOWN:
 	// 	ppi.keyboardRows[9] ^= 0b00000100
-	// case fyne.KeyF9:
+	// case sdl.SCANCODE_F9:
 	// 	ppi.keyboardRows[9] ^= 0b00001000
-	// case fyne.KeyF6:
+	// case sdl.SCANCODE_F6:
 	// 	ppi.keyboardRows[9] ^= 0b00010000
-	// case fyne.KeyF3:
+	// case sdl.SCANCODE_F3:
 	// 	ppi.keyboardRows[9] ^= 0b00100000
-	// case fyne.KeyEnter:
+	// case sdl.SCANCODE_ENTER:
 	// 	ppi.keyboardRows[9] ^= 0b01000000
-	case fyne.KeyDelete, "BackSpace":
+	case sdl.SCANCODE_DELETE, sdl.SCANCODE_BACKSPACE:
 		ppi.keyboardRows[9] ^= 0b10000000
-
-		// default:
-		// fmt.Println("key:", key.Name)
 	}
 }
 

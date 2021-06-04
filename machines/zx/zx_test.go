@@ -11,7 +11,6 @@ import (
 	"os"
 	"testing"
 
-	canvas "fyne.io/fyne/v2/canvas"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/stretchr/testify/assert"
 )
@@ -27,7 +26,7 @@ func TestBorderTrix(t *testing.T) {
 
 	zx := NewZX48K().(*zx)
 
-	zx.ula.monitor = &dummyMonitor{}
+	// zx.ula.monitor = &dummyMonitor{}
 
 	zx.Clock().RunFor(15)
 
@@ -61,9 +60,8 @@ func TestBorderTrix(t *testing.T) {
 
 type dummyMonitor struct{}
 
-func (m *dummyMonitor) Canvas() *canvas.Image { return nil }
-func (m *dummyMonitor) FrameDone()            {}
-func (m *dummyMonitor) FPS() float64          { return 0 }
+func (m *dummyMonitor) FrameDone()   {}
+func (m *dummyMonitor) FPS() float64 { return 0 }
 
 func ImgCompare(img1, img2 image.Image) (int64, image.Image, error) {
 	bounds1 := img1.Bounds()

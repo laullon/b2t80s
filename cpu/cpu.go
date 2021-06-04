@@ -1,7 +1,7 @@
 package cpu
 
 type CPU interface {
-	Interrupt(bool)
+	Interrupt(bool) // TODO:move this to each CPU interface
 	NMI(bool)
 	Halt()
 	Wait(bool)
@@ -18,8 +18,8 @@ type DebuggerCallbacks interface {
 	Eval(pc uint16)
 	EvalInterrupt()
 
-	EvalLine()
-	EvalFrame()
+	EvalLine() bool
+	EvalFrame() bool
 }
 
 type PortMask struct {
@@ -35,5 +35,5 @@ type PortManager interface {
 type CPUTracer interface {
 	AppendLastOP(string)
 	SetNextOP(string)
-	SetDiss(string)
+	SetDiss(pc uint16, getMemory func(pc, leng uint16) []byte)
 }

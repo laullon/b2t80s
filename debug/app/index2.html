@@ -1,0 +1,214 @@
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            -webkit-user-select: none;
+            overflow: hidden;
+            color: black;
+        }
+
+        footer {
+            position: absolute;
+            width: 100%;
+            bottom: 0;
+            height: 1.5em;
+            padding-left: 10px;
+            padding-right: 10px;
+            border-top-style: solid;
+            border-width: 1px;
+            border-color: black;
+        }
+
+        button:focus {
+            outline: none !important;
+        }
+
+        #main {
+            position: absolute;
+            background-color: white;
+            top: 0;
+            bottom: 1.5em;
+        }
+
+        #left {
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            width: 40px;
+            height: 100%;
+            padding: 10px;
+        }
+
+        #right {
+            position: absolute;
+            top: 0px;
+            left: 45px;
+            width: 155px;
+            height: 100%;
+            padding: 10px;
+        }
+
+        #separator {
+            position: absolute;
+            top: 0px;
+            left: 40px;
+            width: 1px;
+            height: 100%;
+            background-color: black;
+            cursor: ew-resize;
+            z-index: 10;
+        }
+
+
+
+        #display {
+            width: 100%;
+        }
+
+        /* DEBUG */
+        #debug div {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+
+
+        #debug div button {
+            background-color: lightgray;
+            border: 1px solid gray;
+            color: black;
+            padding: 10px 24px;
+            cursor: pointer;
+            float: left;
+            transition: 0.3s;
+        }
+
+        #debug div button:not(:last-child) {
+            border-right: none;
+        }
+
+        #debug div:after {
+            content: "";
+            clear: both;
+            display: table;
+        }
+
+        #debug div button:hover {
+            background-color: darkgray;
+        }
+
+        #debug div button:active {
+            background-color: gray;
+            color: white;
+        }
+
+        /* TABS */
+        #tabs {
+            overflow: hidden;
+            border-bottom: 1px solid #ccc;
+            background-color: white;
+            margin-top: 10px;
+        }
+
+        #tabs button {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 16px;
+            transition: 0.3s;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+
+        #tabs button:hover {
+            background-color: darkgray;
+        }
+
+        #tabs button.active {
+            background-color: gray;
+            color: white;
+        }
+
+        /* REGISTERS */
+        #registers table {
+            border: 1px;
+            margin: 10px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        #registers table td:nth-child(even) {
+            padding-right: 20px;
+        }
+
+        #registers table td:nth-child(odd) {
+            text-align: right;
+            padding-right: 5px;
+        }
+
+        #registers table td:last-child {
+            padding-right: 0px;
+        }
+    </style>
+    <script type="text/javascript" src="drag.js">
+    </script>
+    <script type="text/javascript">
+        function update() {
+            getStatus().then(function (status) {
+                document.getElementById("status").innerHTML = status;
+            })
+
+            getCPU().then(function (status) {
+                document.getElementById("output").innerHTML = status;
+            })
+
+        }
+    </script>
+
+</head>
+
+<body>
+    <div id="main" style="width: 1024px;">
+        <div id="left" style="width: 331px;">
+            <img id="display" src="/video">
+        </div>
+        <div id="separator" style="left: 331px; background-color: black; width: 1px;"></div>
+        <div id="right" style="left: 356px; width: 672px;">
+            <div id="debug">
+                <div id="debugStop">
+                    <button style="width:50%" onclick="debugerStop()">Stop</button>
+                    <button style="width:50%" onclick="debugerStopNextInterrupt()">Stop onInterrup</button>
+                </div>
+                <div id="debugStep">
+                    <button style="width:25%" onclick="debugerContinue()">Continue</button>
+                    <button style="width:25%" onclick="debugerStep()">Step</button>
+                    <button style="width:25%" onclick="debugerStepLine()">Step Line</button>
+                    <button style="width:25%" onclick="StepFrame()">Step Frame</button>
+                </div>
+            </div>
+            <div id="tabs">
+                <button id="tab_Sound" onclick="tabsSelect('Sound');" class="active">Sound</button><button id="tab_CPU" onclick="tabsSelect('CPU');">CPU</button><button id="tab_PPU" onclick="tabsSelect('PPU');">PPU</button><button id="tab_SERIAL" onclick="tabsSelect('SERIAL');">SERIAL</button></div>
+            <div id="registers">
+            </div>
+            <div id="output" class="text-left"></div>
+        </div>
+    </div>
+    <footer>
+        <pre id="status">time:  9.20ms (15)(0.61) - FPS: 59.38
+</pre>
+    </footer>
+    <script type="text/javascript">
+        drag();
+        initUI();
+        setInterval(update, 500);
+    </script>
+
+
+</body>
+
+</html>

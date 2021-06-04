@@ -1,4 +1,6 @@
 //go:generate $HOME/go/bin/go-bindata -pkg data -o data/data.go data/...
+//go:generate $HOME/go/bin/go-bindata -fs -prefix debug -pkg debug -o debug/data.go debug/...
+
 package main
 
 import (
@@ -8,31 +10,26 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
-	"strconv"
-	"strings"
 	"time"
 
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/driver/desktop"
-	"fyne.io/fyne/v2/layout"
-	"fyne.io/fyne/v2/theme"
-	"fyne.io/fyne/v2/widget"
-
+	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/gui"
 	"github.com/laullon/b2t80s/machines/atetris"
 	"github.com/laullon/b2t80s/machines/cpc"
+	"github.com/laullon/b2t80s/machines/gameboy"
 	"github.com/laullon/b2t80s/machines/msx"
 	"github.com/laullon/b2t80s/machines/nes"
 	"github.com/laullon/b2t80s/machines/zx"
-	"github.com/laullon/b2t80s/ui"
+	"github.com/veandco/go-sdl2/sdl"
+	"golang.design/x/mainthread"
 
 	_ "net/http/pprof"
 )
 
 func main() {
-	nes.CartFile = flag.String("cart", "", "NESncart file to load")
+
+	emulator.CartFile = flag.String("cart", "", "NESncart file to load")
 	emulator.TapFile = flag.String("tap", "", "tap file to load")
 	emulator.RomFile = flag.String("rom", "", "msx1 rom file to load - format: [mapper::]filename - Mappers:konami")
 	z80File := flag.String("z80", "", "z80 file to load")
@@ -95,100 +92,134 @@ func main() {
 		case "nes":
 			machine = nes.NewNES()
 			name = "Nes"
+		case "gb":
+			machine = gameboy.New()
+			name = "GameBoy"
 		default:
 			panic(fmt.Errorf("mode '%s' not valid", *mode))
 		}
 	}
 
-	ui.App = app.New()
-
-	w := ui.App.NewWindow(name + " - b2t80s Emulator")
-
-	status := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
-
-	statusControl := container.New(layout.NewHBoxLayout())
-	for _, control := range machine.UIControls() {
-		statusControl.Add(control.Widget())
+	if err := sdl.Init(sdl.INIT_EVERYTHING); err != nil {
+		panic(err)
 	}
 
-	display := machine.Monitor().Canvas()
+	if err := gl.Init(); err != nil {
+		panic(err)
+	}
 
-	var debugTabs *container.AppTabs
-	var controls map[string]ui.Control
+	game := emulator.NewGame(name, machine)
+	game.SetOnKey(machine.OnKey)
+
+	log.Printf("opengl version %s", gl.GoStr(gl.GetString(gl.VERSION)))
 
 	if *emulator.Debug {
-		var breaks []uint16
-		if len(*emulator.Breaks) > 0 {
-			bps := strings.Split(*emulator.Breaks, ",")
-			for _, bp := range bps {
-				n, err := strconv.ParseUint(bp, 0, 16)
-				if err != nil {
-					panic(err)
-				}
-				breaks = append(breaks, uint16(n))
-			}
-		}
-
-		db := emulator.NewDebugger(machine.Clock(), breaks)
+		db := emulator.NewDebugger(machine.Clock())
 		machine.SetDebugger(db)
-		controls = machine.Control()
+		emulator.NewDebugWindow(name, machine, db)
+	}
 
-		debugTabs = container.NewAppTabs()
-		for n, ctl := range controls {
-			debugTabs.Append(container.NewTabItem(n, ctl.Widget()))
+	wait := time.Duration(time.Second)
+	ticker := time.NewTicker(wait)
+	go func() {
+		for range ticker.C {
+			str := fmt.Sprintf("time: %s - FPS: %03.2f", machine.Clock().Stats(), machine.Monitor().FPS())
+			println(str)
+			game.SetStatus(str)
 		}
-		debugTabs.SelectTabIndex(0)
-
-		debugger := container.New(layout.NewBorderLayout(db.UI(), nil, nil, nil),
-			db.UI(),
-			debugTabs,
-		)
-
-		statusBar := fyne.NewContainerWithLayout(
-			layout.NewBorderLayout(nil, nil, status, statusControl),
-			status,
-			statusControl,
-		)
-
-		w.SetContent(
-			fyne.NewContainerWithLayout(
-				layout.NewBorderLayout(nil, statusBar, nil, debugger),
-				display,
-				debugger,
-				statusBar,
-			),
-		)
-		ui.App.Settings().SetTheme(theme.LightTheme())
-	} else {
-		ui.App.Settings().SetTheme(theme.DarkTheme())
-		w.SetContent(
-			fyne.NewContainerWithLayout(
-				layout.NewBorderLayout(nil, nil, nil, nil),
-				display,
-			),
-		)
-	}
-
-	w.Canvas().(desktop.Canvas).SetOnKeyDown(machine.OnKeyEvent)
-	w.Canvas().(desktop.Canvas).SetOnKeyUp(machine.OnKeyEvent)
-
-	if *emulator.Debug {
-		wait := time.Duration(20 * time.Millisecond)
-		ticker := time.NewTicker(wait)
-		go func() {
-			for range ticker.C {
-				controls[debugTabs.CurrentTab().Text].Update()
-				status.SetText(fmt.Sprintf("time: %s - FPS: %03.2f", machine.Clock().Stats(), machine.Monitor().FPS()))
-			}
-		}()
-	}
+	}()
 
 	go func() {
 		machine.Clock().Run()
 	}()
 
-	// w.CenterOnScreen()
-	w.ShowAndRun()
+	mainthread.Init(func() {
+		stop := make(chan struct{}, 1)
+		poolWait := time.Duration(time.Second / 120)
+		poolTicker := time.NewTicker(poolWait)
+		for {
+			select {
+			case <-poolTicker.C:
+				mainthread.Call(func() {
+					gui.PoolEvents(stop)
+				})
+			case <-stop:
+				return
+			}
+		}
+	})
+	// ui.App = app.New()
+
+	// w := ui.App.NewWindow(name + " - b2t80s Emulator")
+
+	// status := widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
+
+	// statusControl := container.New(layout.NewHBoxLayout())
+	// for _, control := range machine.UIControls() {
+	// 	statusControl.Add(control.Widget())
+	// }
+
+	// display := machine.Monitor().Canvas()
+
+	// var debugTabs *container.AppTabs
+	// var controls map[string]gui.GUIObject
+
+	// if *emulator.Debug {
+
+	// 	controls = machine.Control()
+
+	// 	debugTabs = container.NewAppTabs()
+	// 	for n, ctl := range controls {
+	// 		debugTabs.Append(container.NewTabItem(n, ctl.Widget()))
+	// 	}
+	// 	debugTabs.SelectTabIndex(0)
+
+	// 	debugger := container.New(layout.NewBorderLayout(db.UI(), nil, nil, nil),
+	// 		db.UI(),
+	// 		debugTabs,
+	// 	)
+
+	// 	statusBar := fyne.NewContainerWithLayout(
+	// 		layout.NewBorderLayout(nil, nil, status, statusControl),
+	// 		status,
+	// 		statusControl,
+	// 	)
+
+	// 	w.SetContent(
+	// 		fyne.NewContainerWithLayout(
+	// 			layout.NewBorderLayout(nil, statusBar, nil, debugger),
+	// 			display,
+	// 			debugger,
+	// 			statusBar,
+	// 		),
+	// 	)
+	// 	ui.App.Settings().SetTheme(theme.LightTheme())
+	// } else {
+	// 	ui.App.Settings().SetTheme(theme.DarkTheme())
+	// 	w.SetContent(
+	// 		fyne.NewContainerWithLayout(
+	// 			layout.NewBorderLayout(nil, nil, nil, nil),
+	// 			display,
+	// 		),
+	// 	)
+	// }
+
+	// w.Canvas().(desktop.Canvas).SetOnKeyDown(machine.OnKeyEvent)
+	// w.Canvas().(desktop.Canvas).SetOnKeyUp(machine.OnKeyEvent)
+
+	// if *emulator.Debug {
+	// wait := time.Duration(20 * time.Millisecond)
+	// ticker := time.NewTicker(wait)
+	// go func() {
+	// 	for range ticker.C {
+	// 		controls[debugTabs.CurrentTab().Text].Update()
+	// 		status.SetText(fmt.Sprintf("time: %s - FPS: %03.2f", machine.Clock().Stats(), machine.Monitor().FPS()))
+	// 	}
+	// }()
+	// }
+
+	// // w.CenterOnScreen()
+	// w.ShowAndRun()
 
 	if *memprofile != "" {
 		f, err := os.Create(*memprofile)

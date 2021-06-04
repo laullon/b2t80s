@@ -106,3 +106,7 @@ func ReadZipFile(file *zip.File) []byte {
 
 	return content
 }
+
+func TestBit(n byte, pos uint) bool {
+	return (((n) & (1 << (pos))) > 0)
+}

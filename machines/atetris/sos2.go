@@ -2,11 +2,11 @@ package atetris
 
 import (
 	"fmt"
-	"image"
 	"image/color"
 
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/emulator"
+	"github.com/laullon/b2t80s/gui"
 )
 
 var irqPerScanline = map[int]bool{
@@ -26,7 +26,7 @@ type sos2 struct {
 	vram    []byte
 	color   *colorRam
 	rom     []byte
-	display *image.RGBA
+	display *gui.Display
 	monitor emulator.Monitor
 
 	hBlank *bool
@@ -41,7 +41,7 @@ func newSOS2() *sos2 {
 			mem:    make([]byte, 0x0100),
 		},
 		rom:     loadRom("136066-1101.35a"),
-		display: image.NewRGBA(image.Rect(0, 0, 336, 240)),
+		display: gui.NewDisplay(gui.Size{336, 240}),
 	}
 }
 
@@ -69,8 +69,8 @@ func (d *sos2) Tick() {
 			cIdx0 := palette | ((pixels >> 4) & 0xf)
 			cIdx1 := palette | (pixels & 0xf)
 
-			d.display.Set(d.h+x, d.v, d.color.colors[cIdx0])
-			d.display.Set(d.h+x+1, d.v, d.color.colors[cIdx1])
+			d.display.SetRGBA(d.h+x, d.v, d.color.colors[cIdx0])
+			d.display.SetRGBA(d.h+x+1, d.v, d.color.colors[cIdx1])
 			char++
 		}
 	}

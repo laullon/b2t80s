@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"time"
 
-	"fyne.io/fyne/v2"
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/z80"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/ay8912"
 	"github.com/laullon/b2t80s/emulator/storage/cassette"
-	"github.com/laullon/b2t80s/ui"
+	"github.com/laullon/b2t80s/gui"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 const (
@@ -20,7 +20,7 @@ const (
 
 type ZX interface {
 	Debugger() emulator.Debugger
-	OnKeyEvent(event *fyne.KeyEvent)
+	OnKey(key interface{})
 	LoadZ80File(fileName string)
 }
 
@@ -89,12 +89,15 @@ func NewZX(mem *memory, plus, cas, ay bool) *zx {
 	return zx
 }
 
+func (zx *zx) Reset() {
+}
+
 func (zx *zx) Debugger() emulator.Debugger {
 	return zx.debugger
 }
 
-func (zx *zx) OnKeyEvent(event *fyne.KeyEvent) {
-	zx.ula.OnKeyEvent(event)
+func (zx *zx) OnKey(key sdl.Scancode) {
+	zx.ula.OnKey(key)
 }
 
 func (zx *zx) Monitor() emulator.Monitor {
@@ -109,8 +112,8 @@ func (zx *zx) Clock() emulator.Clock {
 	return zx.clock
 }
 
-func (zx *zx) Control() map[string]ui.Control {
-	return map[string]ui.Control{"CPU": ui.NewZ80UI(zx.cpu)}
+func (zx *zx) Control() map[string]gui.GUIObject {
+	return nil //map[string]gui.GUIObject{"CPU": ui.NewZ80UI(zx.cpu)}
 }
 
 func (zx *zx) SetDebugger(db cpu.DebuggerCallbacks) { zx.cpu.SetDebugger(db) }
@@ -165,11 +168,11 @@ type kempston struct {
 }
 
 func (k *kempston) ReadPort(port uint16) (byte, bool) {
-	j, _ := emulator.ReadJoystick()
+	j := gui.Joystick1
 	res := byte(0)
 	// 000FUDLR
 	if j.ON {
-		if j.F {
+		if j.F || j.F2 {
 			res |= 0b00010000
 		}
 		if j.U {

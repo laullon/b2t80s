@@ -1,16 +1,6 @@
 package msx
 
-import (
-	"image"
-	"image/color"
-	"image/draw"
-
-	"fyne.io/fyne/v2"
-	canvas "fyne.io/fyne/v2/canvas"
-	"fyne.io/fyne/v2/container"
-	layout "fyne.io/fyne/v2/layout"
-	widget "fyne.io/fyne/v2/widget"
-)
+import "github.com/laullon/b2t80s/gui"
 
 type sprite struct {
 	x, y    int
@@ -69,7 +59,7 @@ func (vdp *tms9918) drawSprites() {
 	}
 }
 
-func (sprt *sprite) drawSprite(yPos int, si bool, sg uint16, vram []byte, display *image.RGBA) {
+func (sprt *sprite) drawSprite(yPos int, si bool, sg uint16, vram []byte, display *gui.Display) {
 	if sprt.colour == 0 {
 		return
 	}
@@ -92,61 +82,58 @@ func (sprt *sprite) drawSprite(yPos int, si bool, sg uint16, vram []byte, displa
 }
 
 type spriteControl struct {
-	ui   fyne.CanvasObject
-	show *widget.Button
-	vdp  *tms9918
+	vdp *tms9918
 }
 
 func newSpriteControl(vdp *tms9918) *spriteControl {
 	ctrl := &spriteControl{vdp: vdp}
 
-	ctrl.show = widget.NewButton("show Sprites", ctrl.doShow)
+	// ctrl.show = widget.NewButton("show Sprites", ctrl.doShow)
 
-	ctrl.ui = container.New(layout.NewHBoxLayout(),
-		widget.NewToolbarSeparator().ToolbarObject(),
-		ctrl.show,
-	)
+	// ctrl.ui = container.New(layout.NewHBoxLayout(),
+	// 	widget.NewToolbarSeparator().ToolbarObject(),
+	// 	ctrl.show,
+	// )
 
 	return ctrl
 }
 
-func (ctrl *spriteControl) Widget() fyne.CanvasObject {
-	return ctrl.ui
-}
+func (ui *spriteControl) GetRegisters() string { return "" }
+func (ui *spriteControl) GetOutput() string    { return "" }
 
 func (ctrl *spriteControl) Update() {
 }
 
 func (ctrl *spriteControl) doShow() {
-	container := fyne.NewContainerWithLayout(layout.NewGridLayout(8))
+	// container := fyne.NewContainerWithLayout(layout.NewGridLayout(8))
 
-	for idx := uint16(0); idx < 32; idx++ {
-		sprite, _ := newSprite(ctrl.vdp.vram[ctrl.vdp.sa+(idx*4) : ctrl.vdp.sa+(idx*4)+4])
-		sprite.x = 0
-		sprite.y = 0
+	// for idx := uint16(0); idx < 32; idx++ {
+	// 	sprite, _ := newSprite(ctrl.vdp.vram[ctrl.vdp.sa+(idx*4) : ctrl.vdp.sa+(idx*4)+4])
+	// 	sprite.x = 0
+	// 	sprite.y = 0
 
-		size := 8
-		if ctrl.vdp.si {
-			size = 16
-		}
+	// 	size := 8
+	// 	if ctrl.vdp.si {
+	// 		size = 16
+	// 	}
 
-		display := image.NewRGBA(image.Rect(0, 0, size, size))
-		draw.Draw(display, display.Bounds(), &image.Uniform{color.RGBA{125, 125, 125, 255}}, image.ZP, draw.Src)
-		for y := 0; y < size; y++ {
-			sprite.drawSprite(y, ctrl.vdp.si, ctrl.vdp.sg, ctrl.vdp.vram, display)
-		}
+	// 	display := emulator.NewDisplay(image.Rect(0, 0, size, size))
+	// 	draw.Draw(display, display.Bounds(), &image.Uniform{color.RGBA{125, 125, 125, 255}}, image.ZP, draw.Src)
+	// 	for y := 0; y < size; y++ {
+	// 		sprite.drawSprite(y, ctrl.vdp.si, ctrl.vdp.sg, ctrl.vdp.vram, display)
+	// 	}
 
-		img := canvas.NewImageFromImage(display)
-		img.SetMinSize(fyne.NewSize(float32(size*4), float32(size*4)))
-		img.ScaleMode = canvas.ImageScalePixels
+	// 	img := canvas.NewImageFromImage(display)
+	// 	img.SetMinSize(fyne.NewSize(float32(size*4), float32(size*4)))
+	// 	img.ScaleMode = canvas.ImageScalePixels
 
-		container.AddObject(img)
-	}
+	// 	container.AddObject(img)
+	// }
 
-	c := fyne.CurrentApp().Driver().CanvasForObject(ctrl.ui)
-	pos := fyne.CurrentApp().Driver().AbsolutePositionForObject(ctrl.ui)
-	var pop *widget.PopUp
-	pop = widget.NewPopUp(container, c)
-	pop.Move(pos)
+	// c := fyne.CurrentApp().Driver().CanvasForObject(ctrl.ui)
+	// pos := fyne.CurrentApp().Driver().AbsolutePositionForObject(ctrl.ui)
+	// var pop *widget.PopUp
+	// pop = widget.NewPopUp(container, c)
+	// pop.Move(pos)
 
 }

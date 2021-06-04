@@ -7,25 +7,21 @@ import (
 	"strings"
 	"testing"
 
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/app"
 	"github.com/laullon/b2t80s/emulator"
-	"github.com/laullon/b2t80s/ui"
 	"github.com/laullon/b2t80s/utils"
 	"github.com/stretchr/testify/assert"
 )
 
 func init() {
 	emulator.Debug = new(bool)
-	CartFile = new(string)
-	ui.App = app.NewWithID("io.fyne.test")
+	emulator.CartFile = new(string)
 }
 
 func TestCPU(t *testing.T) {
-	*CartFile = string("tests/nestest.nes")
+	*emulator.CartFile = string("tests/nestest.nes")
 	nes := NewNES().(*nes)
 
-	nes.apu.onKeyEvent(&fyne.KeyEvent{Name: fyne.Key2})
+	// nes.apu.onKeyEvent(&glfw.KeyEvent{Name:SCANCODE_2})
 	nes.Clock().RunFor(4)
 
 	result, _, err := utils.ImgCompare("tests/nestest_ok.png", nes.ppu.display)
@@ -41,7 +37,7 @@ func TestCPU(t *testing.T) {
 }
 
 func TestInterrupts(t *testing.T) {
-	*CartFile = string("tests/cpu_interrupts.nes")
+	*emulator.CartFile = string("tests/cpu_interrupts.nes")
 	nes := NewNES().(*nes)
 
 	nes.Clock().RunFor(4)
@@ -59,7 +55,7 @@ func TestInterrupts(t *testing.T) {
 }
 
 func TestCPU2(t *testing.T) {
-	*CartFile = string("tests/nestest.nes")
+	*emulator.CartFile = string("tests/nestest.nes")
 	nes := NewNES().(*nes)
 
 	f, err := os.Create("tests/nestest.out")
@@ -102,8 +98,8 @@ func (t *tracer) AppendLastOP(op string) {
 	)
 }
 
-func (t *tracer) SetNextOP(string) {}
-func (log *tracer) SetDiss(string) {}
+func (t *tracer) SetNextOP(string)                                            {}
+func (log *tracer) SetDiss(pc uint16, getMemory func(pc, leng uint16) []byte) {}
 
 func (t *tracer) Tick() {
 	t.ticks++

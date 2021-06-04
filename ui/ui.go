@@ -3,45 +3,27 @@ package ui
 import (
 	"image/color"
 
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/canvas"
+	"github.com/laullon/b2t80s/gui"
 )
 
-type Control interface {
-	Widget() fyne.CanvasObject
-	Update()
-}
-
-var App fyne.App
-
 type RegText struct {
-	Label *canvas.Text
-	Value *canvas.Text
+	Label gui.Label
+	Value gui.Label
 }
 
 func NewRegText(label string) *RegText {
 	rt := &RegText{
-		Label: &canvas.Text{},
-		Value: &canvas.Text{},
+		Label: gui.NewLabel(label, gui.Right),
+		Value: gui.NewLabel("", gui.Left),
 	}
-	rt.Label.Text = label
-	rt.Label.Color = color.Black
-	rt.Label.TextSize = fyne.CurrentApp().Settings().Theme().Size("text")
-	rt.Label.TextStyle = fyne.TextStyle{Monospace: true}
-	rt.Label.Alignment = fyne.TextAlignTrailing
-
-	rt.Value.Color = color.Black
-	rt.Value.TextSize = fyne.CurrentApp().Settings().Theme().Size("text")
-	rt.Value.TextStyle = fyne.TextStyle{Monospace: true}
-
 	return rt
 }
 
 func (rt *RegText) Update(text string) {
-	if rt.Value.Text != text {
-		rt.Value.Text = text
-		rt.Value.Color = color.RGBA{0x00, 0x00, 0xff, 0xff}
+	if rt.Value.GetText() != text {
+		rt.Value.SetText(text)
+		rt.Value.SetForeground(color.RGBA{0, 0, 0xff, 0xff})
 	} else {
-		rt.Value.Color = color.Black
+		rt.Value.SetForeground(color.RGBA{0, 0, 0, 0xff})
 	}
 }

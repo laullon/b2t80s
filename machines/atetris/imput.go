@@ -1,25 +1,24 @@
 package atetris
 
 import (
-	"fyne.io/fyne/v2"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
-func (t *atetris) OnKeyEvent(key *fyne.KeyEvent) {
-	// fmt.Println("key:", key.Name)
-	switch key.Name {
+func (t *atetris) OnKey(key sdl.Scancode) {
+	switch key {
 
-	case fyne.Key1:
+	case sdl.SCANCODE_1:
 		t.pokey1.P0 = !t.pokey1.P0
-	case fyne.Key2:
+	case sdl.SCANCODE_2:
 		t.pokey1.P1 = !t.pokey1.P1
 
-	case fyne.KeySpace:
+	case sdl.SCANCODE_SPACE:
 		t.pokey2.P0 = !t.pokey2.P0
-	case fyne.KeyDown:
+	case sdl.SCANCODE_DOWN:
 		t.pokey2.P1 = !t.pokey2.P1
-	case fyne.KeyRight:
+	case sdl.SCANCODE_RIGHT:
 		t.pokey2.P2 = !t.pokey2.P2
-	case fyne.KeyLeft:
+	case sdl.SCANCODE_LEFT:
 		t.pokey2.P3 = !t.pokey2.P3
 
 	}

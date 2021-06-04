@@ -1,0 +1,162 @@
+*,
+button {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px !important;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    -webkit-user-select: none;
+    overflow: hidden;
+    color: black;
+}
+
+footer {
+    position: absolute;
+    width: 100%;
+    bottom: 0;
+    height: 1.5em;
+    padding-left: 10px;
+    padding-right: 10px;
+    border-top-style: solid;
+    border-width: 1px;
+    border-color: black;
+}
+
+button:focus {
+    outline: none !important;
+}
+
+#main {
+    position: absolute;
+    background-color: white;
+    top: 0;
+    bottom: 1.5em;
+    overflow: hidden;
+}
+
+#left {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 40px;
+    height: 100%;
+    overflow: hidden;
+}
+
+#right {
+    position: absolute;
+    top: 0px;
+    left: 45px;
+    width: 155px;
+    height: 100%;
+    overflow: hidden;
+}
+
+#separator {
+    position: absolute;
+    top: 0px;
+    left: 40px;
+    width: 1px;
+    height: 100%;
+    background-color: black;
+    cursor: ew-resize;
+    z-index: 10;
+}
+
+#display {
+    width: 100%;
+    image-rendering: pixelated;
+}
+
+.panel {
+    padding: 5px;
+}
+
+footer {}
+
+/* DEBUG */
+#debug div {
+    width: 100%;
+    margin-bottom: 5px;
+}
+
+#debug div button {
+    background-color: lightgray;
+    border: 1px solid gray;
+    color: black;
+    padding: 10px 24px;
+    cursor: pointer;
+    float: left;
+    transition: 0.3s;
+}
+
+#debug div button:not(:last-child) {
+    border-right: none;
+}
+
+#debug div:after {
+    content: "";
+    clear: both;
+    display: table;
+}
+
+#debug div button:hover {
+    background-color: darkgray;
+}
+
+#debug div button:active {
+    background-color: gray;
+    color: white;
+}
+
+/* TABS */
+#tabs {
+    overflow: hidden;
+    border-bottom: 1px solid #ccc;
+    background-color: white;
+    margin-top: 10px;
+}
+
+#tabs button {
+    background-color: inherit;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 8px 20px;
+    transition: 0.3s;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    margin: 0;
+}
+
+#tabs button:hover {
+    background-color: darkgray;
+}
+
+#tabs button.active {
+    background-color: gray;
+    color: white;
+}
+
+/* REGISTERS */
+#registers table {
+    border: 1px;
+    margin: 10px;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+#registers table td:nth-child(even) {
+    padding-right: 20px;
+}
+
+#registers table td:nth-child(odd) {
+    text-align: right;
+    padding-right: 5px;
+}
+
+#registers table td:last-child {
+    padding-right: 0px;
+}

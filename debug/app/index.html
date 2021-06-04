@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="app.css">
+    <script type="text/javascript" src="drag.js"></script>
+    <script type="text/javascript">
+        function update() {
+            getStatus().then(function (status) {
+                document.getElementById("status").innerHTML = status;
+            })
+            getOutput().then(function (status) {
+                document.getElementById("output").innerHTML = status;
+            })
+            getRegisters().then(function (status) {
+                document.getElementById("registers").innerHTML = status;
+            })
+
+        }
+    </script>
+</head>
+
+<body>
+    <div id="main">
+        <div id="left">
+        </div>
+        <div id="separator"></div>
+        <div id="right">
+            <div class="panel">
+                <div id="debug">
+                    <div id="debugStop">
+                        <button style="width:50%" onclick="debugerStop()">Stop</button>
+                        <button style="width:50%" onclick="debugerStopNextInterrupt()">Stop onInterrup</button>
+                    </div>
+                    <div id="debugStep">
+                        <button style="width:25%" onclick="debugerContinue()">Continue</button>
+                        <button style="width:25%" onclick="debugerStep()">Step</button>
+                        <button style="width:25%" onclick="debugerStepLine()">Step Line</button>
+                        <button style="width:25%" onclick="StepFrame()">Step Frame</button>
+                    </div>
+                </div>
+                <div id="tabs">
+                </div>
+                <div id="registers">
+                </div>
+                <div id="output" class="text-left">
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer id="status">
+    </footer>
+    <script type="text/javascript">
+        drag();
+        initUI();
+        setInterval(update, 500);
+    </script>
+</body>
+
+</html>

@@ -1,7 +1,6 @@
 package cpc
 
 import (
-	"fyne.io/fyne/v2"
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/z80"
 	"github.com/laullon/b2t80s/data"
@@ -9,7 +8,8 @@ import (
 	"github.com/laullon/b2t80s/emulator/ay8912"
 	"github.com/laullon/b2t80s/emulator/files"
 	"github.com/laullon/b2t80s/emulator/storage/cassette"
-	"github.com/laullon/b2t80s/ui"
+	"github.com/laullon/b2t80s/gui"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 const (
@@ -18,7 +18,7 @@ const (
 
 type CPC interface {
 	Debugger() emulator.Debugger
-	OnKeyEvent(event *fyne.KeyEvent)
+	OnKey(key interface{})
 	LoadZ80File(fileName string)
 }
 
@@ -123,6 +123,9 @@ func NewCPC(cpc464 bool) emulator.Machine {
 	return cpc
 }
 
+func (m *cpc) Reset() {
+}
+
 func (m *cpc) loadTapeBlockCPC464() {
 	m.LoadTapeBlockCPC(0x2872)
 }
@@ -160,8 +163,8 @@ func (m *cpc) Debugger() emulator.Debugger {
 	return m.debugger
 }
 
-func (m *cpc) OnKeyEvent(event *fyne.KeyEvent) {
-	m.ppi.OnKeyEvent(event)
+func (m *cpc) OnKey(key sdl.Scancode) {
+	m.ppi.OnKey(key)
 }
 
 func (m *cpc) Monitor() emulator.Monitor {
@@ -176,8 +179,8 @@ func (m *cpc) GetVolumeControl() func(float64) {
 	return m.sound.SetVolume
 }
 
-func (m *cpc) Control() map[string]ui.Control {
-	return map[string]ui.Control{"CPU": ui.NewZ80UI(m.cpu)}
+func (m *cpc) Control() map[string]gui.GUIObject {
+	return nil //map[string]gui.GUIObject{"CPU": ui.NewZ80UI(m.cpu)}
 }
 
 func (m *cpc) SetDebugger(db cpu.DebuggerCallbacks) { m.cpu.SetDebugger(db) }
