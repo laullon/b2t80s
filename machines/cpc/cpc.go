@@ -58,7 +58,8 @@ func NewCPC(cpc464 bool) emulator.Machine {
 		cas.LoadTapFile(*emulator.TapFile)
 	}
 
-	bus := z80.NewBus(mem)
+	ports := cpu.NewBus("ports")
+	bus := z80.NewBus(mem, ports)
 
 	z80 := z80.NewZ80(bus)
 
@@ -67,20 +68,20 @@ func NewCPC(cpc464 bool) emulator.Machine {
 	sound.AddSource(ay8912)
 
 	crtc := newCRTC(z80)
-	bus.RegisterPort(cpu.PortMask{Mask: 0x4000, Value: 0x0000}, crtc)
+	ports.RegisterPort("", cpu.PortMask{Mask: 0x4000, Value: 0x0000}, crtc)
 
 	ppi := newPPI(crtc, cas, ay8912)
-	bus.RegisterPort(cpu.PortMask{Mask: 0x0800, Value: 0x0000}, ppi)
+	ports.RegisterPort("", cpu.PortMask{Mask: 0x0800, Value: 0x0000}, ppi)
 	sound.AddSource(ppi)
 
 	ga := newGateArray(mem, crtc)
-	bus.RegisterPort(cpu.PortMask{Mask: 0xc000, Value: 0x4000}, ga)
+	ports.RegisterPort("", cpu.PortMask{Mask: 0xc000, Value: 0x4000}, ga)
 
-	// bus.RegisterPort(cpu.PortMask{Mask: 0xDF00, Value: 0xDF00}, mem)
-	bus.RegisterPort(cpu.PortMask{Mask: 0x2000, Value: 0x0000}, mem)
+	// ports."",RegisterPort(cpu.PortMask{Mask: 0xDF00, Value: 0xDF00}, mem)
+	ports.RegisterPort("", cpu.PortMask{Mask: 0x2000, Value: 0x0000}, mem)
 
 	fdc := NewCPCFDC765()
-	bus.RegisterPort(cpu.PortMask{Mask: 0x0400, Value: 0x0000}, fdc)
+	ports.RegisterPort("", cpu.PortMask{Mask: 0x0400, Value: 0x0000}, fdc)
 	if len(*emulator.DskAFile) > 0 {
 		disc := files.LoadDsk(*emulator.DskAFile)
 		fdc.chip.SetDiscA(disc)
@@ -147,7 +148,7 @@ func (m *cpc) LoadTapeBlockCPC(exit uint16) {
 	// fmt.Printf("Loading block to 0x%04x (bl:0x%04x, l:0x%04x, bt:0x%02X, t:0x%02X)\n", startAddress, len(data), requestedLength, data[0], t)
 	if t == data[0] {
 		for i := uint16(0); i < requestedLength; i++ {
-			m.mem.PutByte(startAddress+i, data[i+1])
+			m.mem.Write(startAddress+i, data[i+1])
 		}
 		regs.F.SetByte(0x45)
 		// println("Done")

@@ -6,14 +6,14 @@ import (
 )
 
 func getWord(mem Memory, addr uint16) uint16 {
-	res := uint16(mem.GetByte(addr))
-	res |= uint16(mem.GetByte(addr+1)) << 8
+	res := uint16(mem.Read(addr))
+	res |= uint16(mem.Read(addr+1)) << 8
 	return res
 }
 
 func putWord(mem Memory, addr, w uint16) {
-	mem.PutByte(addr, uint8(w&0x00ff))
-	mem.PutByte(addr+1, uint8(w>>8))
+	mem.Write(addr, uint8(w&0x00ff))
+	mem.Write(addr+1, uint8(w>>8))
 }
 
 // TODO: remove

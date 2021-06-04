@@ -1,6 +1,9 @@
 package msx
 
-import "github.com/laullon/b2t80s/cpu/z80"
+import (
+	"github.com/laullon/b2t80s/cpu"
+	"github.com/laullon/b2t80s/cpu/z80"
+)
 
 type memory struct {
 	slots []z80.Memory
@@ -27,19 +30,31 @@ func (mem *memory) setCartridge1(cart z80.Memory) {
 func (mem *memory) GetBlock(start, length uint16) []byte {
 	res := make([]byte, length)
 	for i := uint16(0); i < length; i++ {
-		res[i] = mem.GetByte(start + i)
+		res[i] = mem.Read(start + i)
 	}
 	return res
 }
 
-func (mem *memory) GetByte(addr uint16) byte {
+func (mem *memory) Read(addr uint16) byte {
 	slot := mem.getSlot(addr)
-	return mem.slots[slot].GetByte(addr)
+	return mem.slots[slot].Read(addr)
 }
 
-func (mem *memory) PutByte(addr uint16, b byte) {
+func (mem *memory) Write(addr uint16, b byte) {
 	slot := mem.getSlot(addr)
-	mem.slots[slot].PutByte(addr, b)
+	mem.slots[slot].Write(addr, b)
+}
+
+func (mem *memory) DumpMap() string {
+	panic(-1)
+}
+
+func (mem *memory) GetDumplables() map[string]cpu.Dumpable {
+	panic(-1)
+}
+
+func (mem *memory) RegisterPort(name string, mask cpu.PortMask, manager cpu.PortManager) {
+	panic(-1)
 }
 
 func (mem *memory) getSlot(addr uint16) byte {
@@ -56,14 +71,14 @@ func (mem *memory) WritePort(port uint16, data byte)  {}
 
 type rom []byte
 
-func (rom rom) GetByte(addr uint16) byte {
+func (rom rom) Read(addr uint16) byte {
 	if addr < uint16(len(rom)) {
 		return rom[addr]
 	}
 	return 0xff
 }
 
-func (rom rom) PutByte(addr uint16, b byte) {
+func (rom rom) Write(addr uint16, b byte) {
 }
 
 // TODO: remove
@@ -77,11 +92,11 @@ func (rom rom) GetBlock(start, length uint16) []byte { panic("not supported") }
 
 type ram []byte
 
-func (ram ram) GetByte(addr uint16) byte {
+func (ram ram) Read(addr uint16) byte {
 	return ram[addr]
 }
 
-func (ram ram) PutByte(addr uint16, b byte) {
+func (ram ram) Write(addr uint16, b byte) {
 	ram[addr] = b
 }
 
@@ -96,8 +111,8 @@ func (ram ram) GetBlock(start, length uint16) []byte { panic("not supported") }
 
 type emptySlot []byte
 
-func (es emptySlot) GetByte(addr uint16) byte    { return 0xff }
-func (es emptySlot) PutByte(addr uint16, b byte) {}
+func (es emptySlot) Read(addr uint16) byte     { return 0xff }
+func (es emptySlot) Write(addr uint16, b byte) {}
 
 // TODO: remove
 func (es emptySlot) ReadPort(port uint16) (byte, bool)    { return 0, true }

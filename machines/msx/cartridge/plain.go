@@ -17,7 +17,7 @@ func NewPlain(rom []byte) z80.Memory {
 	return cart
 }
 
-func (cart *plain) GetByte(addr uint16) byte {
+func (cart *plain) Read(addr uint16) byte {
 	if int(addr-cart.off) < len(cart.rom) {
 		return cart.rom[addr-cart.off]
 	}
@@ -25,7 +25,7 @@ func (cart *plain) GetByte(addr uint16) byte {
 
 }
 
-func (cart *plain) PutByte(addr uint16, data byte) {
+func (cart *plain) Write(addr uint16, data byte) {
 	// bank := byte(addr >> 13)
 	// if 0x6000 <= addr && addr < 0xC000 {
 	// 	cart.setRom(bank, data)

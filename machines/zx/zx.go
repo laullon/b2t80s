@@ -26,6 +26,7 @@ type ZX interface {
 
 type zx struct {
 	bus      z80.Bus
+	ports    cpu.Bus
 	ula      *ula
 	cpu      z80.Z80
 	mem      z80.Memory
@@ -42,7 +43,8 @@ func NewZX(mem *memory, plus, cas, ay bool) *zx {
 		speed = clock128k
 	}
 
-	bus := z80.NewBus(mem)
+	ports := cpu.NewBus("ports")
+	bus := z80.NewBus(mem, ports)
 
 	z80 := z80.NewZ80(bus)
 	clock := emulator.NewCLock(speed, 50)
@@ -56,12 +58,13 @@ func NewZX(mem *memory, plus, cas, ay bool) *zx {
 	clock.AddTicker(0, ula)
 	clock.AddTicker(80, sound)
 
-	bus.RegisterPort(cpu.PortMask{Mask: 0x00FF, Value: 0x00FE}, ula)
-	bus.RegisterPort(cpu.PortMask{Mask: 0x00FF, Value: 0x00FF}, ula)
-	bus.RegisterPort(cpu.PortMask{Mask: 0x00e0, Value: 0x0000}, &kempston{})
+	ports.RegisterPort("ula", cpu.PortMask{Mask: 0x00FF, Value: 0x00FE}, ula)
+	ports.RegisterPort("ula", cpu.PortMask{Mask: 0x00FF, Value: 0x00FF}, ula)
+	ports.RegisterPort("kempston", cpu.PortMask{Mask: 0x00e0, Value: 0x0000}, &kempston{})
 
 	zx := &zx{
 		bus:   bus,
+		ports: ports,
 		ula:   ula,
 		cpu:   z80,
 		mem:   mem,
@@ -72,8 +75,8 @@ func NewZX(mem *memory, plus, cas, ay bool) *zx {
 	if ay {
 		zx.ay8912 = ay8912.New()
 		sound.AddSource(zx.ay8912)
-		bus.RegisterPort(cpu.PortMask{Mask: 0xc002, Value: 0xc000}, zx.ay8912)
-		bus.RegisterPort(cpu.PortMask{Mask: 0xc002, Value: 0x8000}, zx.ay8912)
+		ports.RegisterPort("ay8912", cpu.PortMask{Mask: 0xc002, Value: 0xc000}, zx.ay8912)
+		ports.RegisterPort("ay8912", cpu.PortMask{Mask: 0xc002, Value: 0x8000}, zx.ay8912)
 		clock.AddTicker(2, zx.ay8912)
 	}
 
@@ -136,7 +139,7 @@ func (zx *zx) loadDataBlock() {
 				checksum := data[0]
 				for i := uint16(0); i < requestedLength; i++ {
 					loadedByte := data[i+1]
-					zx.mem.PutByte(startAddress+i, loadedByte)
+					zx.mem.Write(startAddress+i, loadedByte)
 					checksum ^= loadedByte
 					if (startAddress == 0x4000) && (i < 0x1b00) {
 						time.Sleep(time.Millisecond / 2)

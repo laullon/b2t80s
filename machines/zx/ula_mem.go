@@ -5,9 +5,9 @@ func (ula *ula) GetBlock(start, length uint16) []byte {
 }
 
 func (ula *ula) GetByte(addr uint16) byte {
-	return ula.memory.GetByte(addr)
+	return ula.memory.Read(addr)
 }
 
 func (ula *ula) PutByte(addr uint16, b byte) {
-	ula.memory.PutByte(addr, b)
+	ula.memory.Write(addr, b)
 }

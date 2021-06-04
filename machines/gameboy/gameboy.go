@@ -59,7 +59,7 @@ func New(serial ...chan byte) emulator.Machine {
 
 	cartridge := mappers.CreateMapper(*emulator.CartFile)
 
-	m.bus = cpu.NewBus(m)
+	m.bus = cpu.NewBus("main", m)
 	// if *emulator.Debug {
 	// 	m.cpuBus = m6502.NewWatchableBus(m.cpuBus)
 	// }

@@ -18,7 +18,7 @@ func NewAscii16(rom []byte) z80.Memory {
 	return cart
 }
 
-func (cart *ascii16) GetByte(addr uint16) byte {
+func (cart *ascii16) Read(addr uint16) byte {
 	switch addr >> 14 {
 	case 1, 3:
 		return cart.rom[cart.offB1+uint32(addr&0x3fff)]
@@ -29,7 +29,7 @@ func (cart *ascii16) GetByte(addr uint16) byte {
 
 }
 
-func (cart *ascii16) PutByte(addr uint16, data byte) {
+func (cart *ascii16) Write(addr uint16, data byte) {
 	// fmt.Printf("[ascii16] PutByte(0x%04X, %d) (b:%d) \n", addr, data, data&cart.mask)
 	off := uint32(data&cart.mask) * 0x4000
 	switch true {

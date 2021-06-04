@@ -1,5 +1,7 @@
 package zx
 
+import "github.com/laullon/b2t80s/cpu"
+
 type bank []byte
 type page *bank
 
@@ -67,21 +69,33 @@ func NewMemory(mode MemoryMode) *memory {
 func (mem *memory) GetBlock(start, length uint16) []byte {
 	res := make([]byte, length)
 	for i := uint16(0); i < length; i++ {
-		res[i] = mem.GetByte(start + i)
+		res[i] = mem.Read(start + i)
 	}
 	return res
 }
 
-func (mem *memory) GetByte(addr uint16) byte {
+func (mem *memory) Read(addr uint16) byte {
 	page, pos := mem.decodeAddress(addr)
 	return (*mem.pages[page])[pos]
 }
 
-func (mem *memory) PutByte(addr uint16, b byte) {
+func (mem *memory) Write(addr uint16, b byte) {
 	if addr > 0x3fff { // TODO: review for plus
 		page, pos := mem.decodeAddress(addr)
 		(*mem.pages[page])[pos] = b
 	}
+}
+
+func (mem *memory) DumpMap() string {
+	panic(-1)
+}
+
+func (mem *memory) GetDumplables() map[string]cpu.Dumpable {
+	panic(-1)
+}
+
+func (mem *memory) RegisterPort(name string, mask cpu.PortMask, manager cpu.PortManager) {
+	panic(-1)
 }
 
 func (mem *memory) LoadRom(idx int, rom []byte) {

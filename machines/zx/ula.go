@@ -141,10 +141,10 @@ func (ula *ula) Tick() {
 		addr |= ((y & 0b00000111) | 0b01000000) << 8
 		addr |= ((y >> 3) & 0b00011000) << 8
 		addr |= ((y << 2) & 0b11100000)
-		ula.pixlesData[y][x] = ula.memory.GetByte(addr + x)
+		ula.pixlesData[y][x] = ula.memory.Read(addr + x)
 
 		attrAddr := uint16(((y >> 3) * 32) + 0x5800)
-		ula.pixlesAttr[y][x] = ula.memory.GetByte(attrAddr + x)
+		ula.pixlesAttr[y][x] = ula.memory.Read(attrAddr + x)
 		ula.floatingBus = ula.pixlesAttr[y][x]
 	}
 

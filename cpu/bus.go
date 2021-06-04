@@ -28,10 +28,11 @@ type busEntry struct {
 type bus struct {
 	ports          []*busEntry
 	defaultManager PortManager
+	name           string
 }
 
-func NewBus(defaultManager ...PortManager) Bus {
-	bus := &bus{}
+func NewBus(name string, defaultManager ...PortManager) Bus {
+	bus := &bus{name: name}
 	if len(defaultManager) > 0 {
 		bus.defaultManager = defaultManager[0]
 	}
@@ -50,14 +51,14 @@ func (bus *bus) Write(addr uint16, data uint8) {
 	if bus.defaultManager != nil {
 		bus.defaultManager.WritePort(addr, data)
 	} else {
-		panic(fmt.Sprintf("[writePort]-(no PM)-> port:0x%04X data:%v\n", addr, data))
+		panic(fmt.Sprintf("[%s-writePort]-(no PM)-> port:0x%04X data:%v\n", bus.name, addr, data))
 	}
 }
 
 func (bus *bus) Read(addr uint16) uint8 {
 	for _, entry := range bus.ports {
 		if (addr & entry.mask.Mask) == entry.mask.Value {
-			// fmt.Printf("[readPort] port:0x%04X (0x%04X)(0x%04X) \n", addr, addr&portMask.Mask, portMask.Value)
+			// fmt.Printf("[%s-readPort] port:0x%04X (0x%04X)(0x%04X) \n", bus.name, addr, addr&entry.mask.Mask, entry.mask.Value)
 			data, skip := entry.manager.ReadPort(addr)
 			// println("[readPort] read from:", entry.name, "skip:", skip)
 			// fmt.Printf(fmt.Sprintf("[readPort]-> port:0x%04X data:0x%02X \n", addr, data))
@@ -71,7 +72,7 @@ func (bus *bus) Read(addr uint16) uint8 {
 		data, _ := bus.defaultManager.ReadPort(addr)
 		return data
 	} else {
-		panic(fmt.Sprintf("[readPort]-(no PM)-> port:0x%04X", addr))
+		panic(fmt.Sprintf("[%s-readPort]-(no PM)-> port:0x%04X", bus.name, addr))
 	}
 }
 

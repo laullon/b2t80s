@@ -21,7 +21,7 @@ func NewZX128K() emulator.Machine {
 	zx.ula.scanlines = 311
 	zx.ula.displayStart = 63
 
-	zx.bus.RegisterPort(cpu.PortMask{Mask: 0x8002, Value: 0x0000}, mem)
+	zx.ports.RegisterPort("mem", cpu.PortMask{Mask: 0x8002, Value: 0x0000}, mem)
 
 	return zx
 }

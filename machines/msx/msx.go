@@ -66,7 +66,8 @@ func NewMSX() emulator.Machine {
 
 	clock := emulator.NewCLock(speed, 50)
 
-	bus := z80.NewBus(mem)
+	ports := cpu.NewBus("ports")
+	bus := z80.NewBus(mem, ports)
 
 	z80 := z80.NewZ80(bus)
 	clock.AddTicker(0, z80)
@@ -98,7 +99,7 @@ func NewMSX() emulator.Machine {
 		ay8912: ay8912,
 	}
 
-	bus.RegisterPort(cpu.PortMask{Mask: 0x0000, Value: 0x0000}, msx)
+	ports.RegisterPort("msx", cpu.PortMask{Mask: 0x0000, Value: 0x0000}, msx)
 
 	return msx
 }

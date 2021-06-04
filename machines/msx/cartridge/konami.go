@@ -23,7 +23,7 @@ func NewKonami(rom []byte) z80.Memory {
 	return cart
 }
 
-func (cart *konami) GetByte(addr uint16) byte {
+func (cart *konami) Read(addr uint16) byte {
 	bank, off, ok := decodeAddr(addr)
 	if ok {
 		return cart.rom[cart.banks[bank]+off]
@@ -31,7 +31,7 @@ func (cart *konami) GetByte(addr uint16) byte {
 	return 0xff
 }
 
-func (cart *konami) PutByte(addr uint16, data byte) {
+func (cart *konami) Write(addr uint16, data byte) {
 	bank, _, ok := decodeAddr(addr)
 	// fmt.Printf("[konami] PutByte(0x%04X, %d(%d)(%d)) (bank:%d) (base:0x%08X)\n", addr, data, data&cart.banksMask, cart.banksMask, bank, uint32(data&cart.banksMask)*0x2000)
 	if ok {

@@ -2,6 +2,8 @@ package cpc
 
 import (
 	"fmt"
+
+	"github.com/laullon/b2t80s/cpu"
 )
 
 type bank []byte
@@ -71,12 +73,12 @@ func (mem *memory) decodeAddress(addr uint16) (page byte, bank byte, pos uint16)
 func (mem *memory) GetBlock(start, length uint16) []byte {
 	res := make([]byte, length)
 	for i := uint16(0); i < length; i++ {
-		res[i] = mem.GetByte(start + i)
+		res[i] = mem.Read(start + i)
 	}
 	return res
 }
 
-func (mem *memory) GetByte(addr uint16) byte {
+func (mem *memory) Read(addr uint16) byte {
 	page, bank, pos := mem.decodeAddress(addr)
 
 	if page == 0 && mem.lowerRomEnable {
@@ -94,21 +96,33 @@ func (mem *memory) getScreenByte(addr uint16) byte {
 	return mem.banks[bank][pos]
 }
 
-func (mem *memory) PutByte(addr uint16, b byte) {
+func (mem *memory) Write(addr uint16, b byte) {
 	// fmt.Printf("-> addr:0x%08x b:0x%02x \n", addr, b)
 	_, bank, pos := mem.decodeAddress(addr)
 	mem.banks[bank][pos] = b
 }
 
 func (mem *memory) GetWord(addr uint16) uint16 {
-	res := uint16(mem.GetByte(addr+1)) << 8
-	res |= uint16(mem.GetByte(addr))
+	res := uint16(mem.Read(addr+1)) << 8
+	res |= uint16(mem.Read(addr))
 	return res
 }
 
 func (mem *memory) PutWord(addr, w uint16) {
-	mem.PutByte(addr, uint8(w&0x00ff))
-	mem.PutByte(addr+1, uint8(w>>8))
+	mem.Write(addr, uint8(w&0x00ff))
+	mem.Write(addr+1, uint8(w>>8))
+}
+
+func (mem *memory) DumpMap() string {
+	panic(-1)
+}
+
+func (mem *memory) GetDumplables() map[string]cpu.Dumpable {
+	panic(-1)
+}
+
+func (mem *memory) RegisterPort(name string, mask cpu.PortMask, manager cpu.PortManager) {
+	panic(-1)
 }
 
 func (mem *memory) LoadRom(idx int, rom []byte) {
