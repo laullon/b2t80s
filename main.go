@@ -15,6 +15,7 @@ import (
 	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/gui"
+	"github.com/laullon/b2t80s/machines/a1942"
 	"github.com/laullon/b2t80s/machines/atetris"
 	"github.com/laullon/b2t80s/machines/cpc"
 	"github.com/laullon/b2t80s/machines/gameboy"
@@ -89,6 +90,9 @@ func main() {
 		case "atetris":
 			machine = atetris.NewATetris()
 			name = "Tetris"
+		case "1942":
+			machine = a1942.New1942()
+			name = "1942"
 		case "nes":
 			machine = nes.NewNES()
 			name = "Nes"
