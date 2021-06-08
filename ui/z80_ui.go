@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/laullon/b2t80s/cpu/z80"
@@ -16,6 +17,7 @@ type z80UI struct {
 	ixh, ixl, iyh, iyl     *RegText
 	ix, iy                 *RegText
 	sp, pc, flag           *RegText
+	im                     *RegText
 
 	log    []string
 	nextOP string
@@ -49,6 +51,7 @@ func NewZ80UI(cpu z80.Z80) gui.GUIObject {
 	ctl.sp = NewRegText("SP:")
 	ctl.pc = NewRegText("PC:")
 	ctl.flag = NewRegText("FLAG:")
+	ctl.im = NewRegText("IM:")
 
 	flag := NewRegText("")
 	flag.Update("SZXHXPNC")
@@ -59,7 +62,7 @@ func NewZ80UI(cpu z80.Z80) gui.GUIObject {
 		ctl.b, ctl.c, ctl.bc, ctl.sp,
 		ctl.d, ctl.e, ctl.de, ctl.flag,
 		ctl.h, ctl.l, ctl.hl, flag,
-		ctl.ixh, ctl.ixl, ctl.ix, NewRegText(""),
+		ctl.ixh, ctl.ixl, ctl.ix, ctl.im,
 		ctl.iyh, ctl.iyl, ctl.iy,
 	}
 
@@ -114,6 +117,7 @@ func (ctl *z80UI) Update() {
 	ctl.iy.Update(toHex16(ctl.regs.IY.Get()))
 	ctl.sp.Update(toHex16(ctl.regs.SP.Get()))
 	ctl.pc.Update(toHex16(ctl.regs.PC))
+	ctl.im.Update(strconv.Itoa(int(ctl.regs.InterruptsMode)))
 	ctl.flag.Update(fmt.Sprintf("%08b", ctl.regs.F.GetByte()))
 
 	ctl.out.SetText(strings.Join(append(ctl.log, "\n", ctl.nextOP), "\n"))

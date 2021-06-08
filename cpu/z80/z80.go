@@ -249,6 +249,10 @@ func (cpu *z80) SetTracer(t cpu.CPUTracer)            { cpu.log = t }
 func (cpu *z80) SetDebugger(db cpu.DebuggerCallbacks) { cpu.debugger = db }
 
 func (cpu *z80) execInterrupt() {
+	if cpu.debugger != nil {
+		cpu.debugger.EvalInterrupt()
+	}
+
 	cpu.prepareForNewInstruction()
 	cpu.doInterrupt = false
 
@@ -258,8 +262,12 @@ func (cpu *z80) execInterrupt() {
 		switch cpu.regs.InterruptsMode {
 		case 0, 1:
 			code := &exec{l: 7, f: func(cpu *z80) {
+				target := uint16(0x0038)
+				if cpu.regs.InterruptsMode == 0 {
+					target = uint16(cpu.bus.GetData())
+				}
 				cpu.pushToStack(cpu.regs.PC, func(cpu *z80) {
-					cpu.regs.PC = 0x0038
+					cpu.regs.PC = target
 				})
 			}}
 			cpu.scheduler.append(code)
