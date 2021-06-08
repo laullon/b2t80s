@@ -1,6 +1,9 @@
 package ui
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/laullon/b2t80s/cpu/z80"
 	"github.com/laullon/b2t80s/gui"
 )
@@ -16,103 +19,104 @@ type z80UI struct {
 
 	log    []string
 	nextOP string
+
+	ui  gui.HCT
+	out gui.Text
 }
 
 func NewZ80UI(cpu z80.Z80) gui.GUIObject {
-	ui := &z80UI{regs: cpu.Registers()}
-	cpu.SetTracer(ui)
+	ctl := &z80UI{regs: cpu.Registers()}
+	cpu.SetTracer(ctl)
 
-	ui.a = NewRegText("A:")
-	ui.f = NewRegText("F:")
-	ui.b = NewRegText("B:")
-	ui.c = NewRegText("C:")
-	ui.d = NewRegText("D:")
-	ui.e = NewRegText("E:")
-	ui.h = NewRegText("H:")
-	ui.l = NewRegText("L:")
-	ui.af = NewRegText("AF:")
-	ui.bc = NewRegText("BC:")
-	ui.de = NewRegText("DE:")
-	ui.hl = NewRegText("HL:")
-	ui.ixh = NewRegText("IXH:")
-	ui.ixl = NewRegText("IXL:")
-	ui.iyh = NewRegText("IYH:")
-	ui.iyl = NewRegText("IYL:")
-	ui.ix = NewRegText("IX:")
-	ui.iy = NewRegText("IY:")
-	ui.sp = NewRegText("SP:")
-	ui.pc = NewRegText("PC:")
-	ui.flag = NewRegText("FLAG:")
+	ctl.a = NewRegText("A:")
+	ctl.f = NewRegText("F:")
+	ctl.b = NewRegText("B:")
+	ctl.c = NewRegText("C:")
+	ctl.d = NewRegText("D:")
+	ctl.e = NewRegText("E:")
+	ctl.h = NewRegText("H:")
+	ctl.l = NewRegText("L:")
+	ctl.af = NewRegText("AF:")
+	ctl.bc = NewRegText("BC:")
+	ctl.de = NewRegText("DE:")
+	ctl.hl = NewRegText("HL:")
+	ctl.ixh = NewRegText("IXH:")
+	ctl.ixl = NewRegText("IXL:")
+	ctl.iyh = NewRegText("IYH:")
+	ctl.iyl = NewRegText("IYL:")
+	ctl.ix = NewRegText("IX:")
+	ctl.iy = NewRegText("IY:")
+	ctl.sp = NewRegText("SP:")
+	ctl.pc = NewRegText("PC:")
+	ctl.flag = NewRegText("FLAG:")
 
-	// c1 := container.New(layout.NewFormLayout(),
-	// 	ui.a.Label, ui.a.Value,
-	// 	ui.b.Label, ui.b.Value,
-	// 	ui.d.Label, ui.d.Value,
-	// 	ui.h.Label, ui.h.Value,
-	// 	ui.ixh.Label, ui.ixh.Value,
-	// 	ui.iyh.Label, ui.iyh.Value,
-	// 	ui.pc.Label, ui.pc.Value,
-	// )
-	// c2 := container.New(layout.NewFormLayout(),
-	// 	ui.f.Label, ui.f.Value,
-	// 	ui.c.Label, ui.c.Value,
-	// 	ui.e.Label, ui.e.Value,
-	// 	ui.l.Label, ui.l.Value,
-	// 	ui.ixl.Label, ui.ixl.Value,
-	// 	ui.iyl.Label, ui.iyl.Value,
-	// 	ui.sp.Label, ui.sp.Value,
-	// )
-	// c3 := container.New(layout.NewFormLayout(),
-	// 	ui.af.Label, ui.af.Value,
-	// 	ui.bc.Label, ui.bc.Value,
-	// 	ui.de.Label, ui.de.Value,
-	// 	ui.hl.Label, ui.hl.Value,
-	// 	ui.ix.Label, ui.ix.Value,
-	// 	ui.iy.Label, ui.iy.Value,
-	// 	ui.flag.Label, ui.flag.Value,
-	// )
+	flag := NewRegText("")
+	flag.Update("SZXHXPNC")
+	flag.Update("SZXHXPNC")
 
-	// regs := container.New(layout.NewGridLayoutWithColumns(3), c1, c2, c3)
+	regs := []*RegText{
+		ctl.a, ctl.f, ctl.af, ctl.pc,
+		ctl.b, ctl.c, ctl.bc, ctl.sp,
+		ctl.d, ctl.e, ctl.de, ctl.flag,
+		ctl.h, ctl.l, ctl.hl, flag,
+		ctl.ixh, ctl.ixl, ctl.ix, NewRegText(""),
+		ctl.iyh, ctl.iyl, ctl.iy,
+	}
 
-	// ui.logTxt = widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
+	grid := gui.NewHGrid(8, 20, 0)
+	for _, reg := range regs {
+		grid.Add(reg.Label, reg.Value)
+	}
 
-	// ui.widget = container.New(layout.NewVBoxLayout(), regs, ui.logTxt)
+	ctl.out = gui.NewText("")
 
-	return ui
+	ctl.ui = gui.NewVerticalHCT()
+	ctl.ui.SetHead(grid, 120)
+	ctl.ui.SetCenter(ctl.out)
+
+	return ctl
 }
 
-func (ui *z80UI) Render() {
+func (ctl *z80UI) GetMouseTargets() []gui.MouseTarget {
+	return ctl.ui.GetMouseTargets()
 }
 
-func (ui *z80UI) Resize(r gui.Rect) {
+func (ctl *z80UI) Render() {
+	ctl.ui.Render()
+}
+
+func (ctl *z80UI) Resize(r gui.Rect) {
+	ctl.ui.Resize(r)
 }
 
 func (ui *z80UI) GetRegisters() string { return "" }
 func (ui *z80UI) GetOutput() string    { return "" }
 
-func (ui *z80UI) Update() {
-	af := toHex16(uint16(ui.regs.A)<<8 | uint16(ui.regs.F.GetByte()))
-	ui.a.Update(toHex8(ui.regs.A))
-	ui.f.Update(toHex8(ui.regs.F.GetByte()))
-	ui.b.Update(toHex8(ui.regs.B))
-	ui.c.Update(toHex8(ui.regs.C))
-	ui.d.Update(toHex8(ui.regs.D))
-	ui.e.Update(toHex8(ui.regs.E))
-	ui.h.Update(toHex8(ui.regs.H))
-	ui.l.Update(toHex8(ui.regs.L))
-	ui.ixh.Update(toHex8(ui.regs.IXH))
-	ui.ixl.Update(toHex8(ui.regs.IXL))
-	ui.iyh.Update(toHex8(ui.regs.IYH))
-	ui.iyl.Update(toHex8(ui.regs.IYL))
-	ui.af.Update(af)
-	ui.bc.Update(toHex16(ui.regs.BC.Get()))
-	ui.de.Update(toHex16(ui.regs.DE.Get()))
-	ui.hl.Update(toHex16(ui.regs.HL.Get()))
-	ui.ix.Update(toHex16(ui.regs.IX.Get()))
-	ui.iy.Update(toHex16(ui.regs.IY.Get()))
-	ui.sp.Update(toHex16(ui.regs.SP.Get()))
-	ui.pc.Update(toHex16(ui.regs.PC))
-	ui.flag.Update(af)
+func (ctl *z80UI) Update() {
+	af := toHex16(uint16(ctl.regs.A)<<8 | uint16(ctl.regs.F.GetByte()))
+	ctl.a.Update(toHex8(ctl.regs.A))
+	ctl.f.Update(toHex8(ctl.regs.F.GetByte()))
+	ctl.b.Update(toHex8(ctl.regs.B))
+	ctl.c.Update(toHex8(ctl.regs.C))
+	ctl.d.Update(toHex8(ctl.regs.D))
+	ctl.e.Update(toHex8(ctl.regs.E))
+	ctl.h.Update(toHex8(ctl.regs.H))
+	ctl.l.Update(toHex8(ctl.regs.L))
+	ctl.ixh.Update(toHex8(ctl.regs.IXH))
+	ctl.ixl.Update(toHex8(ctl.regs.IXL))
+	ctl.iyh.Update(toHex8(ctl.regs.IYH))
+	ctl.iyl.Update(toHex8(ctl.regs.IYL))
+	ctl.af.Update(af)
+	ctl.bc.Update(toHex16(ctl.regs.BC.Get()))
+	ctl.de.Update(toHex16(ctl.regs.DE.Get()))
+	ctl.hl.Update(toHex16(ctl.regs.HL.Get()))
+	ctl.ix.Update(toHex16(ctl.regs.IX.Get()))
+	ctl.iy.Update(toHex16(ctl.regs.IY.Get()))
+	ctl.sp.Update(toHex16(ctl.regs.SP.Get()))
+	ctl.pc.Update(toHex16(ctl.regs.PC))
+	ctl.flag.Update(fmt.Sprintf("%08b", ctl.regs.F.GetByte()))
+
+	ctl.out.SetText(strings.Join(append(ctl.log, "\n", ctl.nextOP), "\n"))
 
 	// ui.logTxt.Text = strings.Join(append(ui.log, "\n", ui.nextOP), "\n")
 

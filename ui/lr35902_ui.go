@@ -64,7 +64,7 @@ func NewLR35902UI(cpu lr35902.LR35902) gui.GUIObject {
 		ctl.h, ctl.l, ctl.hl, flag,
 	}
 
-	grid := gui.NewHGrid(10, 20)
+	grid := gui.NewHGrid(10, 20, 0)
 	for _, reg := range regs {
 		grid.Add(reg.Label, reg.Value)
 	}
@@ -80,6 +80,10 @@ func NewLR35902UI(cpu lr35902.LR35902) gui.GUIObject {
 	// })
 
 	return ctl
+}
+
+func (ctl *lr35902UI) GetMouseTargets() []gui.MouseTarget {
+	return ctl.ui.GetMouseTargets()
 }
 
 func (ctl *lr35902UI) Render() {

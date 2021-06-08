@@ -61,6 +61,19 @@ func PoolEvents(stop chan struct{}) {
 				}
 			}
 
+		case *sdl.MouseWheelEvent:
+			_, h := win.sdlWin.GetSize()
+			x, y, _ := sdl.GetMouseState()
+			p := Point{x, h - y}
+			for _, obj := range win.mouseListeners {
+				if obj.Rect().In(p) {
+					if scroll, ok := obj.(ScrollTarget); ok {
+						scroll.OnScroll(event.X, event.Y)
+						// fmt.Printf(">> event: %v \n", event)
+					}
+				}
+			}
+
 		case *sdl.JoyAxisEvent:
 			switch event.Axis {
 			case 0:
@@ -87,7 +100,7 @@ func PoolEvents(stop chan struct{}) {
 			sdl.JoystickOpen(int(event.Which))
 			joysticks[event.Which].ON = true
 
-		default:
+			// default:
 			// fmt.Printf(">> event: %T \n", e)
 		}
 	}

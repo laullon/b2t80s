@@ -19,12 +19,18 @@ var palette = []color.RGBA{ // https://www.slideteam.net/blog/9-beautiful-color-
 type GUIObject interface {
 	Render()
 	Resize(Rect)
+	GetMouseTargets() []MouseTarget
 }
 
 type MouseTarget interface {
 	Rect() Rect
 	OnMouseOver(bool)
 	OnMouseClick(bool)
+}
+
+type ScrollTarget interface {
+	MouseTarget
+	OnScroll(x, y int32)
 }
 
 type Point struct{ X, Y int32 }

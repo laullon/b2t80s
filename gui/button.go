@@ -15,11 +15,12 @@ type Button interface {
 }
 
 type button struct {
-	rect     Rect
-	txt      string
-	over     bool
-	selected bool
-	action   func()
+	rect    Rect
+	txt     string
+	over    bool
+	clicked bool
+	active  bool
+	action  func()
 
 	needsUpdate bool
 	img         *glImage
@@ -50,6 +51,10 @@ func newButton(txt string, tab bool) Button {
 	return b
 }
 
+func (b *button) GetMouseTargets() []MouseTarget {
+	return []MouseTarget{b}
+}
+
 func (b *button) OnMouseOver(over bool) {
 	if b.over != over {
 		b.over = over
@@ -59,36 +64,37 @@ func (b *button) OnMouseOver(over bool) {
 
 func (b *button) OnMouseClick(up bool) {
 	if up {
-		if b.selected {
+		if b.clicked {
 			if b.action != nil {
 				b.action()
 			}
 		}
-		b.selected = false
+		b.clicked = false
 	} else {
-		b.selected = true
+		b.clicked = true
 	}
 	b.redraw()
 }
 
 func (b *button) redraw() {
-	if b.over {
-		if b.selected {
+	if b.active {
+		b.back = palette[3]
+	} else if b.over {
+		if b.clicked {
 			b.back = palette[3]
 		} else {
 			b.back = palette[2]
 		}
 	} else {
 		b.back = palette[0]
-		b.selected = false
 	}
 
 	w, h := int(b.rect.W), int(b.rect.H)
-	c := &circle{p: image.Point{6, 6}, r: 6, r2: 4, in: b.back, line: palette[1], out: palette[0]}
+	c := &circle{p: image.Point{6, 6}, r: 6, r2: 5, in: b.back, line: palette[1], out: palette[0]}
 	b.img = newImage(Size{b.rect.W, b.rect.H})
 
 	draw.Draw(b.img, image.Rect(0, 0, w, h), image.NewUniform(palette[1]), image.Point{}, draw.Src)
-	draw.Draw(b.img, image.Rect(2, 2, w-2, h-2), image.NewUniform(b.back), image.Point{}, draw.Src)
+	draw.Draw(b.img, image.Rect(1, 1, w-1, h-1), image.NewUniform(b.back), image.Point{}, draw.Src)
 
 	draw.Draw(b.img, image.Rect(0, 0, 6, 6), c, image.Point{0, 0}, draw.Src)
 	draw.Draw(b.img, image.Rect(w-6, 0, w, 6), c, image.Point{6, 0}, draw.Src)
@@ -123,8 +129,8 @@ func (b *button) init() {
 		b.rect.W, b.rect.H,
 		0, gl.RGB, gl.UNSIGNED_BYTE,
 		nil)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 	gl.TexParameterf(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
 	gl.TexParameterf(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
 	b.needsUpdate = true
@@ -149,8 +155,8 @@ func (b *button) Render() {
 			0, 0, b.rect.W, b.rect.H,
 			gl.RGBA, gl.UNSIGNED_BYTE,
 			gl.Ptr(b.img.Pix))
-		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 	}
 
 	// RENDER

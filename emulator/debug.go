@@ -38,7 +38,7 @@ func NewDebugWindow(name string, machine Machine, debuger *debugger) *debug {
 	bt6 := gui.NewButton("Step Frame")
 	bt6.SetAction(func() { debuger.StepFrame() })
 
-	grid := gui.NewHGrid(3, 50)
+	grid := gui.NewHGrid(3, 50, 4)
 	grid.Add(bt1, bt2, bt3, bt4, bt5, bt6)
 
 	tabs := gui.NewTabs()
@@ -63,8 +63,7 @@ func NewDebugWindow(name string, machine Machine, debuger *debugger) *debug {
 	hct.SetCenter(tabs)
 
 	debug.window.SetMainUI(hct)
-	debug.window.AddMouseListeners(bt1, bt2, bt3, bt4, bt5, bt6)
-	debug.window.AddMouseListeners(tabs.Tabs()...)
+	debug.window.AddMouseListeners(hct.GetMouseTargets()...)
 	debug.window.SetOnKey(func(s sdl.Scancode) {})
 	return debug
 }

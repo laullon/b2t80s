@@ -6,13 +6,16 @@ import (
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/ay8912"
 	"github.com/laullon/b2t80s/gui"
+	"github.com/laullon/b2t80s/ui"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
 type a1942 struct {
+	mainMem cpu.Bus
 	mainBus z80.Bus
 	mainCpu z80.Z80
 
+	audioMem cpu.Bus
 	audioBus z80.Bus
 	audioCpu z80.Z80
 
@@ -35,14 +38,13 @@ func New1942() emulator.Machine {
 
 	m.clock = emulator.NewCLock(12_000_000, 60)
 
-	mainMem := cpu.NewBus("mainMem")
+	m.mainMem = cpu.NewBus("mainMem")
 	mainPorts := cpu.NewBus("mainPorts", &unused{})
-	m.mainBus = z80.NewBus(mainMem, mainPorts)
+	m.mainBus = z80.NewBus(m.mainMem, mainPorts)
 	m.mainCpu = z80.NewZ80(m.mainBus)
 
-	audioMem := cpu.NewBus("audioMem", &unused{})
-	// audioPorts := cpu.NewBus("audioPorts")
-	m.audioBus = z80.NewBus(audioMem, nil)
+	m.audioMem = cpu.NewBus("audioMem", &unused{})
+	m.audioBus = z80.NewBus(m.audioMem, nil)
 	m.audioCpu = z80.NewZ80(m.audioBus)
 
 	m.monitor = emulator.NewMonitor(m.display)
@@ -56,27 +58,27 @@ func New1942() emulator.Machine {
 	latch := &latch{m: m}
 
 	// MAIN
-	mainMem.RegisterPort("srb-03.m3", cpu.PortMask{Mask: 0b1100_0000_0000_0000, Value: 0x0000}, cpu.NewROM(loadRom("srb-03.m3"), 0x3fff))
-	mainMem.RegisterPort("srb-04.m4", cpu.PortMask{Mask: 0b1100_0000_0000_0000, Value: 0x4000}, cpu.NewROM(loadRom("srb-04.m4"), 0x3fff))
-	mainMem.RegisterPort("romBank", cpu.PortMask{Mask: 0b1100_0000_0000_0000, Value: 0x8000}, m.romBank)
+	m.mainMem.RegisterPort("srb-03.m3", cpu.PortMask{Mask: 0b1100_0000_0000_0000, Value: 0x0000}, cpu.NewROM(loadRom("srb-03.m3"), 0x3fff))
+	m.mainMem.RegisterPort("srb-04.m4", cpu.PortMask{Mask: 0b1100_0000_0000_0000, Value: 0x4000}, cpu.NewROM(loadRom("srb-04.m4"), 0x3fff))
+	m.mainMem.RegisterPort("romBank", cpu.PortMask{Mask: 0b1100_0000_0000_0000, Value: 0x8000}, m.romBank)
 
-	mainMem.RegisterPort("RAM", cpu.PortMask{Mask: 0b1111_0000_0000_0000, Value: 0xe000}, cpu.NewRAM(make([]byte, 0x1000), 0x0fff))
-	mainMem.RegisterPort("unused", cpu.PortMask{Mask: 0b1111_0000_0000_0000, Value: 0xF000}, &unused{})
-	mainMem.RegisterPort("ports", cpu.PortMask{Mask: 0b1111_1111_1111_1100, Value: 0xc000}, m)
-	mainMem.RegisterPort("ports", cpu.PortMask{Mask: 0b1111_1111_1111_1111, Value: 0xc004}, m)
-	mainMem.RegisterPort("fgvram", cpu.PortMask{Mask: 0b1111_1000_0000_0000, Value: 0xd000}, cpu.NewRAM(make([]byte, 0x0800), 0x07ff))
-	mainMem.RegisterPort("bgvram", cpu.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0xd800}, cpu.NewRAM(make([]byte, 0x0800), 0x07ff))
+	m.mainMem.RegisterPort("RAM", cpu.PortMask{Mask: 0b1111_0000_0000_0000, Value: 0xe000}, cpu.NewRAM(make([]byte, 0x1000), 0x0fff))
+	m.mainMem.RegisterPort("unused", cpu.PortMask{Mask: 0b1111_0000_0000_0000, Value: 0xF000}, &unused{})
+	m.mainMem.RegisterPort("ports", cpu.PortMask{Mask: 0b1111_1111_1111_1100, Value: 0xc000}, m)
+	m.mainMem.RegisterPort("ports", cpu.PortMask{Mask: 0b1111_1111_1111_1111, Value: 0xc004}, m)
+	m.mainMem.RegisterPort("fgvram", cpu.PortMask{Mask: 0b1111_1000_0000_0000, Value: 0xd000}, cpu.NewRAM(make([]byte, 0x0800), 0x07ff))
+	m.mainMem.RegisterPort("bgvram", cpu.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0xd800}, cpu.NewRAM(make([]byte, 0x0800), 0x07ff))
 
 	// AUDIO
-	audioMem.RegisterPort("sr-01.c11", cpu.PortMask{Mask: 0b1100_0000_0000_0000, Value: 0x0000}, cpu.NewROM(loadRom("sr-01.c11"), 0x3fff))
+	m.audioMem.RegisterPort("sr-01.c11", cpu.PortMask{Mask: 0b1100_0000_0000_0000, Value: 0x0000}, cpu.NewROM(loadRom("sr-01.c11"), 0x3fff))
 
-	audioMem.RegisterPort("RAM", cpu.PortMask{Mask: 0b1111_1000_0000_0000, Value: 0x4000}, cpu.NewRAM(make([]byte, 0x0800), 0x07ff))
-	audioMem.RegisterPort("latch", cpu.PortMask{Mask: 0b1111_1111_1111_1111, Value: 0x6000}, latch)
-	audioMem.RegisterPort("AY1", cpu.PortMask{Mask: 0b1111_1111_1111_1110, Value: 0x8000}, ayControl)
-	audioMem.RegisterPort("AY2", cpu.PortMask{Mask: 0b1111_1111_1111_1110, Value: 0xc000}, ayControl)
+	m.audioMem.RegisterPort("RAM", cpu.PortMask{Mask: 0b1111_1000_0000_0000, Value: 0x4000}, cpu.NewRAM(make([]byte, 0x0800), 0x07ff))
+	m.audioMem.RegisterPort("latch", cpu.PortMask{Mask: 0b1111_1111_1111_1111, Value: 0x6000}, latch)
+	m.audioMem.RegisterPort("AY1", cpu.PortMask{Mask: 0b1111_1111_1111_1110, Value: 0x8000}, ayControl)
+	m.audioMem.RegisterPort("AY2", cpu.PortMask{Mask: 0b1111_1111_1111_1110, Value: 0xc000}, ayControl)
 
-	print("main bus:\n", mainMem.DumpMap(), "\n")
-	print("audio bus:\n", audioMem.DumpMap(), "\n")
+	print("main bus:\n", m.mainMem.DumpMap(), "\n")
+	print("audio bus:\n", m.audioMem.DumpMap(), "\n")
 
 	m.clock.AddTicker(3, m.mainCpu)  // 4Mhz
 	m.clock.AddTicker(4, m.audioCpu) // 3Mhz
@@ -94,7 +96,12 @@ func (t *a1942) Monitor() emulator.Monitor {
 }
 
 func (t *a1942) Control() map[string]gui.GUIObject {
-	return nil //map[string]gui.GUIObject{"CPU": ui.NewM6502UI(t.cpu)}
+	return map[string]gui.GUIObject{
+		"Main CPU":     ui.NewZ80UI(t.mainCpu),
+		"Audio CPU":    ui.NewZ80UI(t.audioCpu),
+		"Main Memory":  ui.NewBusUI(t.mainMem),
+		"Audio Memory": ui.NewBusUI(t.audioMem),
+	}
 }
 
 func (t *a1942) SetDebugger(db cpu.DebuggerCallbacks) {

@@ -64,6 +64,10 @@ func NewM6502UI(cpu m6502.M6502) gui.GUIObject {
 	return ui
 }
 
+func (ctl *m6502UI) GetMouseTargets() []gui.MouseTarget {
+	return []gui.MouseTarget{}
+}
+
 func (ui *m6502UI) Render() {
 }
 

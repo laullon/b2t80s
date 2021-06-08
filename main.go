@@ -34,8 +34,8 @@ func main() {
 	emulator.TapFile = flag.String("tap", "", "tap file to load")
 	emulator.RomFile = flag.String("rom", "", "msx1 rom file to load - format: [mapper::]filename - Mappers:konami")
 	z80File := flag.String("z80", "", "z80 file to load")
-	mode := flag.String("mode", "48k", "Spectrum model to emulate [48k|128k|plus3|cpc464|cpc6128|msx1]")
-	emulator.Debug = flag.Bool("debug", false, "shows debugger")
+	mode := flag.String("mode", "1942", "Spectrum model to emulate [48k|128k|plus3|cpc464|cpc6128|msx1]")
+	emulator.Debug = flag.Bool("debug", true, "shows debugger")
 	// turbo := flag.Bool("turbo", false, "run faster")
 
 	emulator.Breaks = flag.String("bp", "", "Breakpoints [0xXXXX[,0xXXXX,...]]")

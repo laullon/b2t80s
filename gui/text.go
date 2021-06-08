@@ -26,6 +26,10 @@ type text struct {
 	fore *image.Uniform
 	face *basicfont.Face
 
+	startLine     int32
+	nLines        int32
+	nLinesVisible int32
+
 	needsUpdate bool
 	img         *glImage // TODO: replace by our own image
 
@@ -43,6 +47,10 @@ func NewText(t string) Text {
 	txt.init()
 	txt.SetText(t)
 	return txt
+}
+
+func (_ *text) GetMouseTargets() []MouseTarget {
+	return []MouseTarget{}
 }
 
 func (txt *text) SetForeground(c color.Color) {
@@ -63,18 +71,38 @@ func (txt *text) Resize(r Rect) {
 
 func (txt *text) redraw() {
 	draw.Draw(txt.img, txt.img.Bounds(), txt.back, image.Point{}, draw.Src)
+	txt.nLinesVisible = txt.rect.H / int32(txt.face.Height)
+	if txt.nLinesVisible < 1 {
+		return
+	}
 
 	p := fixed.P(0, 0)
-	for _, line := range strings.Split(txt.text, "\n") {
-		p.Y += txt.face.Metrics().Height
-		d := &font.Drawer{
-			Dst:  txt.img,
-			Src:  txt.fore,
-			Face: txt.face,
-			Dot:  p,
-		}
+	d := &font.Drawer{
+		Dst:  txt.img,
+		Src:  txt.fore,
+		Face: txt.face,
+		Dot:  p,
+	}
 
+	lines := strings.Split(txt.text, "\n")
+	txt.nLines = int32(len(lines))
+
+	if txt.nLines < txt.nLinesVisible {
+		txt.startLine = 0
+	} else if txt.startLine < 0 {
+		txt.startLine = 0
+	} else if txt.startLine >= (txt.nLines - txt.nLinesVisible) {
+		txt.startLine = txt.nLines - txt.nLinesVisible
+	}
+	lines = lines[txt.startLine:]
+
+	for _, line := range lines {
+		d.Dot.Y += txt.face.Metrics().Height
+		d.Dot.X = 0
 		d.DrawString(line)
+		if int32(d.Dot.Y.Ceil()) > txt.rect.H {
+			break
+		}
 	}
 	txt.needsUpdate = true
 }
@@ -106,7 +134,6 @@ func (txt *text) init() {
 }
 
 func (txt *text) Render() {
-	// println("l:", txt.text, "t:", txt.texture, "f:", txt.frameID)
 	// UPDATE TEXTURE
 	if txt.needsUpdate {
 		txt.needsUpdate = false

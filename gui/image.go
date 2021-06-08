@@ -29,6 +29,10 @@ func (i *imgViewer) Resize(r Rect) {
 	i.rect = r
 }
 
+func (_ *imgViewer) GetMouseTargets() []MouseTarget {
+	return []MouseTarget{}
+}
+
 func (i *imgViewer) init() {
 	if i.texture != 0 {
 		gl.DeleteTextures(1, &i.texture)

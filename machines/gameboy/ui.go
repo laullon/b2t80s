@@ -41,7 +41,7 @@ func newPPUControl(ppu *ppu) *ppuDebugControl {
 		ctrl.y, ctrl.scY, ctrl.wy, ctrl.control,
 	}
 
-	grid := gui.NewHGrid(8, 20)
+	grid := gui.NewHGrid(8, 20, 0)
 	for _, reg := range regs {
 		grid.Add(reg.Label, reg.Value)
 	}
@@ -50,6 +50,10 @@ func newPPUControl(ppu *ppu) *ppuDebugControl {
 	ctrl.ui.SetHead(grid, 80)
 
 	return ctrl
+}
+
+func (ctrl *ppuDebugControl) GetMouseTargets() []gui.MouseTarget {
+	return []gui.MouseTarget{}
 }
 
 func (ctrl *ppuDebugControl) Render() {
