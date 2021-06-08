@@ -17,7 +17,7 @@ type tabs struct {
 
 func NewTabs() Tabs {
 	tabs := &tabs{}
-	tabs.bar = NewHGrid(6, 50, 0)
+	tabs.bar = NewHGrid(8, 50, 0)
 	tabs.ui = NewVerticalHCT()
 	tabs.ui.SetHead(tabs.bar, 50)
 	return tabs

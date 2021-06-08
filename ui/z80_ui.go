@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -24,9 +25,11 @@ type z80UI struct {
 
 	ui  gui.HCT
 	out gui.Text
+
+	traceFile *os.File
 }
 
-func NewZ80UI(cpu z80.Z80) gui.GUIObject {
+func NewZ80UI(cpu z80.Z80, trace bool) gui.GUIObject {
 	ctl := &z80UI{regs: cpu.Registers()}
 	cpu.SetTracer(ctl)
 
@@ -76,6 +79,14 @@ func NewZ80UI(cpu z80.Z80) gui.GUIObject {
 	ctl.ui = gui.NewVerticalHCT()
 	ctl.ui.SetHead(grid, 120)
 	ctl.ui.SetCenter(ctl.out)
+
+	if trace {
+		f, err := os.Create("trace.out")
+		if err != nil {
+			panic(err)
+		}
+		ctl.traceFile = f
+	}
 
 	return ctl
 }
@@ -129,12 +140,16 @@ func (ctl *z80UI) Update() {
 func (ui *z80UI) DoTrace(on bool) { // TODO: implement
 }
 
-func (ui *z80UI) AppendLastOP(op string) {
-	log := append(ui.log, op)
+func (ctl *z80UI) AppendLastOP(op string) {
+	if ctl.traceFile != nil {
+		ctl.traceFile.WriteString(strings.ToUpper(op))
+		ctl.traceFile.WriteString("\n")
+	}
+	log := append(ctl.log, op)
 	if len(log) > 10 {
-		ui.log = log[1:]
+		ctl.log = log[1:]
 	} else {
-		ui.log = log
+		ctl.log = log
 	}
 }
 

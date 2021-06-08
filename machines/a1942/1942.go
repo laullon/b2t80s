@@ -1,6 +1,8 @@
 package a1942
 
 import (
+	"fmt"
+
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/z80"
 	"github.com/laullon/b2t80s/emulator"
@@ -19,26 +21,27 @@ type a1942 struct {
 	audioBus z80.Bus
 	audioCpu z80.Z80
 
-	romBank cpu.ROM
+	romBank  cpu.ROM
+	romBanks [][]byte
 
 	clock    emulator.Clock
 	debugger emulator.Debugger
 	monitor  emulator.Monitor
+	video    *video
 
 	ay1 ay8912.AY8912
 	ay2 ay8912.AY8912
-
-	display *gui.Display
 }
 
 func New1942() emulator.Machine {
-	m := &a1942{
-		display: gui.NewDisplay(gui.Size{336, 240}),
-	}
+
+	m := &a1942{}
+
+	m.video = newVideo(m)
 
 	m.clock = emulator.NewCLock(12_000_000, 60)
 
-	m.mainMem = cpu.NewBus("mainMem")
+	m.mainMem = cpu.NewBus("mainMem", &unused{})
 	mainPorts := cpu.NewBus("mainPorts", &unused{})
 	m.mainBus = z80.NewBus(m.mainMem, mainPorts)
 	m.mainCpu = z80.NewZ80(m.mainBus)
@@ -47,12 +50,15 @@ func New1942() emulator.Machine {
 	m.audioBus = z80.NewBus(m.audioMem, nil)
 	m.audioCpu = z80.NewZ80(m.audioBus)
 
-	m.monitor = emulator.NewMonitor(m.display)
+	m.monitor = emulator.NewMonitor(m.video.display)
 
 	m.ay1 = ay8912.New()
 	m.ay2 = ay8912.New()
 
-	m.romBank = cpu.NewROM(loadRom("srb-05.m5"), 0x3fff)
+	m.romBanks = append(m.romBanks, loadRom("srb-05.m5"))
+	m.romBanks = append(m.romBanks, loadRom("srb-06.m6"))
+	m.romBanks = append(m.romBanks, loadRom("srb-07.m7"))
+	m.romBank = cpu.NewROM(m.romBanks[0], 0x3fff)
 
 	ayControl := &ayControl{m}
 	latch := &latch{m: m}
@@ -63,9 +69,14 @@ func New1942() emulator.Machine {
 	m.mainMem.RegisterPort("romBank", cpu.PortMask{Mask: 0b1100_0000_0000_0000, Value: 0x8000}, m.romBank)
 
 	m.mainMem.RegisterPort("RAM", cpu.PortMask{Mask: 0b1111_0000_0000_0000, Value: 0xe000}, cpu.NewRAM(make([]byte, 0x1000), 0x0fff))
-	m.mainMem.RegisterPort("unused", cpu.PortMask{Mask: 0b1111_0000_0000_0000, Value: 0xF000}, &unused{})
 	m.mainMem.RegisterPort("ports", cpu.PortMask{Mask: 0b1111_1111_1111_1100, Value: 0xc000}, m)
 	m.mainMem.RegisterPort("ports", cpu.PortMask{Mask: 0b1111_1111_1111_1111, Value: 0xc004}, m)
+	m.mainMem.RegisterPort("background scroll", cpu.PortMask{Mask: 0b1111_1111_1111_1111, Value: 0xC802}, m.video)
+	m.mainMem.RegisterPort("background scroll", cpu.PortMask{Mask: 0b1111_1111_1111_1111, Value: 0xC803}, m.video)
+	m.mainMem.RegisterPort("0xC804", cpu.PortMask{Mask: 0b1111_1111_1111_1111, Value: 0xC804}, m)
+	m.mainMem.RegisterPort("background palette", cpu.PortMask{Mask: 0b1111_1111_1111_1111, Value: 0xC805}, m.video)
+	m.mainMem.RegisterPort("bankswitch", cpu.PortMask{Mask: 0b1111_1111_1111_1111, Value: 0xC806}, m)
+	m.mainMem.RegisterPort("spriteram", cpu.PortMask{Mask: 0b1111_1111_1000_0000, Value: 0xcc00}, m.video.spriteram)
 	m.mainMem.RegisterPort("fgvram", cpu.PortMask{Mask: 0b1111_1000_0000_0000, Value: 0xd000}, cpu.NewRAM(make([]byte, 0x0800), 0x07ff))
 	m.mainMem.RegisterPort("bgvram", cpu.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0xd800}, cpu.NewRAM(make([]byte, 0x0800), 0x07ff))
 
@@ -82,6 +93,7 @@ func New1942() emulator.Machine {
 
 	m.clock.AddTicker(3, m.mainCpu)  // 4Mhz
 	m.clock.AddTicker(4, m.audioCpu) // 3Mhz
+	m.clock.AddTicker(2, m.video)    // 6Mhz
 
 	return m
 }
@@ -97,8 +109,8 @@ func (t *a1942) Monitor() emulator.Monitor {
 
 func (t *a1942) Control() map[string]gui.GUIObject {
 	return map[string]gui.GUIObject{
-		"Main CPU":     ui.NewZ80UI(t.mainCpu),
-		"Audio CPU":    ui.NewZ80UI(t.audioCpu),
+		"Main CPU":     ui.NewZ80UI(t.mainCpu, true),
+		"Audio CPU":    ui.NewZ80UI(t.audioCpu, false),
 		"Main Memory":  ui.NewBusUI(t.mainMem),
 		"Audio Memory": ui.NewBusUI(t.audioMem),
 	}
@@ -109,19 +121,28 @@ func (t *a1942) SetDebugger(db cpu.DebuggerCallbacks) {
 	t.audioCpu.SetDebugger(db)
 }
 
+func (t *a1942) ReadPort(port uint16) (byte, bool) { return 0xff, false }
+func (m *a1942) WritePort(port uint16, data byte) {
+	switch port {
+	case 0xC804:
+		// TODO bit 7: flip screen bit 4: cpu B reset bit 0: coin counter *
+
+	case 0xc806:
+		fmt.Printf("-> %08b\n", data)
+		m.romBank.SetBank(m.romBanks[data&3])
+	}
+}
+
 func (t *a1942) Clock() emulator.Clock           { return t.clock }
 func (t *a1942) UIControls() []gui.GUIObject     { return nil } // []gui.GUIObject{ui.NewM6502BusUI("", t.bus)} }
 func (t *a1942) GetVolumeControl() func(float64) { return func(f float64) {} }
 func (t *a1942) OnKey(key sdl.Scancode)          {}
 
-func (t *a1942) ReadPort(port uint16) (byte, bool) { return 0xff, false }
-func (t *a1942) WritePort(port uint16, data byte)  { panic(-1) }
-
 // *******
 type unused struct{}
 
-func (_ *unused) ReadPort(port uint16) (byte, bool) { return 0xff, false }
-func (_ *unused) WritePort(port uint16, data byte)  {}
+func (*unused) ReadPort(port uint16) (byte, bool) { return 0xff, false }
+func (*unused) WritePort(port uint16, data byte)  {}
 
 // *******
 type ayControl struct {

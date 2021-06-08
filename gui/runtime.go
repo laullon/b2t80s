@@ -9,6 +9,8 @@ import (
 
 var windows = make(map[uint32]*window)
 
+var _lastTS uint32
+
 func PoolEvents(stop chan struct{}) {
 	for _, win := range windows {
 		win.sdlWin.GLMakeCurrent(win.context)
@@ -62,14 +64,18 @@ func PoolEvents(stop chan struct{}) {
 			}
 
 		case *sdl.MouseWheelEvent:
-			_, h := win.sdlWin.GetSize()
-			x, y, _ := sdl.GetMouseState()
-			p := Point{x, h - y}
-			for _, obj := range win.mouseListeners {
-				if obj.Rect().In(p) {
-					if scroll, ok := obj.(ScrollTarget); ok {
-						scroll.OnScroll(event.X, event.Y)
-						// fmt.Printf(">> event: %v \n", event)
+			// println("--------")
+			if (_lastTS + 150) < event.Timestamp {
+				_lastTS = event.Timestamp
+				_, h := win.sdlWin.GetSize()
+				x, y, _ := sdl.GetMouseState()
+				p := Point{x, h - y}
+				for _, obj := range win.mouseListeners {
+					if obj.Rect().In(p) {
+						if scroll, ok := obj.(ScrollTarget); ok {
+							scroll.OnScroll(event.X, event.Y)
+							// fmt.Printf(">> event: %v \n", event)
+						}
 					}
 				}
 			}

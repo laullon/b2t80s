@@ -321,7 +321,7 @@ func (cpu *z80) Tick() {
 		cpu.scheduler.next()
 		if cpu.scheduler.isEmpty() {
 			if cpu.log != nil {
-				cpu.log.AppendLastOP(cpu.fetched.getInstruction())
+				cpu.log.AppendLastOP(fmt.Sprintf("%04x: %s", cpu.fetched.pc, cpu.fetched.getInstruction()))
 			}
 			if cpu.doInterrupt {
 				cpu.execInterrupt()
