@@ -3,13 +3,12 @@ package nes
 import (
 	"fmt"
 
-	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/m6502"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
 type apu struct {
-	cpu cpu.CPU
+	cpu m6502.M6502
 
 	doIRQ bool
 	//
@@ -37,7 +36,7 @@ type apu struct {
 
 type channel [4]byte
 
-func newAPU(cpu cpu.CPU) *apu {
+func newAPU(cpu m6502.M6502) *apu {
 	return &apu{
 		frameLength: 4,
 		cpu:         cpu,

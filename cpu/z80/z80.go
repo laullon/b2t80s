@@ -6,6 +6,7 @@ import (
 
 	"github.com/laullon/b2t80s/cpu"
 	cpuUtils "github.com/laullon/b2t80s/cpu"
+	"github.com/pkg/errors"
 )
 
 var overflowAddTable = []bool{false, false, false, true, true, false, false, false}
@@ -114,6 +115,7 @@ type Z80 interface {
 	cpu.CPU
 	Registers() *Z80Registers
 	RegisterTrap(pc uint16, trap CPUTrap)
+	Interrupt(bool, ...byte)
 }
 
 type z80 struct {
@@ -126,7 +128,8 @@ type z80 struct {
 	halt bool
 	wait bool
 
-	doInterrupt bool
+	doInterrupt   bool
+	interruptData byte
 
 	fetched   *fetchedData
 	scheduler *circularBuffer
@@ -135,6 +138,22 @@ type z80 struct {
 
 	log      cpu.CPUTracer
 	debugger cpu.DebuggerCallbacks
+
+	lookup     []*opCode
+	lookupCB   []*opCode
+	lookupDD   []*opCode
+	lookupED   []*opCode
+	lookupFD   []*opCode
+	lookupDDCB []*opCode
+	lookupFDCB []*opCode
+
+	cpi_result uint8
+	spv        uint16
+	inAn_f     byte
+	pushF      func(cpu *z80)
+	popData    uint16
+	popF       func(cpu *z80, data uint16)
+	hlv        uint8
 }
 
 func init() {
@@ -190,6 +209,8 @@ func NewZ80(bus Bus) Z80 {
 		},
 	}
 
+	cpu.initOpsCodes()
+
 	cpu.regs.BC = &cpuUtils.RegPair{&cpu.regs.B, &cpu.regs.C}
 	cpu.regs.DE = &cpuUtils.RegPair{&cpu.regs.D, &cpu.regs.E}
 	cpu.regs.HL = &cpuUtils.RegPair{&cpu.regs.H, &cpu.regs.L}
@@ -198,7 +219,7 @@ func NewZ80(bus Bus) Z80 {
 	cpu.regs.IY = &cpuUtils.RegPair{&cpu.regs.IYH, &cpu.regs.IYL}
 	cpu.indexRegs = []*cpuUtils.RegPair{cpu.regs.HL, cpu.regs.IX, cpu.regs.IY}
 
-	cpu.scheduler.append(newFetch(lookup))
+	cpu.scheduler.append(newFetch(cpu.lookup))
 	return cpu
 }
 
@@ -226,8 +247,11 @@ func (cpu *z80) Registers() *Z80Registers {
 	return cpu.regs
 }
 
-func (cpu *z80) Interrupt(i bool) {
+func (cpu *z80) Interrupt(i bool, data ...byte) {
 	cpu.doInterrupt = i
+	if len(data) > 0 {
+		cpu.interruptData = data[0]
+	}
 }
 
 func (cpu *z80) NMI(i bool) {
@@ -260,17 +284,27 @@ func (cpu *z80) execInterrupt() {
 		cpu.regs.IFF1 = false
 		cpu.regs.IFF2 = false
 		switch cpu.regs.InterruptsMode {
-		case 0, 1:
+		case 0:
+			opCode := cpu.interruptData
+			cpu.fetched.opCode = opCode
+			op := cpu.lookup[opCode]
+			if op == nil {
+				panic(errors.Errorf("opCode '%X - %X' not found", 0, opCode))
+			}
+			for _, op := range op.ops {
+				op.reset()
+			}
+			cpu.scheduler.clear()
+			cpu.scheduler.append(op.ops...)
+
+		case 1:
 			code := &exec{l: 7, f: func(cpu *z80) {
-				target := uint16(0x0038)
-				if cpu.regs.InterruptsMode == 0 {
-					target = uint16(cpu.bus.GetData())
-				}
 				cpu.pushToStack(cpu.regs.PC, func(cpu *z80) {
-					cpu.regs.PC = target
+					cpu.regs.PC = 0x0038
 				})
 			}}
 			cpu.scheduler.append(code)
+
 		case 2:
 			code := &exec{l: 7, f: func(cpu *z80) {
 				cpu.pushToStack(cpu.regs.PC, func(cpu *z80) {
@@ -321,7 +355,7 @@ func (cpu *z80) Tick() {
 		cpu.scheduler.next()
 		if cpu.scheduler.isEmpty() {
 			if cpu.log != nil {
-				cpu.log.AppendLastOP(fmt.Sprintf("%04x: %s", cpu.fetched.pc, cpu.fetched.getInstruction()))
+				cpu.log.AppendLastOP(cpu.fetched.disassemble()) //fmt.Sprintf("%04x: %s", cpu.fetched.pc, cpu.fetched.getInstruction()))
 			}
 			if cpu.doInterrupt {
 				cpu.execInterrupt()
@@ -339,7 +373,7 @@ func (cpu *z80) Tick() {
 func (cpu *z80) newInstruction() {
 	cpu.prepareForNewInstruction()
 	cpu.doTraps()
-	cpu.scheduler.append(newFetch(lookup))
+	cpu.scheduler.append(newFetch(cpu.lookup))
 }
 
 func (cpu *z80) doTraps() {

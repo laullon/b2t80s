@@ -55,6 +55,10 @@ func newCircularBuffer() *circularBuffer {
 	}
 }
 
+func (cb *circularBuffer) clear() {
+	cb.i = cb.e
+}
+
 func (cb *circularBuffer) isEmpty() bool {
 	return cb.i == cb.e
 }

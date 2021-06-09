@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/laullon/b2t80s/cpu"
+	"github.com/laullon/b2t80s/cpu/m6502"
 )
 
 // 0000-0FFF   R/W   xxxxxxxx    Program RAM
@@ -141,7 +142,7 @@ func (rom *fixedROM) WritePort(addr uint16, data byte)  { panic(-1) }
 
 // ----------------------------
 type clearIRQ struct {
-	cpu cpu.CPU
+	cpu m6502.M6502
 }
 
 func (s *clearIRQ) ReadPort(addr uint16) (byte, bool) { panic(-1) }

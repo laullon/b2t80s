@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"image/color"
 
-	"github.com/laullon/b2t80s/cpu"
+	"github.com/laullon/b2t80s/cpu/z80"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/gui"
 )
@@ -14,7 +14,7 @@ import (
 var vdpMasks = []byte{0x03, 0xFB, 0x0F, 0xFF, 0x07, 0x7F, 0x07, 0xFF}
 
 type tms9918 struct {
-	cpu cpu.CPU
+	cpu z80.Z80
 
 	gint bool
 
@@ -60,7 +60,7 @@ var palette = []color.RGBA{
 	{0xff, 0xff, 0xff, 0xff},
 }
 
-func newTMS9918(cpu cpu.CPU) *tms9918 {
+func newTMS9918(cpu z80.Z80) *tms9918 {
 	res := &tms9918{
 		vram:      make([]byte, 0x4000),
 		registers: make([]byte, 8),

@@ -426,10 +426,10 @@ type basicMemory struct {
 	memory []byte
 }
 
-func (mem *basicMemory) GetByte(pos uint16) byte {
-	return mem.memory[pos]
+func (mem *basicMemory) ReadPort(pos uint16) (byte, bool) {
+	return mem.memory[pos], false
 }
-func (mem *basicMemory) PutByte(pos uint16, b byte) {
+func (mem *basicMemory) WritePort(pos uint16, b byte) {
 	mem.memory[pos] = b
 }
 

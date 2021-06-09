@@ -129,6 +129,7 @@ func (r Registers) String() string {
 type M6502 interface {
 	cpu.CPU
 	Registers() *Registers
+	Interrupt(bool)
 }
 
 type m6502 struct {

@@ -1,7 +1,6 @@
 package cpu
 
 type CPU interface {
-	Interrupt(bool) // TODO:move this to each CPU interface
 	NMI(bool)
 	Halt()
 	Wait(bool)

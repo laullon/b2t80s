@@ -3,7 +3,7 @@ package cpc
 import (
 	"fmt"
 
-	"github.com/laullon/b2t80s/cpu"
+	"github.com/laullon/b2t80s/cpu/z80"
 )
 
 var (
@@ -25,7 +25,7 @@ type crtcCounters struct {
 }
 
 type crtc struct {
-	cpu cpu.CPU
+	cpu z80.Z80
 
 	status   *crtcStatus
 	counters *crtcCounters
@@ -39,7 +39,7 @@ type crtc struct {
 	hSyncOn, hSyncOff int
 }
 
-func newCRTC(cpu cpu.CPU) *crtc {
+func newCRTC(cpu z80.Z80) *crtc {
 	crtc := &crtc{
 		regs:     []byte{63, 40, 46, 0x8E, 38, 0, 25, 30, 0, 7, 0, 0, 0x20, 0, 0, 0},
 		cpu:      cpu,

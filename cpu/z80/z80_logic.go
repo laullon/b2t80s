@@ -119,13 +119,11 @@ func cpi(cpu *z80) {
 	cpu.scheduler.append(mr)
 }
 
-var cpi_result uint8
-
 func cpi_m1(cpu *z80, data uint8) {
 
 	val := data
-	cpi_result = cpu.regs.A - val
-	lookup := (cpu.regs.A&0x08)>>3 | (val&0x08)>>2 | (cpi_result&0x08)>>1
+	cpu.cpi_result = cpu.regs.A - val
+	lookup := (cpu.regs.A&0x08)>>3 | (val&0x08)>>2 | (cpu.cpi_result&0x08)>>1
 	cpu.regs.F.H = halfcarrySubTable[lookup]
 
 	cpu.scheduler.append(&exec{l: 5, f: cpi_m2})
@@ -137,8 +135,8 @@ func cpi_m2(cpu *z80) {
 	cpu.regs.BC.Set(bc)
 	cpu.regs.HL.Set(cpu.regs.HL.Get() + 1)
 
-	cpu.regs.F.S = cpi_result&0x80 != 0
-	cpu.regs.F.Z = cpi_result == 0
+	cpu.regs.F.S = cpu.cpi_result&0x80 != 0
+	cpu.regs.F.Z = cpu.cpi_result == 0
 	cpu.regs.F.P = bc != 0
 	cpu.regs.F.N = true
 	if cpu.fetched.opCode > 0xAF {
@@ -147,7 +145,7 @@ func cpi_m2(cpu *z80) {
 }
 
 func cpi_m3(cpu *z80) {
-	if (cpu.regs.BC.Get()) != 0 && (cpi_result != 0) {
+	if (cpu.regs.BC.Get()) != 0 && (cpu.cpi_result != 0) {
 		cpu.regs.PC = cpu.regs.PC - 2
 	}
 }
@@ -275,8 +273,6 @@ func ldd_m3(cpu *z80) {
 	}
 }
 
-var spv uint16
-
 func exSP(cpu *z80) {
 	reg := cpu.indexRegs[cpu.indexIdx]
 	mr1 := newMR(cpu.regs.SP.Get(), exSP_m1)
@@ -286,9 +282,9 @@ func exSP(cpu *z80) {
 	cpu.scheduler.append(mr1, &exec{l: 1}, mr2, mw1, &exec{l: 2}, mw2)
 }
 
-func exSP_m1(cpu *z80, data uint8) { spv = uint16(data) }
-func exSP_m2(cpu *z80, data uint8) { spv |= uint16(data) << 8 }
-func exSP_m3(cpu *z80)             { reg := cpu.indexRegs[cpu.indexIdx]; reg.Set(spv) }
+func exSP_m1(cpu *z80, data uint8) { cpu.spv = uint16(data) }
+func exSP_m2(cpu *z80, data uint8) { cpu.spv |= uint16(data) << 8 }
+func exSP_m3(cpu *z80)             { reg := cpu.indexRegs[cpu.indexIdx]; reg.Set(cpu.spv) }
 
 func addIXY(cpu *z80) {
 	var reg *cpuUtils.RegPair
@@ -306,8 +302,8 @@ func addIXY(cpu *z80) {
 	}
 
 	ix := regI.Get()
-	var result = uint32(ix) + uint32(reg.Get())
-	var lookup = byte(((ix & 0x0800) >> 11) | ((reg.Get() & 0x0800) >> 10) | ((uint16(result) & 0x0800) >> 9))
+	result := uint32(ix) + uint32(reg.Get())
+	lookup := byte(((ix & 0x0800) >> 11) | ((reg.Get() & 0x0800) >> 10) | ((uint16(result) & 0x0800) >> 9))
 	regI.Set(uint16(result))
 
 	cpu.regs.F.N = false
@@ -330,8 +326,8 @@ func addIY(cpu *z80) {
 	}
 
 	iy := cpu.regs.IY.Get()
-	var result = uint32(iy) + uint32(reg.Get())
-	var lookup = byte(((iy & 0x0800) >> 11) | ((reg.Get() & 0x0800) >> 10) | ((uint16(result) & 0x0800) >> 9))
+	result := uint32(iy) + uint32(reg.Get())
+	lookup := byte(((iy & 0x0800) >> 11) | ((reg.Get() & 0x0800) >> 10) | ((uint16(result) & 0x0800) >> 9))
 	cpu.regs.IY.Set(uint16(result))
 
 	cpu.regs.F.N = false
@@ -344,17 +340,15 @@ func outNa(cpu *z80) {
 	cpu.scheduler.append(&out{addr: port, data: cpu.regs.A})
 }
 
-var inAn_f byte
-
 func inAn(cpu *z80) {
-	inAn_f = cpu.regs.F.GetByte()
+	cpu.inAn_f = cpu.regs.F.GetByte()
 	port := toWord(cpu.fetched.n, cpu.regs.A)
 	cpu.scheduler.append(&in{from: port, f: inAn_m1})
 }
 
 func inAn_m1(cpu *z80, data uint8) {
 	cpu.regs.A = data
-	cpu.regs.F.SetByte(inAn_f)
+	cpu.regs.F.SetByte(cpu.inAn_f)
 }
 
 func inRc(cpu *z80) {
@@ -454,10 +448,8 @@ func (cpu *z80) checkCondition(ccIdx byte) bool {
 	return res
 }
 
-var pushF func(cpu *z80)
-
 func (cpu *z80) pushToStack(data uint16, f func(cpu *z80)) {
-	pushF = f
+	cpu.pushF = f
 	push1 := newMW(cpu.regs.SP.Get()-1, uint8(data>>8), nil)
 	push2 := newMW(cpu.regs.SP.Get()-2, uint8(data), push_m1)
 	cpu.scheduler.append(push1, push2)
@@ -465,27 +457,24 @@ func (cpu *z80) pushToStack(data uint16, f func(cpu *z80)) {
 
 func push_m1(cpu *z80) {
 	cpu.regs.SP.Set(cpu.regs.SP.Get() - 2)
-	if pushF != nil {
-		pushF(cpu)
+	if cpu.pushF != nil {
+		cpu.pushF(cpu)
 	}
 }
 
-var popData uint16
-var popF func(cpu *z80, data uint16)
-
 func (cpu *z80) popFromStack(f func(cpu *z80, data uint16)) {
-	popF = f
+	cpu.popF = f
 	pop1 := newMR(cpu.regs.SP.Get(), pop_m1)
 	pop2 := newMR(cpu.regs.SP.Get()+1, pop_m2)
 	cpu.scheduler.append(pop1, pop2)
 }
 
-func pop_m1(cpu *z80, data uint8) { popData = uint16(data) }
+func pop_m1(cpu *z80, data uint8) { cpu.popData = uint16(data) }
 
 func pop_m2(cpu *z80, data uint8) {
-	popData |= (uint16(data) << 8)
+	cpu.popData |= (uint16(data) << 8)
 	cpu.regs.SP.Set(cpu.regs.SP.Get() + 2)
-	popF(cpu, popData)
+	cpu.popF(cpu, cpu.popData)
 }
 
 func popSS(cpu *z80) {
@@ -573,21 +562,19 @@ func ldNNa(cpu *z80) {
 	cpu.scheduler.append(mw1)
 }
 
-var hlv uint8
-
 func rrd(cpu *z80) {
 	mr := newMR(cpu.regs.HL.Get(), rrd_m1)
 	cpu.scheduler.append(mr)
 }
 
 func rrd_m1(cpu *z80, data uint8) {
-	hlv = data
-	mw := newMW(cpu.regs.HL.Get(), (cpu.regs.A<<4 | hlv>>4), rrd_m2)
+	cpu.hlv = data
+	mw := newMW(cpu.regs.HL.Get(), (cpu.regs.A<<4 | cpu.hlv>>4), rrd_m2)
 	cpu.scheduler.append(&exec{l: 4}, mw)
 }
 
 func rrd_m2(cpu *z80) {
-	cpu.regs.A = (cpu.regs.A & 0xf0) | (hlv & 0x0f)
+	cpu.regs.A = (cpu.regs.A & 0xf0) | (cpu.hlv & 0x0f)
 	cpu.regs.F.S = cpu.regs.A&0x80 != 0
 	cpu.regs.F.Z = cpu.regs.A == 0
 	cpu.regs.F.P = parityTable[cpu.regs.A]
@@ -601,13 +588,13 @@ func rld(cpu *z80) {
 }
 
 func rld_m1(cpu *z80, data uint8) {
-	hlv = data
-	mw := newMW(cpu.regs.HL.Get(), (hlv<<4 | cpu.regs.A&0x0f), rld_m2)
+	cpu.hlv = data
+	mw := newMW(cpu.regs.HL.Get(), (cpu.hlv<<4 | cpu.regs.A&0x0f), rld_m2)
 	cpu.scheduler.append(&exec{l: 4}, mw)
 }
 
 func rld_m2(cpu *z80) {
-	cpu.regs.A = (cpu.regs.A & 0xf0) | (hlv >> 4)
+	cpu.regs.A = (cpu.regs.A & 0xf0) | (cpu.hlv >> 4)
 	cpu.regs.F.S = cpu.regs.A&0x80 != 0
 	cpu.regs.F.Z = cpu.regs.A == 0
 	cpu.regs.F.P = parityTable[cpu.regs.A]
@@ -1336,8 +1323,8 @@ func addHLss(cpu *z80) {
 	reg := cpu.getRRptr(rIdx)
 
 	hl := cpu.regs.HL.Get()
-	var result = uint32(hl) + uint32(reg.Get())
-	var lookup = byte(((hl & 0x0800) >> 11) | ((reg.Get() & 0x0800) >> 10) | ((uint16(result) & 0x0800) >> 9))
+	result := uint32(hl) + uint32(reg.Get())
+	lookup := byte(((hl & 0x0800) >> 11) | ((reg.Get() & 0x0800) >> 10) | ((uint16(result) & 0x0800) >> 9))
 	cpu.regs.HL.Set(uint16(result))
 
 	cpu.regs.F.N = false

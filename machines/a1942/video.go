@@ -39,14 +39,12 @@ func (v *video) Tick() {
 		case 44:
 			// v.m.audioCpu.Interrupt(true)
 		case 109:
-			v.m.mainBus.SetData(0xcf) /* RST 08h */
-			v.m.mainCpu.Interrupt(true)
+			v.m.mainCpu.Interrupt(true, 0xcf) /* RST 08h */
 			// v.m.audioCpu.Interrupt(true)
 		case 175:
 			// v.m.audioCpu.Interrupt(true)
 		case 240:
-			v.m.mainBus.SetData(0xd7) /* RST 10h - vblank */
-			v.m.mainCpu.Interrupt(true)
+			v.m.mainCpu.Interrupt(true, 0xd7) /* RST 10h - vblank */
 			// v.m.audioCpu.Interrupt(true)
 		}
 	}

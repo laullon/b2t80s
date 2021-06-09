@@ -4,7 +4,6 @@ import (
 	"image/color"
 	"sync"
 
-	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/z80"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/storage/cassette"
@@ -33,7 +32,7 @@ var palette = []color.RGBA{
 type ula struct {
 	memory *memory
 	bus    z80.Bus
-	cpu    cpu.CPU
+	cpu    z80.Z80
 
 	keyboardRow  []byte
 	borderColour color.RGBA

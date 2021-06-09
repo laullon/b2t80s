@@ -1,8 +1,6 @@
 package a1942
 
 import (
-	"fmt"
-
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/cpu/z80"
 	"github.com/laullon/b2t80s/emulator"
@@ -128,7 +126,6 @@ func (m *a1942) WritePort(port uint16, data byte) {
 		// TODO bit 7: flip screen bit 4: cpu B reset bit 0: coin counter *
 
 	case 0xc806:
-		fmt.Printf("-> %08b\n", data)
 		m.romBank.SetBank(m.romBanks[data&3])
 	}
 }

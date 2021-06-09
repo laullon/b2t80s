@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"image/color"
 
-	"github.com/laullon/b2t80s/cpu"
+	"github.com/laullon/b2t80s/cpu/m6502"
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/gui"
 )
@@ -21,7 +21,7 @@ var irqPerScanline = map[int]bool{
 }
 
 type sos2 struct {
-	cpu     cpu.CPU
+	cpu     m6502.M6502
 	v, h    int
 	vram    []byte
 	color   *colorRam

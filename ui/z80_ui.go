@@ -142,7 +142,7 @@ func (ui *z80UI) DoTrace(on bool) { // TODO: implement
 
 func (ctl *z80UI) AppendLastOP(op string) {
 	if ctl.traceFile != nil {
-		ctl.traceFile.WriteString(strings.ToUpper(op))
+		ctl.traceFile.WriteString(op)
 		ctl.traceFile.WriteString("\n")
 	}
 	log := append(ctl.log, op)

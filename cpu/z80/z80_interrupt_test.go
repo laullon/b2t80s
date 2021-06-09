@@ -11,8 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var start time.Time
-
 func TestInterrupt(t *testing.T) {
 	f, err := os.Open("tests/Interrupt_test.z80.bin")
 	if err != nil {
@@ -29,10 +27,12 @@ func TestInterrupt(t *testing.T) {
 
 	tester := &counterHardware{}
 
-	bus := NewBus(&basicMemory{memory: mem})
+	memBus := cpu.NewBus("mem", &basicMemory{memory: mem})
+	portsBus := cpu.NewBus("ports")
+	bus := NewBus(memBus, portsBus)
 	z80 := NewZ80(bus)
-	// cpu.SetDebuger(&dumpDebbuger{cpu: cpu.(*z80)})
-	bus.RegisterPort(cpu.PortMask{Mask: 0, Value: 0}, tester)
+	z80.SetTracer(&tracer{})
+	portsBus.RegisterPort("tester", cpu.PortMask{Mask: 0, Value: 0}, tester)
 
 	count := 0
 
@@ -45,7 +45,6 @@ func TestInterrupt(t *testing.T) {
 		}
 	}()
 
-	start = time.Now()
 	for count <= 5 {
 		z80.Tick()
 	}
@@ -60,22 +59,20 @@ type counterHardware struct {
 }
 
 func (c *counterHardware) ReadPort(port uint16) (byte, bool) { return 0, false }
-func (c *counterHardware) WritePort(port uint16, data byte)  { c.c++ }
+func (c *counterHardware) WritePort(port uint16, data byte) {
+	println("--")
+	c.c++
+}
 
 //--------------------
 
-type dumpDebbuger struct {
-	cpu *z80
-}
+type tracer struct{}
 
-// func (d *dumpDebbuger) NextInstruction(mem []byte) {}
-func (d *dumpDebbuger) SetDump(bool)      {}
-func (d *dumpDebbuger) Tick()             {}
-func (d *dumpDebbuger) Stop()             {}
-func (d *dumpDebbuger) Continue()         {}
-func (d *dumpDebbuger) Step()             {}
-func (d *dumpDebbuger) StopNextFrame()    {}
-func (d *dumpDebbuger) GetStatus() string { return "nil" }
+func (*tracer) AppendLastOP(op string)                                    { println(op) }
+func (*tracer) SetNextOP(string)                                          {}
+func (*tracer) SetDiss(pc uint16, getMemory func(pc, leng uint16) []byte) {}
+
+//--------------------
 
 //
 // FROM: https://z80project.wordpress.com/2015/04/29/z80-interrupts-and-strings/
