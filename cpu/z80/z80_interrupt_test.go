@@ -31,7 +31,7 @@ func TestInterrupt(t *testing.T) {
 	portsBus := cpu.NewBus("ports")
 	bus := NewBus(memBus, portsBus)
 	z80 := NewZ80(bus)
-	z80.SetTracer(&tracer{})
+	// z80.SetTracer(&tracer{})
 	portsBus.RegisterPort("tester", cpu.PortMask{Mask: 0, Value: 0}, tester)
 
 	count := 0
@@ -60,7 +60,6 @@ type counterHardware struct {
 
 func (c *counterHardware) ReadPort(port uint16) (byte, bool) { return 0, false }
 func (c *counterHardware) WritePort(port uint16, data byte) {
-	println("--")
 	c.c++
 }
 

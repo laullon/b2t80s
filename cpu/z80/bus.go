@@ -46,5 +46,5 @@ func (bus *z80bus) Release() { bus.addr = 0xffff; bus.data = 0xff }
 func (bus *z80bus) ReadMemory()  { bus.data = bus.mem.Read(bus.addr) }
 func (bus *z80bus) WriteMemory() { bus.mem.Write(bus.addr, bus.data) }
 
-func (bus *z80bus) WritePort() { bus.data = bus.ports.Read(bus.addr) }
-func (bus *z80bus) ReadPort()  { bus.ports.Write(bus.addr, bus.data) }
+func (bus *z80bus) ReadPort()  { bus.data = bus.ports.Read(bus.addr) }
+func (bus *z80bus) WritePort() { bus.ports.Write(bus.addr, bus.data) }

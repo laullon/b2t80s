@@ -40,8 +40,9 @@ func NewBus(name string, defaultManager ...PortManager) Bus {
 }
 
 func (bus *bus) Write(addr uint16, data uint8) {
-	// fmt.Printf("[writePort]-> port:0x%04X data:0x%02X  \n", addr, data)
+	// fmt.Printf("[%s-writePort]-> port:0x%04X data:0x%02X  \n", bus.name, addr, data)
 	for _, entry := range bus.ports {
+		// fmt.Printf("[%s-writePort] port:0x%04X (0x%04X)(0x%04X) \n", bus.name, addr, addr&entry.mask.Mask, entry.mask.Value)
 		if (addr & entry.mask.Mask) == entry.mask.Value {
 			// println(entry.name, " - ", reflect.TypeOf(entry.manager).String())
 			entry.manager.WritePort(addr, data)

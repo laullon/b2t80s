@@ -121,6 +121,7 @@ func main() {
 		db := emulator.NewDebugger(machine.Clock())
 		machine.SetDebugger(db)
 		emulator.NewDebugWindow(name, machine, db)
+		db.Stop()
 	}
 
 	wait := time.Duration(time.Second)
@@ -128,7 +129,7 @@ func main() {
 	go func() {
 		for range ticker.C {
 			str := fmt.Sprintf("time: %s - FPS: %03.2f", machine.Clock().Stats(), machine.Monitor().FPS())
-			println(str)
+			// println(str)
 			game.SetStatus(str)
 		}
 	}()

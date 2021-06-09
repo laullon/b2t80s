@@ -251,6 +251,7 @@ type out struct {
 }
 
 func (ops *out) tick(cpu *z80) {
+	// println("> [out]", ops.t, "pc:", fmt.Sprintf("0x%04X", cpu.regs.PC))
 	ops.t++
 	switch ops.t {
 	case 1:
