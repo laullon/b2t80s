@@ -6,6 +6,7 @@ type Window interface {
 	SetMainUI(GUIObject)
 	AddMouseListeners(...MouseTarget)
 	SetOnKey(func(sdl.Scancode))
+	MoveTo(Point)
 }
 
 type window struct {
@@ -39,7 +40,12 @@ func NewWindow(name string, size Size) Window {
 	}
 	windows[id] = win
 
+	win.sdlWin.Raise()
 	return win
+}
+
+func (w *window) MoveTo(p Point) {
+	w.sdlWin.SetPosition(p.X, p.Y)
 }
 
 func (w *window) SetOnKey(onKey func(sdl.Scancode)) {

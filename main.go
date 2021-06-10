@@ -35,7 +35,7 @@ func main() {
 	emulator.RomFile = flag.String("rom", "", "msx1 rom file to load - format: [mapper::]filename - Mappers:konami")
 	z80File := flag.String("z80", "", "z80 file to load")
 	mode := flag.String("mode", "1942", "Spectrum model to emulate [48k|128k|plus3|cpc464|cpc6128|msx1]")
-	emulator.Debug = flag.Bool("debug", true, "shows debugger")
+	emulator.Debug = flag.Bool("debug", false, "shows debugger")
 	// turbo := flag.Bool("turbo", false, "run faster")
 
 	emulator.Breaks = flag.String("bp", "", "Breakpoints [0xXXXX[,0xXXXX,...]]")
@@ -112,17 +112,17 @@ func main() {
 		panic(err)
 	}
 
-	game := emulator.NewGame(name, machine)
-	game.SetOnKey(machine.OnKey)
-
-	log.Printf("opengl version %s", gl.GoStr(gl.GetString(gl.VERSION)))
-
 	if *emulator.Debug {
 		db := emulator.NewDebugger(machine.Clock())
 		machine.SetDebugger(db)
 		emulator.NewDebugWindow(name, machine, db)
-		db.Stop()
+		// db.Stop()
 	}
+
+	game := emulator.NewGame(name, machine)
+	game.SetOnKey(machine.OnKey)
+
+	log.Printf("opengl version %s", gl.GoStr(gl.GetString(gl.VERSION)))
 
 	wait := time.Duration(time.Second)
 	ticker := time.NewTicker(wait)

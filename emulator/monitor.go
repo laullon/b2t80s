@@ -41,7 +41,9 @@ func (monitor *monitor) FrameDone() {
 	monitor.frames++
 	monitor.display.Swap()
 	go func() {
-		monitor.redraw()
+		if monitor.redraw != nil {
+			monitor.redraw()
+		}
 	}()
 }
 

@@ -23,7 +23,7 @@ func TestClockMods(t *testing.T) {
 	var mod0, mod1, mod2, mod3, mod4, mod5, mod64 int
 
 	c := &clock{
-		tStatesPerFrame: 100,
+		tStatesPerBlock: 100,
 	}
 
 	c.AddTicker(0, &dummyTicker{counter: &mod0})
