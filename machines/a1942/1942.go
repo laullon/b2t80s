@@ -7,7 +7,6 @@ import (
 	"github.com/laullon/b2t80s/emulator/ay8912"
 	"github.com/laullon/b2t80s/gui"
 	"github.com/laullon/b2t80s/ui"
-	"github.com/veandco/go-sdl2/sdl"
 )
 
 type a1942 struct {
@@ -29,11 +28,17 @@ type a1942 struct {
 
 	ay1 ay8912.AY8912
 	ay2 ay8912.AY8912
+
+	sys, p1, p2 byte
 }
 
 func New1942() emulator.Machine {
 
-	m := &a1942{}
+	m := &a1942{
+		p1:  0xff,
+		p2:  0xff,
+		sys: 0xff,
+	}
 
 	m.video = newVideo(m)
 
@@ -75,8 +80,8 @@ func New1942() emulator.Machine {
 	m.mainMem.RegisterPort("background palette", cpu.PortMask{Mask: 0b1111_1111_1111_1111, Value: 0xC805}, m.video)
 	m.mainMem.RegisterPort("bankswitch", cpu.PortMask{Mask: 0b1111_1111_1111_1111, Value: 0xC806}, m)
 	m.mainMem.RegisterPort("spriteram", cpu.PortMask{Mask: 0b1111_1111_1000_0000, Value: 0xcc00}, m.video.spriteram)
-	m.mainMem.RegisterPort("fgvram", cpu.PortMask{Mask: 0b1111_1000_0000_0000, Value: 0xd000}, cpu.NewRAM(make([]byte, 0x0800), 0x07ff))
-	m.mainMem.RegisterPort("bgvram", cpu.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0xd800}, cpu.NewRAM(make([]byte, 0x0800), 0x07ff))
+	m.mainMem.RegisterPort("fgvram", cpu.PortMask{Mask: 0b1111_1000_0000_0000, Value: 0xd000}, m.video.fgvram)
+	m.mainMem.RegisterPort("bgvram", cpu.PortMask{Mask: 0b1111_1100_0000_0000, Value: 0xd800}, m.video.bgvram)
 
 	// AUDIO
 	m.audioMem.RegisterPort("sr-01.c11", cpu.PortMask{Mask: 0b1100_0000_0000_0000, Value: 0x0000}, cpu.NewROM(loadRom("sr-01.c11"), 0x3fff))
@@ -111,6 +116,7 @@ func (t *a1942) Control() map[string]gui.GUIObject {
 		"Audio CPU":    ui.NewZ80UI(t.audioCpu, false),
 		"Main Memory":  ui.NewBusUI(t.mainMem),
 		"Audio Memory": ui.NewBusUI(t.audioMem),
+		"char":         newCharactersUI(t.video),
 	}
 }
 
@@ -119,7 +125,20 @@ func (t *a1942) SetDebugger(db cpu.DebuggerCallbacks) {
 	t.audioCpu.SetDebugger(db)
 }
 
-func (t *a1942) ReadPort(port uint16) (byte, bool) { return 0xff, false }
+func (t *a1942) ReadPort(port uint16) (byte, bool) {
+	switch port {
+	case 0xc000:
+		return t.sys, false
+	case 0xc001:
+		return t.p1, false
+	case 0xc002:
+		return t.p2, false
+	case 0xc004:
+		return 0xF7, false // TEST
+	}
+	return 0xff, false
+}
+
 func (m *a1942) WritePort(port uint16, data byte) {
 	switch port {
 	case 0xC804:
@@ -133,7 +152,6 @@ func (m *a1942) WritePort(port uint16, data byte) {
 func (t *a1942) Clock() emulator.Clock           { return t.clock }
 func (t *a1942) UIControls() []gui.GUIObject     { return nil } // []gui.GUIObject{ui.NewM6502BusUI("", t.bus)} }
 func (t *a1942) GetVolumeControl() func(float64) { return func(f float64) {} }
-func (t *a1942) OnKey(key sdl.Scancode)          {}
 
 // *******
 type unused struct{}
