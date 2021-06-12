@@ -27,23 +27,26 @@ var colors = []color.RGBA{
 func newCharactersUI(v *video) *characters {
 	ctrl := &characters{}
 	ctrl.v = v
-	ctrl.img = gui.NewDisplay(gui.Size{W: 16 * 16, H: 16 * 16})
+	ctrl.img = gui.NewDisplay(gui.Size{W: 16 * 16, H: 16 * 32})
 	ctrl.ui = gui.NewDisplayViewer(ctrl.img)
 
 	for row := 0; row < 32; row++ {
-		for col := 0; col < 32; col++ {
-			tileIdx := col + row*32
-			charAddr := tileIdx * (16 * 2)
+		for col := 0; col < 16; col++ {
+			tileIdx := col + row*16
+			charAddr := tileIdx * 32
 			for y := 0; y < 16; y++ {
 				for i := 0; i < 2; i++ {
-					data1 := v.tilesRom[charAddr+y*2+i*16]
-					data2 := v.tilesRom[charAddr+y*2+i*16+1]
+					data1 := v.tilesRom[0][charAddr+y+i*16]
+					data2 := v.tilesRom[1][charAddr+y+i*16]
+					data3 := v.tilesRom[2][charAddr+y+i*16]
 					for x := 0; x < 8; x++ {
 						color := data1 & 0b00000001 << 2
 						color |= data2 & 0b00000001 << 1
-						ctrl.img.Set((7-x)+(i*8)+col*16, row*16+y, colors[color])
+						color |= data3 & 0b00000001 << 0
+						ctrl.img.Set(((7 - x) + (i * 8) + col*16), row*16+y, colors[color])
 						data1 >>= 1
 						data2 >>= 1
+						data3 >>= 1
 					}
 				}
 			}

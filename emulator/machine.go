@@ -15,6 +15,7 @@ var WatchPoints *string
 var DskAFile *string
 var TapFile *string
 var RomFile *string
+var Test *bool
 var CartFile *string
 
 type Machine interface {

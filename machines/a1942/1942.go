@@ -134,7 +134,9 @@ func (t *a1942) ReadPort(port uint16) (byte, bool) {
 	case 0xc002:
 		return t.p2, false
 	case 0xc004:
-		return 0xF7, false // TEST
+		if *emulator.Test {
+			return 0xF7, false // TEST
+		}
 	}
 	return 0xff, false
 }

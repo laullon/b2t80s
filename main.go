@@ -36,7 +36,7 @@ func main() {
 	z80File := flag.String("z80", "", "z80 file to load")
 	mode := flag.String("mode", "1942", "Spectrum model to emulate [48k|128k|plus3|cpc464|cpc6128|msx1]")
 	emulator.Debug = flag.Bool("debug", false, "shows debugger")
-	// turbo := flag.Bool("turbo", false, "run faster")
+	emulator.Test = flag.Bool("test", false, "arcades test mode")
 
 	emulator.Breaks = flag.String("bp", "", "Breakpoints [0xXXXX[,0xXXXX,...]]")
 	emulator.WatchPoints = flag.String("wp", "", "Memory Watch Points [0xXXXX[,0xXXXX,...]]")

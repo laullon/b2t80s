@@ -2,6 +2,7 @@ package a1942
 
 import (
 	"image/color"
+	"math/bits"
 
 	"github.com/laullon/b2t80s/cpu"
 	"github.com/laullon/b2t80s/gui"
@@ -21,15 +22,18 @@ type video struct {
 	x, y    uint
 
 	charsRom []byte
-	tilesRom []byte
+	tilesRom [][]byte
 
 	palette     []color.RGBA
 	charPalette []byte
+	bgPalette   []byte
+
+	scroll uint16
 }
 
 func newVideo(m *a1942) *video {
 	v := &video{
-		display:   gui.NewDisplay(gui.Size{W: 256, H: 256}),
+		display:   gui.NewDisplay(gui.Size{W: 256 * 2, H: 256}),
 		m:         m,
 		spriteram: cpu.NewRAM(make([]byte, 0x0800), 0x07ff),
 		charsRom:  loadRom("sr-02.f2"),
@@ -37,12 +41,16 @@ func newVideo(m *a1942) *video {
 		bgvram:    cpu.NewRAM(make([]byte, 0x0800), 0x07ff),
 	}
 
-	v.tilesRom = append(v.tilesRom, loadRom("sr-08.a1")...)
-	v.tilesRom = append(v.tilesRom, loadRom("sr-09.a2")...)
-	v.tilesRom = append(v.tilesRom, loadRom("sr-10.a3")...)
-	v.tilesRom = append(v.tilesRom, loadRom("sr-11.a4")...)
-	v.tilesRom = append(v.tilesRom, loadRom("sr-12.a5")...)
-	v.tilesRom = append(v.tilesRom, loadRom("sr-13.a6")...)
+	v.display.ViewPortRect = gui.Rect{X: 0, Y: 16, W: 256, H: 224}
+	v.display.ViewSize = gui.Size{W: 256, H: 224}
+
+	v.tilesRom = make([][]byte, 3)
+	v.tilesRom[0] = append(v.tilesRom[0], loadRom("sr-08.a1")...)
+	v.tilesRom[0] = append(v.tilesRom[0], loadRom("sr-09.a2")...)
+	v.tilesRom[1] = append(v.tilesRom[1], loadRom("sr-10.a3")...)
+	v.tilesRom[1] = append(v.tilesRom[1], loadRom("sr-11.a4")...)
+	v.tilesRom[2] = append(v.tilesRom[2], loadRom("sr-12.a5")...)
+	v.tilesRom[2] = append(v.tilesRom[2], loadRom("sr-13.a6")...)
 
 	red := loadRom("sb-5.e8")
 	green := loadRom("sb-6.e9")
@@ -77,6 +85,7 @@ func newVideo(m *a1942) *video {
 	}
 
 	v.charPalette = loadRom("sb-0.f1")
+	v.bgPalette = loadRom("sb-4.d6")
 	return v
 }
 
@@ -87,6 +96,7 @@ func (v *video) Tick() {
 		v.y++
 		if v.y == 262 {
 			v.y = 0
+			v.reDraw()
 			v.display.Swap()
 		}
 		switch v.y {
@@ -102,16 +112,63 @@ func (v *video) Tick() {
 			// v.m.audioCpu.Interrupt(true)
 		}
 	}
+}
 
-	if v.x%8 == 0 && v.y%8 == 0 {
-		col := uint16(v.x / 8)
-		row := uint16(v.y / 8)
-		tileAddr := (col + row*32)
-		tileIdx, _ := v.fgvram.ReadPort(tileAddr)
-		colorInfo, _ := v.fgvram.ReadPort(tileAddr + 0x0400)
-		tile := uint16(tileIdx) | (uint16(colorInfo&0x80) << 1)
-		palette := (colorInfo & 0x3f) << 2
-		v.drawChar(v.display, int(col), int(row), int(tile), palette)
+func (v *video) reDraw() {
+	for col := 0; col < 16; col++ {
+		for row := 0; row < 32; row++ {
+			realRow := (row + int(v.scroll/16)) % 0x1f
+			tileAddr := uint16(col + realRow*32)
+			tileIdx, _ := v.bgvram.ReadPort(tileAddr)
+			colorInfo, _ := v.bgvram.ReadPort(tileAddr + 0x10)
+			tile := uint16(tileIdx) | (uint16(colorInfo&0x80) << 1)
+			palette := ((colorInfo & 0x1f) + 0x20) << 3
+			v.drawTile(v.display, row, int(v.scroll%16), col, tile, palette, colorInfo&0x20 != 0, colorInfo&0x40 != 0)
+		}
+	}
+
+	for row := 0; row < 32; row++ {
+		for col := 0; col < 32; col++ {
+			tileAddr := uint16(col + row*32)
+			tileIdx, _ := v.fgvram.ReadPort(tileAddr)
+			colorInfo, _ := v.fgvram.ReadPort(tileAddr + 0x0400)
+			tile := uint16(tileIdx) | (uint16(colorInfo&0x80) << 1)
+			palette := (colorInfo & 0x3f) << 2
+			v.drawChar(v.display, int(col), int(row), int(tile), palette)
+		}
+	}
+}
+
+func (v *video) drawTile(display *gui.Display, col, scroll, row int, tile uint16, palette byte, fx, fy bool) {
+	var data1, data2, data3 byte
+	for y := uint16(0); y < 16; y++ {
+		for i := uint16(0); i < 2; i++ {
+			if fx {
+				data1 = v.tilesRom[0][tile*32+y+(1-i)*16]
+				data2 = v.tilesRom[1][tile*32+y+(1-i)*16]
+				data3 = v.tilesRom[2][tile*32+y+(1-i)*16]
+				data1 = bits.Reverse8(data1)
+				data2 = bits.Reverse8(data2)
+				data3 = bits.Reverse8(data3)
+			} else {
+				data1 = v.tilesRom[0][tile*32+y+i*16]
+				data2 = v.tilesRom[1][tile*32+y+i*16]
+				data3 = v.tilesRom[2][tile*32+y+i*16]
+			}
+			for x := 0; x < 8; x++ {
+				color := data1 & 0b00000001 << 2
+				color |= data2 & 0b00000001 << 1
+				color |= data3 & 0b00000001 << 0
+				if fy {
+					display.SetRGBA((7-x)+int(i*8)+col*16-scroll, 15-int(y)+row*16, v.palette[v.bgPalette[color|palette]])
+				} else {
+					display.SetRGBA((7-x)+int(i*8)+col*16-scroll, int(y)+row*16, v.palette[v.bgPalette[color|palette]])
+				}
+				data1 >>= 1
+				data2 >>= 1
+				data3 >>= 1
+			}
+		}
 	}
 }
 
@@ -122,7 +179,9 @@ func (v *video) drawChar(display *gui.Display, col, row, tile int, palette byte)
 			for x := 0; x < 4; x++ {
 				color := data & 0b00000001 << 1
 				color |= data & 0b00010000 >> 4
-				display.SetRGBA(row*8+y, 255-((3-x)+(i*4)+col*8), v.palette[0x80|v.charPalette[color|palette]])
+				if color != 0 {
+					display.SetRGBA(((3 - x) + (i * 4) + col*8), row*8+y, v.palette[0x80|v.charPalette[color|palette]])
+				}
 				data >>= 1
 			}
 		}
@@ -131,6 +190,12 @@ func (v *video) drawChar(display *gui.Display, col, row, tile int, palette byte)
 
 func (v *video) ReadPort(port uint16) (byte, bool) { return 0xff, false }
 func (v *video) WritePort(port uint16, data byte) {
+	switch port {
+	case 0xc802:
+		v.scroll = v.scroll&0xff00 | uint16(data)
+	case 0xc803:
+		v.scroll = v.scroll&0xffff | uint16(data)<<8
+	}
 	// TODO: c802-c803 background scroll
 	// TODO: c805      background palette bank selector
 
