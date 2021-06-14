@@ -13,7 +13,11 @@ type Display struct {
 
 	back, front *glImage        // TODO: no need it, just pix
 	rect        image.Rectangle // just for bounds()
+
+	Trans DisplayTransform
 }
+
+type DisplayTransform func(x int, y int) (int, int)
 
 func NewDisplay(s Size) *Display {
 	res := &Display{}
@@ -24,6 +28,7 @@ func NewDisplay(s Size) *Display {
 	res.ViewSize = s
 	res.size = s
 	res.Start = Point{0, 0}
+	res.Trans = func(x, y int) (int, int) { return x, y }
 	return res
 }
 
@@ -42,6 +47,7 @@ func (dis *Display) Set(x, y int, c color.Color) {
 }
 
 func (dis *Display) SetRGBA(x, y int, c color.RGBA) {
+	x, y = dis.Trans(x, y)
 	x, y = dis.addjustXY(x, y)
 	dis.front.Set(x, y, c)
 }

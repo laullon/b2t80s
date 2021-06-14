@@ -33,7 +33,7 @@ type video struct {
 
 func newVideo(m *a1942) *video {
 	v := &video{
-		display:   gui.NewDisplay(gui.Size{W: 256 * 2, H: 256}),
+		display:   gui.NewDisplay(gui.Size{W: 256, H: 256}),
 		m:         m,
 		spriteram: cpu.NewRAM(make([]byte, 0x0800), 0x07ff),
 		charsRom:  loadRom("sr-02.f2"),
@@ -41,8 +41,9 @@ func newVideo(m *a1942) *video {
 		bgvram:    cpu.NewRAM(make([]byte, 0x0800), 0x07ff),
 	}
 
-	v.display.ViewPortRect = gui.Rect{X: 0, Y: 16, W: 256, H: 224}
-	v.display.ViewSize = gui.Size{W: 256, H: 224}
+	v.display.ViewPortRect = gui.Rect{X: 16, Y: 0, W: 224, H: 256}
+	v.display.ViewSize = gui.Size{W: 192, H: 256}
+	v.display.Trans = func(x, y int) (int, int) { return y, 255 - x }
 
 	v.tilesRom = make([][]byte, 3)
 	v.tilesRom[0] = append(v.tilesRom[0], loadRom("sr-08.a1")...)
@@ -116,7 +117,7 @@ func (v *video) Tick() {
 
 func (v *video) reDraw() {
 	for col := 0; col < 16; col++ {
-		for row := 0; row < 32; row++ {
+		for row := 0; row < 17; row++ {
 			realRow := (row + int(v.scroll/16)) % 0x1f
 			tileAddr := uint16(col + realRow*32)
 			tileIdx, _ := v.bgvram.ReadPort(tileAddr)
