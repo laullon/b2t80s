@@ -21,8 +21,9 @@ type video struct {
 	display *gui.Display
 	x, y    uint
 
-	charsRom []byte
-	tilesRom [][]byte
+	charsRom   []byte
+	tilesRom   [][]byte
+	spritesRom [][]byte
 
 	palette     []color.RGBA
 	charPalette []byte
@@ -52,6 +53,12 @@ func newVideo(m *a1942) *video {
 	v.tilesRom[1] = append(v.tilesRom[1], loadRom("sr-11.a4")...)
 	v.tilesRom[2] = append(v.tilesRom[2], loadRom("sr-12.a5")...)
 	v.tilesRom[2] = append(v.tilesRom[2], loadRom("sr-13.a6")...)
+
+	v.spritesRom = make([][]byte, 2)
+	v.spritesRom[0] = append(v.spritesRom[0], loadRom("sr-14.l1")...)
+	v.spritesRom[0] = append(v.spritesRom[0], loadRom("sr-15.l2")...)
+	v.spritesRom[1] = append(v.spritesRom[1], loadRom("sr-16.n1")...)
+	v.spritesRom[1] = append(v.spritesRom[1], loadRom("sr-17.n2")...)
 
 	red := loadRom("sb-5.e8")
 	green := loadRom("sb-6.e9")

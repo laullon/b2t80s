@@ -6,7 +6,6 @@ import (
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/ay8912"
 	"github.com/laullon/b2t80s/gui"
-	"github.com/laullon/b2t80s/ui"
 )
 
 type a1942 struct {
@@ -112,11 +111,11 @@ func (t *a1942) Monitor() emulator.Monitor {
 
 func (t *a1942) Control() map[string]gui.GUIObject {
 	return map[string]gui.GUIObject{
-		"Main CPU":     ui.NewZ80UI(t.mainCpu, true),
-		"Audio CPU":    ui.NewZ80UI(t.audioCpu, false),
-		"Main Memory":  ui.NewBusUI(t.mainMem),
-		"Audio Memory": ui.NewBusUI(t.audioMem),
-		"char":         newCharactersUI(t.video),
+		// "Main CPU":     ui.NewZ80UI(t.mainCpu, true),
+		// "Audio CPU":    ui.NewZ80UI(t.audioCpu, false),
+		// "Main Memory":  ui.NewBusUI(t.mainMem),
+		// "Audio Memory": ui.NewBusUI(t.audioMem),
+		"char": newCharactersUI(t.video),
 	}
 }
 
