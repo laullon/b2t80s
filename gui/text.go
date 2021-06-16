@@ -49,8 +49,8 @@ func NewText(t string) Text {
 	return txt
 }
 
-func (_ *text) GetMouseTargets() []MouseTarget {
-	return []MouseTarget{}
+func (*text) GetChildrens() []GUIObject {
+	return []GUIObject{}
 }
 
 func (txt *text) SetForeground(c color.Color) {

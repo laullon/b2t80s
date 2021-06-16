@@ -32,14 +32,8 @@ func (hct *hct) Render() {
 	}
 }
 
-func (hct *hct) GetMouseTargets() []MouseTarget {
-	var res []MouseTarget
-	for _, obj := range append([]GUIObject{}, hct.uiHead, hct.uiCenter, hct.uiTail) {
-		if obj != nil {
-			res = append(res, obj.GetMouseTargets()...)
-		}
-	}
-	return res
+func (hct *hct) GetChildrens() []GUIObject {
+	return []GUIObject{hct.uiHead, hct.uiCenter, hct.uiTail}
 }
 
 func (hct *hct) Resize(r Rect) {

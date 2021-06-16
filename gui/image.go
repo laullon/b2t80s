@@ -29,8 +29,8 @@ func (i *imgViewer) Resize(r Rect) {
 	i.rect = r
 }
 
-func (_ *imgViewer) GetMouseTargets() []MouseTarget {
-	return []MouseTarget{}
+func (*imgViewer) GetChildrens() []GUIObject {
+	return []GUIObject{}
 }
 
 func (i *imgViewer) init() {

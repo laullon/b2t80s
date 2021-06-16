@@ -63,7 +63,6 @@ func NewDebugWindow(name string, machine Machine, debuger *debugger) *debug {
 	hct.SetCenter(tabs)
 
 	debug.window.SetMainUI(hct)
-	debug.window.AddMouseListeners(hct.GetMouseTargets()...)
 	debug.window.SetOnKey(func(s sdl.Scancode) {})
 	debug.window.MoveTo(gui.Point{100, 100})
 	return debug

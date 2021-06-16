@@ -53,8 +53,8 @@ func NewLabel(txt string, aling LabelAlign) Label {
 	return l
 }
 
-func (_ *label) GetMouseTargets() []MouseTarget {
-	return []MouseTarget{}
+func (*label) GetChildrens() []GUIObject {
+	return []GUIObject{}
 }
 
 func (l *label) SetForeground(c color.RGBA) {

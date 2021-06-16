@@ -1,10 +1,13 @@
 package gui
 
-import "github.com/veandco/go-sdl2/sdl"
+import (
+	"fmt"
+
+	"github.com/veandco/go-sdl2/sdl"
+)
 
 type Window interface {
 	SetMainUI(GUIObject)
-	AddMouseListeners(...MouseTarget)
 	SetOnKey(func(sdl.Scancode))
 	MoveTo(Point)
 }
@@ -15,6 +18,7 @@ type window struct {
 
 	ui             GUIObject
 	mouseListeners []MouseTarget
+	keyListeners   []KeyTarget
 	onKey          func(sdl.Scancode)
 }
 
@@ -56,8 +60,25 @@ func (w *window) SetMainUI(ui GUIObject) {
 	w.ui = ui
 	wi, he := w.sdlWin.GetSize()
 	ui.Resize(Rect{0, 0, wi, he})
+	w.addListeners(ui)
 }
 
-func (w *window) AddMouseListeners(list ...MouseTarget) {
-	w.mouseListeners = append(w.mouseListeners, list...)
+func (w *window) addListeners(obj GUIObject) {
+	fmt.Printf("obj -> %T ", obj)
+	switch ctrl := obj.(type) {
+	case KeyTarget:
+		w.keyListeners = append(w.keyListeners, ctrl)
+		print("KeyTarget ")
+	}
+	switch ctrl := obj.(type) {
+	case MouseTarget:
+		w.mouseListeners = append(w.mouseListeners, ctrl)
+		print("MouseTarget ")
+	}
+	println()
+	for _, chd := range obj.GetChildrens() {
+		if chd != nil {
+			w.addListeners(chd)
+		}
+	}
 }

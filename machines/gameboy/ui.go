@@ -52,8 +52,8 @@ func newPPUControl(ppu *ppu) *ppuDebugControl {
 	return ctrl
 }
 
-func (ctrl *ppuDebugControl) GetMouseTargets() []gui.MouseTarget {
-	return []gui.MouseTarget{}
+func (ctrl *ppuDebugControl) GetChildrens() []gui.GUIObject {
+	return []gui.GUIObject{}
 }
 
 func (ctrl *ppuDebugControl) Render() {

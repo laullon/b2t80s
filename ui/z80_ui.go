@@ -91,8 +91,8 @@ func NewZ80UI(cpu z80.Z80, trace bool) gui.GUIObject {
 	return ctl
 }
 
-func (ctl *z80UI) GetMouseTargets() []gui.MouseTarget {
-	return ctl.ui.GetMouseTargets()
+func (ctl *z80UI) GetChildrens() []gui.GUIObject {
+	return ctl.ui.GetChildrens()
 }
 
 func (ctl *z80UI) Render() {

@@ -43,6 +43,9 @@ func PoolEvents(stop chan struct{}) {
 			stop <- struct{}{}
 
 		case *sdl.KeyboardEvent:
+			for _, obj := range win.keyListeners {
+				obj.OnKey(*event)
+			}
 			if event.Repeat == 0 {
 				win.onKey(event.Keysym.Scancode)
 			}

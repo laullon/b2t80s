@@ -45,8 +45,8 @@ func (sc *scrollText) Resize(r Rect) {
 	sc.ui.Resize(r)
 }
 
-func (sc *scrollText) GetMouseTargets() []MouseTarget {
-	return append([]MouseTarget{sc}, sc.ui.GetMouseTargets()...)
+func (sc *scrollText) GetChildrens() []GUIObject {
+	return append([]GUIObject{sc.bar}, sc.ui.GetChildrens()...)
 }
 
 func (sc *scrollText) SetText(txt string)          { sc.text.SetText(txt) }
@@ -69,8 +69,8 @@ type scrollBar struct {
 	frameID     uint32
 }
 
-func (sc *scrollBar) GetMouseTargets() []MouseTarget {
-	return []MouseTarget{}
+func (sc *scrollBar) GetChildrens() []GUIObject {
+	return []GUIObject{}
 }
 
 func (b *scrollBar) Resize(r Rect) {

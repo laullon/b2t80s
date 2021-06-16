@@ -35,8 +35,8 @@ func NewBusUI(bus cpu.Bus) gui.GUIObject {
 	return ctrl
 }
 
-func (ctl *busUI) GetMouseTargets() []gui.MouseTarget {
-	return ctl.tabs.GetMouseTargets()
+func (ctl *busUI) GetChildrens() []gui.GUIObject {
+	return ctl.tabs.GetChildrens()
 }
 
 func (ctl *busUI) Render() {

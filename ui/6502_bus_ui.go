@@ -29,8 +29,8 @@ func NewM6502BusUI(name string, bus m6502.Bus) gui.GUIObject {
 	return ctrl
 }
 
-func (ui *m6502BusUI) GetMouseTargets() []gui.MouseTarget {
-	return []gui.MouseTarget{}
+func (ui *m6502BusUI) GetChildrens() []gui.GUIObject {
+	return []gui.GUIObject{}
 }
 
 func (ui *m6502BusUI) Render() {

@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 
+	"github.com/veandco/go-sdl2/sdl"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/inconsolata"
 	"golang.org/x/image/math/fixed"
@@ -19,13 +20,17 @@ var palette = []color.RGBA{ // https://www.slideteam.net/blog/9-beautiful-color-
 type GUIObject interface {
 	Render()
 	Resize(Rect)
-	GetMouseTargets() []MouseTarget
+	GetChildrens() []GUIObject
 }
 
 type MouseTarget interface {
 	Rect() Rect
 	OnMouseOver(bool)
 	OnMouseClick(bool)
+}
+
+type KeyTarget interface {
+	OnKey(sdl.KeyboardEvent)
 }
 
 type ScrollTarget interface {

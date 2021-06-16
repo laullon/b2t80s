@@ -25,14 +25,8 @@ func (g *grid) Add(obj ...GUIObject) {
 	g.objects = append(g.objects, obj...)
 }
 
-func (g *grid) GetMouseTargets() []MouseTarget {
-	var res []MouseTarget
-	for _, obj := range g.objects {
-		if mt, ok := obj.(MouseTarget); ok {
-			res = append(res, mt)
-		}
-	}
-	return res
+func (g *grid) GetChildrens() []GUIObject {
+	return g.objects
 }
 
 func (g *grid) Render() {

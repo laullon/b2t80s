@@ -51,8 +51,8 @@ func newButton(txt string, tab bool) Button {
 	return b
 }
 
-func (b *button) GetMouseTargets() []MouseTarget {
-	return []MouseTarget{b}
+func (b *button) GetChildrens() []GUIObject {
+	return []GUIObject{}
 }
 
 func (b *button) OnMouseOver(over bool) {

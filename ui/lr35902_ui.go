@@ -82,8 +82,8 @@ func NewLR35902UI(cpu lr35902.LR35902) gui.GUIObject {
 	return ctl
 }
 
-func (ctl *lr35902UI) GetMouseTargets() []gui.MouseTarget {
-	return ctl.ui.GetMouseTargets()
+func (ctl *lr35902UI) GetChildrens() []gui.GUIObject {
+	return ctl.ui.GetChildrens()
 }
 
 func (ctl *lr35902UI) Render() {

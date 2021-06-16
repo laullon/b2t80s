@@ -35,14 +35,15 @@ func (tabs *tabs) AddTabs(name string, panel GUIObject) {
 	}
 }
 
-func (tabs *tabs) GetMouseTargets() []MouseTarget {
-	var res []MouseTarget
+func (tabs *tabs) GetChildrens() []GUIObject {
+	res := tabs.ui.GetChildrens()
 	for _, obj := range tabs.tabs {
-		res = append(res, obj.GetMouseTargets()...)
+		res = append(res, obj.GetChildrens()...)
 	}
 	for _, obj := range tabs.panels {
-		res = append(res, obj.GetMouseTargets()...)
+		res = append(res, obj.GetChildrens()...)
 	}
+	println(len(res))
 	return res
 }
 
