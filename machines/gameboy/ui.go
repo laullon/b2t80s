@@ -65,10 +65,10 @@ func (ctrl *ppuDebugControl) Resize(r gui.Rect) {
 }
 
 func (ctrl *ppuDebugControl) Update() {
-	ctrl.x.Update(strconv.Itoa(ctrl.ppu.lx))
-	ctrl.y.Update(strconv.Itoa(ctrl.ppu.ly))
-	ctrl.wx.Update(strconv.Itoa(ctrl.ppu.wx))
-	ctrl.wy.Update(strconv.Itoa(ctrl.ppu.wy))
+	ctrl.x.Update(strconv.Itoa(int(ctrl.ppu.lx)))
+	ctrl.y.Update(strconv.Itoa(int(ctrl.ppu.ly)))
+	ctrl.wx.Update(strconv.Itoa(int(ctrl.ppu.wx)))
+	ctrl.wy.Update(strconv.Itoa(int(ctrl.ppu.wy)))
 	ctrl.scX.Update(strconv.Itoa(int(ctrl.ppu.scxNew)))
 	ctrl.scY.Update(strconv.Itoa(int(ctrl.ppu.scy)))
 	ctrl.control.Update(fmt.Sprintf("%08b", ctrl.ppu.control))

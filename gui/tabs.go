@@ -43,7 +43,6 @@ func (tabs *tabs) GetChildrens() []GUIObject {
 	for _, obj := range tabs.panels {
 		res = append(res, obj.GetChildrens()...)
 	}
-	println(len(res))
 	return res
 }
 

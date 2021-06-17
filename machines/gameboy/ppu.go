@@ -13,11 +13,11 @@ import (
 type ppu struct {
 	debugger cpu.DebuggerCallbacks
 
-	lx, ly, lyc    int
-	scx, scy       int
-	scxNew, scyNew int
+	lx, ly, lyc    uint16
+	scx, scy       uint16
+	scxNew, scyNew uint16
 
-	wy, wx int
+	wy, wx uint16
 
 	control byte
 	status  byte
@@ -54,7 +54,7 @@ type ppu struct {
 }
 
 func newPPU(bus cpu.Bus) *ppu {
-	display := gui.NewDisplay(gui.Size{160, 144})
+	display := gui.NewDisplay(160, 144)
 	ppu := &ppu{
 		gbp:  []byte{0, 1, 2, 3},
 		obp0: []byte{0, 1, 2, 3},
@@ -97,8 +97,8 @@ func (ppu *ppu) Tick() {
 		ppu.ly++
 		if ppu.debugger != nil {
 			if ppu.debugger.EvalLine() {
-				for x := 0; x < 160; x++ {
-					ppu.display.SetRGBA(x, ppu.ly, color.RGBA{0xff, 0, 0, 0xff})
+				for x := uint16(0); x < 160; x++ {
+					ppu.display.Set(x, ppu.ly, color.RGBA{0xff, 0, 0, 0xff})
 				}
 				ppu.monitor.FrameDone()
 			}
@@ -146,8 +146,8 @@ func (ppu *ppu) Tick() {
 func (ppu *ppu) mode2Tick() {
 	if ppu.mode2Ticks%2 == 1 {
 		if ppu.spriteCount < 10 {
-			y := int(ppu.oam[ppu.spriteBufferIdx*4])
-			x := int(ppu.oam[ppu.spriteBufferIdx*4+1])
+			y := uint16(ppu.oam[ppu.spriteBufferIdx*4])
+			x := uint16(ppu.oam[ppu.spriteBufferIdx*4+1])
 			if (x != 0) && (ppu.ly+16 >= y) && (ppu.ly+16 < y+8) { // TODO: 16 sprites
 				ppu.spriteBuffer[ppu.spriteCount] = ppu.spriteBufferIdx * 4
 				ppu.spriteCount++
@@ -207,10 +207,10 @@ func (ppu *ppu) drawLine() {
 		for c := uint16(0); c < 21; c++ {
 			b1 := <-ppu.bgBuffer
 			b2 := <-ppu.bgBuffer
-			for x_off := 0; x_off < 8; x_off++ {
+			for x_off := uint16(0); x_off < 8; x_off++ {
 				color := (b1 & 1) | ((b2 & 1) << 1)
 				color = ppu.gbp[color]
-				ppu.display.SetRGBA(int(c*8)+(7-x_off)-scx, ppu.ly, ppu.palette[color])
+				ppu.display.Set((c*8)+(7-x_off)-scx, ppu.ly, ppu.palette[color])
 				b1 >>= 1
 				b2 >>= 1
 			}
@@ -230,7 +230,7 @@ func (ppu *ppu) drawWin() {
 	if wy >= 0 {
 		r := uint16(wy >> 3)
 		l := uint16(wy) & 7
-		for x := 0; x < 160; x++ {
+		for x := uint16(0); x < 160; x++ {
 			wy := x - ppu.wx
 			if wy >= 0 && wy&7 == 0 {
 				c := uint16(wy >> 3)
@@ -242,10 +242,10 @@ func (ppu *ppu) drawWin() {
 				tileAddr := uint16(tileIdx)*16 + l*2
 				b1 := ppu.vRAM[tileAddr]
 				b2 := ppu.vRAM[tileAddr+1]
-				for x_off := 0; x_off < 8; x_off++ {
+				for x_off := uint16(0); x_off < 8; x_off++ {
 					color := (b1 & 1) | ((b2 & 1) << 1)
 					color = ppu.gbp[color]
-					ppu.display.SetRGBA((x-7)+(7-x_off), ppu.ly, ppu.palette[color])
+					ppu.display.Set((x-7)+(7-x_off), ppu.ly, ppu.palette[color])
 					b1 >>= 1
 					b2 >>= 1
 				}
@@ -257,8 +257,8 @@ func (ppu *ppu) drawWin() {
 func (ppu *ppu) drawSprites() {
 	for i := 0; i < int(ppu.spriteCount); i++ {
 		sprite := ppu.spriteBuffer[i]
-		x := int(ppu.oam[sprite+1]) - 8
-		y := uint16(ppu.ly - (int(ppu.oam[sprite]) - 16))
+		x := uint16(ppu.oam[sprite+1]) - 8
+		y := ppu.ly - (uint16(ppu.oam[sprite]) - 16)
 		f := ppu.oam[sprite+3]
 		if f&0b0100_0000 != 0 {
 			y = 7 - y
@@ -272,7 +272,7 @@ func (ppu *ppu) drawSprites() {
 			b1 = bits.Reverse8(b1)
 			b2 = bits.Reverse8(b2)
 		}
-		for x_off := 0; x_off < 8; x_off++ {
+		for x_off := uint16(0); x_off < 8; x_off++ {
 			color := (b1 & 1) | ((b2 & 1) << 1)
 			if color != 0 {
 				if f&0b0001_0000 == 0 {
@@ -280,7 +280,7 @@ func (ppu *ppu) drawSprites() {
 				} else {
 					color = ppu.obp1[color]
 				}
-				ppu.display.SetRGBA(x+(7-x_off), ppu.ly, ppu.palette[color])
+				ppu.display.Set(x+(7-x_off), ppu.ly, ppu.palette[color])
 			}
 			b1 >>= 1
 			b2 >>= 1
@@ -368,15 +368,15 @@ func (ppu *ppu) WritePort(addr uint16, data byte) {
 		ppu.status = data
 
 	case 0xff42:
-		ppu.scyNew = int(data)
+		ppu.scyNew = uint16(data)
 
 	case 0xff43:
-		ppu.scxNew = int(data)
+		ppu.scxNew = uint16(data)
 
 	case 0xff44:
 
 	case 0xff45:
-		ppu.lyc = int(data)
+		ppu.lyc = uint16(data)
 
 	case 0xff46:
 		ppu.dma = uint16(data) << 8
@@ -402,10 +402,10 @@ func (ppu *ppu) WritePort(addr uint16, data byte) {
 		ppu.obp1[3] = (data & 0b11000000) >> 6
 
 	case 0xff4A:
-		ppu.wy = int(data)
+		ppu.wy = uint16(data)
 
 	case 0xff4B:
-		ppu.wx = int(data)
+		ppu.wx = uint16(data)
 
 	case 0xff4c, 0xff4d, 0xff4e, 0xff4f:
 

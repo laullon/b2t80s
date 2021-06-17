@@ -38,7 +38,7 @@ type tms9918 struct {
 	s5 bool
 	fs byte
 
-	x, y int
+	x, y uint16
 }
 
 var palette = []color.RGBA{
@@ -67,8 +67,8 @@ func newTMS9918(cpu z80.Z80) *tms9918 {
 		cpu:       cpu,
 	}
 
-	res.display = gui.NewDisplay(gui.Size{342, 313})
-	res.display.Start = gui.Point{37, 64}
+	res.display = gui.NewDisplay(342, 313)
+	res.display.SetStart(37, 64)
 
 	res.monitor = emulator.NewMonitor(res.display)
 	return res
@@ -174,7 +174,7 @@ func (vdp *tms9918) update() {
 func (vdp *tms9918) Tick() {
 	for i := 0; i < 3; i++ {
 		c := vdp.getRasteColor()
-		vdp.display.SetRGBA(vdp.x, vdp.y, palette[c])
+		vdp.display.Set(vdp.x, vdp.y, palette[c])
 
 		vdp.x++
 		if vdp.x == 342 {
@@ -201,9 +201,9 @@ func (vdp *tms9918) Tick() {
 }
 
 func (vdp *tms9918) getRasteColor() byte {
-	col := 0
-	row := 0
-	bidx := 0
+	col := uint16(0)
+	row := uint16(0)
+	bidx := uint16(0)
 	b := byte(0)
 	d := false
 

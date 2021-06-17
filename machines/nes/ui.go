@@ -56,8 +56,8 @@ func (ui *ppuDebugControl) GetRegisters() string { return "" }
 func (ui *ppuDebugControl) GetOutput() string    { return "" }
 
 func (ctrl *ppuDebugControl) Update() {
-	ctrl.v.Update(strconv.Itoa(ctrl.ppu.v))
-	ctrl.h.Update(strconv.Itoa(ctrl.ppu.h))
+	ctrl.v.Update(strconv.Itoa(int(ctrl.ppu.v)))
+	ctrl.h.Update(strconv.Itoa(int(ctrl.ppu.h)))
 	ctrl.x.Update(strconv.Itoa(int(ctrl.ppu.scrollX)))
 	ctrl.y.Update(strconv.Itoa(int(ctrl.ppu.scrollY)))
 	ctrl.p.Update(strconv.Itoa(int(ctrl.ppu.nameTableBase)))

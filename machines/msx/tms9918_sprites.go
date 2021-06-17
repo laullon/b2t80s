@@ -3,8 +3,8 @@ package msx
 import "github.com/laullon/b2t80s/gui"
 
 type sprite struct {
-	x, y    int
-	h, w    int
+	x, y    uint16
+	h, w    uint16
 	pattern byte
 	colour  byte
 	ec      bool
@@ -13,8 +13,8 @@ type sprite struct {
 func newSprite(data []byte) (*sprite, bool) {
 	sprt := &sprite{}
 
-	sprt.y = int(data[0])
-	sprt.x = int(data[1])
+	sprt.y = uint16(data[0])
+	sprt.x = uint16(data[1])
 	sprt.pattern = data[2]
 	sprt.colour = data[3] & 0x0f
 	sprt.ec = data[3]&0x80 != 0
@@ -30,7 +30,7 @@ func newSprite(data []byte) (*sprite, bool) {
 
 func (vdp *tms9918) drawSprites() {
 	sprites := make([]*sprite, 0)
-	height := 8
+	height := uint16(8)
 	if vdp.si {
 		height = 16
 	}
@@ -59,7 +59,7 @@ func (vdp *tms9918) drawSprites() {
 	}
 }
 
-func (sprt *sprite) drawSprite(yPos int, si bool, sg uint16, vram []byte, display *gui.Display) {
+func (sprt *sprite) drawSprite(yPos uint16, si bool, sg uint16, vram []byte, display *gui.Display) {
 	if sprt.colour == 0 {
 		return
 	}
@@ -68,13 +68,13 @@ func (sprt *sprite) drawSprite(yPos int, si bool, sg uint16, vram []byte, displa
 		cols = 2
 	}
 	for i := uint16(0); i < cols; i++ {
-		y := uint16(yPos - int(sprt.y))
+		y := uint16(yPos - sprt.y)
 		b := vram[sg+(uint16(sprt.pattern)&252)<<3+y+(i*16)]
-		for x := 0; x < 8; x++ {
-			sx := sprt.x + x + int(i*8)
+		for x := uint16(0); x < 8; x++ {
+			sx := sprt.x + x + i*8
 			if sx >= 0 && sx < 256 {
 				if b&(1<<(7-x)) != 0 {
-					display.SetRGBA(sx, sprt.y+int(y), palette[sprt.colour])
+					display.Set(sx, sprt.y+y, palette[sprt.colour])
 				}
 			}
 		}

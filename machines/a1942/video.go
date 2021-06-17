@@ -32,7 +32,7 @@ type video struct {
 
 func newVideo(m *a1942) *video {
 	v := &video{
-		display:   gui.NewDisplay(gui.Size{W: 256, H: 256}),
+		display:   gui.NewDisplay(256, 256),
 		m:         m,
 		spriteram: cpu.NewRAM(make([]byte, 0x0080), 0x007f),
 		charsRom:  loadRom("sr-02.f2"),
@@ -42,7 +42,7 @@ func newVideo(m *a1942) *video {
 
 	v.display.ViewPortRect = gui.Rect{X: 16, Y: 0, W: 224, H: 256}
 	v.display.ViewSize = gui.Size{W: 192, H: 256}
-	v.display.Trans = func(x, y int) (int, int) { return y, 255 - x }
+	v.display.Trans = func(x, y uint16) (uint16, uint16) { return y, 255 - x }
 
 	v.tilesRom = make([][]byte, 3)
 	v.tilesRom[0] = append(v.tilesRom[0], loadRom("sr-08.a1")...)
@@ -123,28 +123,28 @@ func (v *video) Tick() {
 }
 
 func (v *video) reDraw() {
-	for col := 0; col < 16; col++ {
-		for row := 0; row < 17; row++ {
-			realRow := (row + int(v.scroll/16)) % 0x1f
+	for col := uint16(0); col < 16; col++ {
+		for row := uint16(0); row < 17; row++ {
+			realRow := (row + v.scroll/16) % 0x1f
 			tileAddr := uint16(col + realRow*32)
 			tileIdx := v.bgvram.ReadPort(tileAddr)
 			colorInfo := v.bgvram.ReadPort(tileAddr + 0x10)
 			tile := uint16(tileIdx) | (uint16(colorInfo&0x80) << 1)
 			palette := ((colorInfo & 0x1f) + 0x20) << 3
-			v.drawTile(v.display, row, int(v.scroll%16), col, tile, palette, colorInfo&0x20 != 0, colorInfo&0x40 != 0)
+			v.drawTile(v.display, row, v.scroll%16, col, tile, palette, colorInfo&0x20 != 0, colorInfo&0x40 != 0)
 		}
 	}
 
 	for sprite := uint16(32 * 4); sprite <= 32*4; sprite -= 4 {
 		code := uint16(v.spriteram.ReadPort(sprite))
 		color := uint16(v.spriteram.ReadPort(sprite + 1))
-		x := int(v.spriteram.ReadPort(sprite + 2))
-		y := int(v.spriteram.ReadPort(sprite + 3))
+		x := uint16(v.spriteram.ReadPort(sprite + 2))
+		y := uint16(v.spriteram.ReadPort(sprite + 3))
 
 		double := color&0x40 != 0
 		quad := color&0x80 != 0
 		code = code&0x7f | color&0x20<<2 | code&0x80<<1
-		x |= int(color & 0x10 << 4)
+		x |= (color & 0x10 << 4)
 		color = (color & 0x0f) << 4
 
 		v.drawSprite(v.display, x, y, code, int(color))
@@ -158,19 +158,19 @@ func (v *video) reDraw() {
 		}
 	}
 
-	for row := 0; row < 32; row++ {
-		for col := 0; col < 32; col++ {
+	for row := uint16(0); row < 32; row++ {
+		for col := uint16(0); col < 32; col++ {
 			tileAddr := uint16(col + row*32)
 			tileIdx := v.fgvram.ReadPort(tileAddr)
 			colorInfo := v.fgvram.ReadPort(tileAddr + 0x0400)
 			tile := uint16(tileIdx) | (uint16(colorInfo&0x80) << 1)
 			palette := (colorInfo & 0x3f) << 2
-			v.drawChar(v.display, int(col), int(row), int(tile), palette)
+			v.drawChar(v.display, col, row, tile, palette)
 		}
 	}
 }
 
-func (v *video) drawSprite(display *gui.Display, imgX, imgY int, tile uint16, palette int) {
+func (v *video) drawSprite(display *gui.Display, imgX, imgY uint16, tile uint16, palette int) {
 	charAddr := tile * 64
 	for y := uint16(0); y < 16; y++ {
 		for i := uint16(0); i < 4; i++ {
@@ -182,8 +182,8 @@ func (v *video) drawSprite(display *gui.Display, imgX, imgY int, tile uint16, pa
 				c |= ((data1 & 0x10) >> 4) << 0
 				c |= ((data2 & 0x01) >> 0) << 3
 				c |= ((data2 & 0x10) >> 4) << 2
-				_x := int(y) + imgX
-				_y := int((3-x)+(i*4)) + imgY
+				_x := (y) + imgX
+				_y := ((3 - x) + (i * 4)) + imgY
 				if c != 15 {
 					display.Set(_y, _x, v.palette[v.spritePalette[int(c)|palette]+0x40])
 				}
@@ -194,7 +194,7 @@ func (v *video) drawSprite(display *gui.Display, imgX, imgY int, tile uint16, pa
 	}
 }
 
-func (v *video) drawTile(display *gui.Display, col, scroll, row int, tile uint16, palette byte, fx, fy bool) {
+func (v *video) drawTile(display *gui.Display, col, scroll, row uint16, tile uint16, palette byte, fx, fy bool) {
 	var data1, data2, data3 byte
 	for y := uint16(0); y < 16; y++ {
 		for i := uint16(0); i < 2; i++ {
@@ -210,14 +210,14 @@ func (v *video) drawTile(display *gui.Display, col, scroll, row int, tile uint16
 				data2 = v.tilesRom[1][tile*32+y+i*16]
 				data3 = v.tilesRom[2][tile*32+y+i*16]
 			}
-			for x := 0; x < 8; x++ {
+			for x := uint16(0); x < 8; x++ {
 				color := data1 & 0b00000001 << 2
 				color |= data2 & 0b00000001 << 1
 				color |= data3 & 0b00000001 << 0
 				if fy {
-					display.Set((7-x)+int(i*8)+col*16-scroll, 15-int(y)+row*16, v.palette[v.bgPalette[color|palette]])
+					display.Set((7-x)+(i*8)+col*16-scroll, 15-(y)+row*16, v.palette[v.bgPalette[color|palette]])
 				} else {
-					display.Set((7-x)+int(i*8)+col*16-scroll, int(y)+row*16, v.palette[v.bgPalette[color|palette]])
+					display.Set((7-x)+(i*8)+col*16-scroll, (y)+row*16, v.palette[v.bgPalette[color|palette]])
 				}
 				data1 >>= 1
 				data2 >>= 1
@@ -227,11 +227,11 @@ func (v *video) drawTile(display *gui.Display, col, scroll, row int, tile uint16
 	}
 }
 
-func (v *video) drawChar(display *gui.Display, col, row, tile int, palette byte) {
-	for y := 0; y < 8; y++ {
-		for i := 0; i < 2; i++ {
+func (v *video) drawChar(display *gui.Display, col, row, tile uint16, palette byte) {
+	for y := uint16(0); y < 8; y++ {
+		for i := uint16(0); i < 2; i++ {
 			data := v.charsRom[tile*16+y*2+i]
-			for x := 0; x < 4; x++ {
+			for x := uint16(0); x < 4; x++ {
 				color := data & 0b00000001 << 1
 				color |= data & 0b00010000 >> 4
 				if color != 0 {

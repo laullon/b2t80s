@@ -30,7 +30,7 @@ type gatearray struct {
 	prevHSync, prevVSync           bool
 	hSyncCount, hSyncsInVSyncCount byte
 
-	x, y int
+	x, y uint16
 }
 
 var colours = []color.RGBA{
@@ -73,7 +73,7 @@ func newGateArray(mem *memory, crtc *crtc) *gatearray {
 		mem:     mem,
 		crtc:    crtc,
 		palette: make([]color.RGBA, 16),
-		display: gui.NewDisplay(gui.Size{960, 312}),
+		display: gui.NewDisplay(960, 312),
 
 		decode: to1bpp,
 		ppc:    16,
@@ -101,18 +101,18 @@ func (ga *gatearray) Tick() {
 		ga.monitor.FrameDone()
 	}
 
-	pixles := 16
+	pixles := uint16(16)
 	x := ga.x * pixles
 	if ga.crtc.status.disPen {
 		addr := ga.crtc.status.getAddress()
 		cs := ga.decode(ga.mem.getScreenByte(addr))
 		cs = append(cs, ga.decode(ga.mem.getScreenByte(addr+1))...)
 		for off, c := range cs {
-			ga.display.SetRGBA(x+off, ga.y, ga.palette[c])
+			ga.display.Set(x+uint16(off), ga.y, ga.palette[c])
 		}
 	} else {
-		for i := 0; i < pixles; i++ {
-			ga.display.SetRGBA(x+i, ga.y, ga.borderColor)
+		for i := uint16(0); i < pixles; i++ {
+			ga.display.Set(x+i, ga.y, ga.borderColor)
 		}
 
 		// if ga.crtc.status.hSync || ga.crtc.status.vSync {

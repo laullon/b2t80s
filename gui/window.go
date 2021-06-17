@@ -1,8 +1,6 @@
 package gui
 
 import (
-	"fmt"
-
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -64,18 +62,14 @@ func (w *window) SetMainUI(ui GUIObject) {
 }
 
 func (w *window) addListeners(obj GUIObject) {
-	fmt.Printf("obj -> %T ", obj)
 	switch ctrl := obj.(type) {
 	case KeyTarget:
 		w.keyListeners = append(w.keyListeners, ctrl)
-		print("KeyTarget ")
 	}
 	switch ctrl := obj.(type) {
 	case MouseTarget:
 		w.mouseListeners = append(w.mouseListeners, ctrl)
-		print("MouseTarget ")
 	}
-	println()
 	for _, chd := range obj.GetChildrens() {
 		if chd != nil {
 			w.addListeners(chd)

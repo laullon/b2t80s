@@ -52,7 +52,7 @@ func (bus *bus) Write(addr uint16, data uint8) {
 	if bus.defaultManager != nil {
 		bus.defaultManager.WritePort(addr, data)
 	} else {
-		panic(fmt.Sprintf("[%s-writePort]-(no PM)-> port:0x%04X data:%v\n", bus.name, addr, data))
+		// panic(fmt.Sprintf("[%s-writePort]-(no PM)-> port:0x%04X data:%v\n", bus.name, addr, data))
 	}
 }
 

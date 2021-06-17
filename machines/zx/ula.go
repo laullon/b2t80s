@@ -43,9 +43,9 @@ type ula struct {
 
 	col          int
 	tsPerRow     int
-	row          int
-	scanlines    int
-	displayStart int
+	row          uint16
+	scanlines    uint16
+	displayStart uint16
 
 	scanlinesBorder [][]color.RGBA
 	pixlesData      [][]byte
@@ -68,7 +68,7 @@ func NewULA(mem *memory, bus z80.Bus, plus bool) *ula {
 		scanlinesBorder: make([][]color.RGBA, 313),
 		pixlesData:      make([][]byte, 192),
 		pixlesAttr:      make([][]byte, 192),
-		display:         gui.NewDisplay(gui.Size{352, 296}),
+		display:         gui.NewDisplay(352, 296),
 	}
 
 	ula.monitor = emulator.NewMonitor(ula.display)
@@ -99,7 +99,7 @@ func NewULA(mem *memory, bus z80.Bus, plus bool) *ula {
 		ula.pixlesAttr[y] = make([]byte, 32)
 	}
 
-	for y := 0; y < ula.scanlines; y++ {
+	for y := uint16(0); y < ula.scanlines; y++ {
 		ula.scanlinesBorder[y] = make([]color.RGBA, ula.tsPerRow)
 	}
 
@@ -161,9 +161,9 @@ func (ula *ula) Tick() {
 
 func (ula *ula) FrameDone() {
 	ula.frame = (ula.frame + 1) & 0x1f
-	for y := 0; y < 296; y++ {
-		for x := 0; x < 352; x++ {
-			ula.display.SetRGBA(x, y, ula.getPixel(x, y))
+	for y := uint16(0); y < 296; y++ {
+		for x := uint16(0); x < 352; x++ {
+			ula.display.Set(x, y, ula.getPixel(x, y))
 		}
 	}
 	ula.monitor.FrameDone()
@@ -204,7 +204,7 @@ func (ula *ula) WritePort(port uint16, data byte) {
 	// ula.keyboardRow[port] = data
 }
 
-func (ula *ula) getPixel(rx, ry int) color.RGBA {
+func (ula *ula) getPixel(rx, ry uint16) color.RGBA {
 	border := false
 	if ry < ula.displayStart || ry >= ula.displayStart+192 {
 		border = true
@@ -219,7 +219,7 @@ func (ula *ula) getPixel(rx, ry int) color.RGBA {
 		return ula.scanlinesBorder[ry][rx/8]
 	}
 
-	ry -= int(ula.displayStart)
+	ry -= ula.displayStart
 	rx -= 48
 
 	x := rx >> 3

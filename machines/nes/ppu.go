@@ -17,10 +17,10 @@ type ppu struct {
 	monitor  emulator.Monitor
 	debugger cpu.DebuggerCallbacks
 
-	scanLineW int
-	scanLineH int
-	h, v      int
-	row, col  uint8
+	scanLineW uint16
+	scanLineH uint16
+	h, v      uint16
+	row, col  uint16
 
 	pixelsPerTicks int
 
@@ -33,14 +33,14 @@ type ppu struct {
 	vRAMAddrInc uint16
 	buff        byte
 
-	scrollXv uint8
-	scrollYv uint8
-	scrollX  uint8
-	scrollY  uint8
+	scrollXv uint16
+	scrollYv uint16
+	scrollX  uint16
+	scrollY  uint16
 
 	redLine bool
 
-	nameTableBase byte
+	nameTableBase uint16
 	patternBase   uint16
 
 	palette *palette
@@ -63,7 +63,7 @@ type ppu struct {
 }
 
 func newPPU(bus m6502.Bus, m6805 cpu.CPU) *ppu {
-	display := gui.NewDisplay(gui.Size{256, 240})
+	display := gui.NewDisplay(256, 240)
 	ppu := &ppu{
 		cpu:     m6805,
 		bus:     bus,
@@ -118,8 +118,8 @@ var colors = []color.RGBA{
 
 func (ppu *ppu) Tick() {
 	if ppu.oam[sY] < 240 {
-		sprtY := int(ppu.oam[sY])
-		sprtX := int(ppu.oam[sX])
+		sprtY := uint16(ppu.oam[sY])
+		sprtX := uint16(ppu.oam[sX])
 		if (ppu.v >= sprtY) && (ppu.v < sprtY+8) && (ppu.h >= sprtX) && (ppu.h < sprtX+8) {
 			charAddr := ppu.charAddrs[ppu.col][ppu.row&63]
 			char := uint16(ppu.bus.Read(charAddr))
@@ -181,13 +181,13 @@ func (ppu *ppu) Tick() {
 }
 
 func (ppu *ppu) calcuklateCol() {
-	col := uint8((int(ppu.scrollX) >> 3)) & 0x3f
+	col := ppu.scrollX >> 3 & 0x3f
 	col += ((ppu.nameTableBase & 1) * 32)
 	ppu.col = col & 0x3f
 }
 
 func (ppu *ppu) calcuklateRow() {
-	row := uint8(ppu.v>>3) & 0x1f
+	row := ppu.v >> 3 & 0x1f
 	rowOff := ppu.scrollY >> 3
 	if rowOff > 30 {
 		rowOff -= 32
@@ -207,8 +207,8 @@ func (ppu *ppu) drawLine() {
 
 	yOff := uint16(ppu.v) & 0x007
 
-	for x := -8; x < 256+8; x += 8 {
-		col := (ppu.col + uint8(x>>3)) & 0x3f
+	for x := uint16(0); x < 256+16; x += 8 {
+		col := (ppu.col + uint16(x>>3)) & 0x3f
 
 		charAddr := ppu.charAddrs[col][ppu.row&63]
 		char := uint16(ppu.bus.Read(charAddr))
@@ -222,7 +222,7 @@ func (ppu *ppu) drawLine() {
 		attr := ppu.bus.Read(attrAddr)
 		palette := (attr >> (b * 2)) & 0x03
 
-		for i := 0; i < 8; i++ {
+		for i := uint16(0); i < 8; i++ {
 			c := uint16(((pattern0 & 0x80) >> 7) | ((pattern1 & 0x80) >> 6))
 			colorIdx := uint16(0x3f00)
 			if c != 0 {
@@ -230,13 +230,13 @@ func (ppu *ppu) drawLine() {
 			}
 			pattern0 <<= 1
 			pattern1 <<= 1
-			imgX := x + i - (int(ppu.scrollX) & 0x07)
-			imgY := ppu.v - (int(ppu.scrollY) & 0x07)
+			imgX := x + i - ppu.scrollX&0x07
+			imgY := ppu.v - ppu.scrollY&0x07
 			rgb := colors[ppu.bus.Read(colorIdx)&0x3f]
 			if ppu.redLine {
 				rgb = color.RGBA{0xff, 0, 0, 0xff}
 			}
-			ppu.display.SetRGBA(imgX, imgY, rgb)
+			ppu.display.Set(imgX, imgY, rgb)
 		}
 	}
 	ppu.redLine = false
@@ -261,7 +261,7 @@ func (ppu *ppu) drawSprites() {
 	for sIdx := 0; sIdx < 64; sIdx++ {
 		sprite := ppu.oam[sIdx*4 : (sIdx*4)+4]
 		if sprite[sY] != 0xff {
-			for y := 0; y < 8; y++ {
+			for y := uint16(0); y < 8; y++ {
 				patternAddr := ppu.spriteBase | uint16(sprite[sID])<<4
 				if sprite[sAttr]&0x80 == 0x00 {
 					patternAddr |= uint16(y)
@@ -275,13 +275,13 @@ func (ppu *ppu) drawSprites() {
 					pattern1 = bits.Reverse8(pattern1)
 				}
 
-				for i := 0; i < 8; i++ {
+				for i := uint16(0); i < 8; i++ {
 					c := ((pattern0 & 0x80) >> 7) | ((pattern1 & 0x80) >> 6)
 					if c != 0 {
 						color := uint16(0x3f10)
 						color |= uint16(sprite[sAttr]&0x3) << 2
 						color |= uint16(c)
-						ppu.display.SetRGBA(int(sprite[sX])+i, int(sprite[sY])+y+1, colors[ppu.bus.Read(color)&0x3f])
+						ppu.display.Set(uint16(sprite[sX])+i, uint16(sprite[sY])+y+1, colors[ppu.bus.Read(color)&0x3f])
 					}
 					pattern0 <<= 1
 					pattern1 <<= 1
@@ -334,7 +334,7 @@ func (ppu *ppu) WritePort(addr uint16, data byte) {
 	ppu.lastWrite = data
 	switch addr & 0xff {
 	case 0:
-		ppu.nameTableBase = data & 0x3
+		ppu.nameTableBase = uint16(data & 0x3)
 		ppu.patternBase = 0x1000 * (uint16(data&0x10) >> 4)
 		ppu.spriteBase = 0x1000 * (uint16(data&0x08) >> 3)
 		// fmt.Printf("[ppu] write -> nameTableBase:0x%04X data:%08b  (%03d) \n", ppu.nameTableBase, data, ppu.h)
@@ -357,12 +357,12 @@ func (ppu *ppu) WritePort(addr uint16, data byte) {
 
 	case 5:
 		if ppu.writeLacht == 0 {
-			ppu.scrollXv = data
+			ppu.scrollXv = uint16(data)
 			ppu.writeLacht = 1
 			// fmt.Printf("X:%03d 0x%02X %08b  v:%03d \n", data, data, data, ppu.v)
 			ppu.redLine = true
 		} else {
-			ppu.scrollYv = data
+			ppu.scrollYv = uint16(data)
 			ppu.writeLacht = 0
 			// fmt.Printf("V:%03d 0x%02X %08b  v:%03d \n", data, data, data, ppu.v)
 		}

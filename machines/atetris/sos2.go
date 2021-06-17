@@ -9,7 +9,7 @@ import (
 	"github.com/laullon/b2t80s/gui"
 )
 
-var irqPerScanline = map[int]bool{
+var irqPerScanline = map[uint16]bool{
 	16:  false,
 	48:  true,
 	80:  false,
@@ -22,7 +22,7 @@ var irqPerScanline = map[int]bool{
 
 type sos2 struct {
 	cpu     m6502.M6502
-	v, h    int
+	v, h    uint16
 	vram    []byte
 	color   *colorRam
 	rom     []byte
@@ -41,7 +41,7 @@ func newSOS2() *sos2 {
 			mem:    make([]byte, 0x0100),
 		},
 		rom:     loadRom("136066-1101.35a"),
-		display: gui.NewDisplay(gui.Size{336, 240}),
+		display: gui.NewDisplay(336, 240),
 	}
 }
 
@@ -63,14 +63,14 @@ func (d *sos2) Tick() {
 		char <<= 5
 		char |= uint16(y) << 2
 
-		for x := 0; x < 8; x += 2 {
+		for x := uint16(0); x < 8; x += 2 {
 			pixels := d.rom[char]
 
 			cIdx0 := palette | ((pixels >> 4) & 0xf)
 			cIdx1 := palette | (pixels & 0xf)
 
-			d.display.SetRGBA(d.h+x, d.v, d.color.colors[cIdx0])
-			d.display.SetRGBA(d.h+x+1, d.v, d.color.colors[cIdx1])
+			d.display.Set(d.h+x, d.v, d.color.colors[cIdx0])
+			d.display.Set(d.h+x+1, d.v, d.color.colors[cIdx1])
 			char++
 		}
 	}

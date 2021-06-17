@@ -41,7 +41,7 @@ func (i *imgViewer) init() {
 	gl.GenTextures(1, &i.texture)
 	gl.BindTexture(gl.TEXTURE_2D, i.texture)
 	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGB,
-		i.display.size.W, i.display.size.H,
+		int32(i.display.width), int32(i.display.height),
 		0, gl.RGB, gl.UNSIGNED_BYTE,
 		nil)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
@@ -60,7 +60,7 @@ func (i *imgViewer) init() {
 func (i *imgViewer) Render() {
 	gl.BindTexture(gl.TEXTURE_2D, i.texture)
 	gl.TexSubImage2D(gl.TEXTURE_2D, 0,
-		0, 0, i.display.size.W, i.display.size.H,
+		0, 0, int32(i.display.width), int32(i.display.height),
 		gl.RGBA, gl.UNSIGNED_BYTE,
 		gl.Ptr(i.display.Pix()))
 
