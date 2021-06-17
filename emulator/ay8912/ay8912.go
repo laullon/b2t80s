@@ -258,6 +258,15 @@ func (ay *ay8912) update(reg byte) {
 
 	// fmt.Printf("[ay8912] regs -> %+v\n", ay.regs)
 	// for i, ch := range ay.channels {
-	// 	fmt.Printf("%d -> %+v\n", i, ch)
+	// 	fmt.Printf("%d -> volume:%v pitch:%v envelope:%v tone:%v noise:%v count:%v output:%v out:%v \n", i,
+	// 		ch.volume,
+	// 		ch.pitch,
+	// 		ch.envelope,
+	// 		ch.tone,
+	// 		ch.noise,
+	// 		ch.count,
+	// 		ch.output,
+	// 		ch.out,
+	// 	)
 	// }
 }

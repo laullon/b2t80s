@@ -63,7 +63,6 @@ func New1942() emulator.Machine {
 	m.romBanks = append(m.romBanks, loadRom("srb-07.m7"))
 	m.romBank = cpu.NewROM(m.romBanks[0], 0x3fff)
 
-	ayControl := &ayControl{m}
 	latch := &latch{m: m}
 
 	// MAIN
@@ -74,6 +73,7 @@ func New1942() emulator.Machine {
 	m.mainMem.RegisterPort("RAM", cpu.PortMask{Mask: 0b1111_0000_0000_0000, Value: 0xe000}, cpu.NewRAM(make([]byte, 0x1000), 0x0fff))
 	m.mainMem.RegisterPort("ports", cpu.PortMask{Mask: 0b1111_1111_1111_1100, Value: 0xc000}, m)
 	m.mainMem.RegisterPort("ports", cpu.PortMask{Mask: 0b1111_1111_1111_1111, Value: 0xc004}, m)
+	m.mainMem.RegisterPort("0xC804", cpu.PortMask{Mask: 0b1111_1111_1111_1111, Value: 0xC800}, latch)
 	m.mainMem.RegisterPort("background scroll", cpu.PortMask{Mask: 0b1111_1111_1111_1111, Value: 0xC802}, m.video)
 	m.mainMem.RegisterPort("background scroll", cpu.PortMask{Mask: 0b1111_1111_1111_1111, Value: 0xC803}, m.video)
 	m.mainMem.RegisterPort("0xC804", cpu.PortMask{Mask: 0b1111_1111_1111_1111, Value: 0xC804}, m)
@@ -88,15 +88,22 @@ func New1942() emulator.Machine {
 
 	m.audioMem.RegisterPort("RAM", cpu.PortMask{Mask: 0b1111_1000_0000_0000, Value: 0x4000}, cpu.NewRAM(make([]byte, 0x0800), 0x07ff))
 	m.audioMem.RegisterPort("latch", cpu.PortMask{Mask: 0b1111_1111_1111_1111, Value: 0x6000}, latch)
-	m.audioMem.RegisterPort("AY1", cpu.PortMask{Mask: 0b1111_1111_1111_1110, Value: 0x8000}, ayControl)
-	m.audioMem.RegisterPort("AY2", cpu.PortMask{Mask: 0b1111_1111_1111_1110, Value: 0xc000}, ayControl)
+	m.audioMem.RegisterPort("AY1", cpu.PortMask{Mask: 0b1111_1111_1111_1110, Value: 0x8000}, &ayControl{ay: m.ay1})
+	m.audioMem.RegisterPort("AY2", cpu.PortMask{Mask: 0b1111_1111_1111_1110, Value: 0xc000}, &ayControl{ay: m.ay2})
 
 	print("main bus:\n", m.mainMem.DumpMap(), "\n")
 	print("audio bus:\n", m.audioMem.DumpMap(), "\n")
 
+	sound := emulator.NewSoundSystem(12_000_000 / uint(80))
+	sound.AddSource(m.ay1)
+	sound.AddSource(m.ay2)
+
 	m.clock.AddTicker(3, m.mainCpu)  // 4Mhz
 	m.clock.AddTicker(4, m.audioCpu) // 3Mhz
 	m.clock.AddTicker(2, m.video)    // 6Mhz
+	m.clock.AddTicker(8, m.ay1)      // 1.5Mhz
+	m.clock.AddTicker(8, m.ay2)      // 1.5Mhz
+	m.clock.AddTicker(80, sound)
 
 	return m
 }
@@ -163,26 +170,32 @@ func (*unused) WritePort(port uint16, data byte) {}
 
 // *******
 type ayControl struct {
-	m *a1942
+	ay  ay8912.AY8912
+	reg byte
 }
 
 func (ayc *ayControl) ReadPort(port uint16) byte { panic(-1) }
 func (ayc *ayControl) WritePort(port uint16, data byte) {
-	switch port {
-	case 0x8000, 0x8001:
-		ayc.m.ay1.WriteRegister(byte(port&1), data)
-	case 0xc000, 0xc001:
-		ayc.m.ay2.WriteRegister(byte(port&1), data)
+	// fmt.Printf("[ayControl] port:%d data:%d\n", port&1, data)
+	switch port & 1 {
+	case 0:
+		ayc.reg = data
+	case 1:
+		ayc.ay.WriteRegister(ayc.reg, data)
 	}
 }
 
 // *******
+
 type latch struct {
 	m *a1942
 	v byte
 }
 
-func (l *latch) ReadPort(port uint16) byte { return l.v }
+func (l *latch) ReadPort(port uint16) byte {
+	return l.v
+}
+
 func (l *latch) WritePort(port uint16, data byte) {
 	l.v = data
 	l.m.audioCpu.NMI(true)

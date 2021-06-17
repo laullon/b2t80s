@@ -109,15 +109,15 @@ func (v *video) Tick() {
 		}
 		switch v.y {
 		case 44:
-			// v.m.audioCpu.Interrupt(true)
+			v.m.audioCpu.Interrupt(true)
 		case 109:
 			v.m.mainCpu.Interrupt(true, 0xcf) /* RST 08h */
-			// v.m.audioCpu.Interrupt(true)
+			v.m.audioCpu.Interrupt(true)
 		case 175:
-			// v.m.audioCpu.Interrupt(true)
+			v.m.audioCpu.Interrupt(true)
 		case 240:
 			v.m.mainCpu.Interrupt(true, 0xd7) /* RST 10h - vblank */
-			// v.m.audioCpu.Interrupt(true)
+			v.m.audioCpu.Interrupt(true)
 		}
 	}
 }
@@ -185,7 +185,7 @@ func (v *video) drawSprite(display *gui.Display, imgX, imgY int, tile uint16, pa
 				_x := int(y) + imgX
 				_y := int((3-x)+(i*4)) + imgY
 				if c != 15 {
-					display.Set(_x, 255-_y, v.palette[v.spritePalette[int(c)|palette]+0x40])
+					display.Set(_y, _x, v.palette[v.spritePalette[int(c)|palette]+0x40])
 				}
 				data1 >>= 1
 				data2 >>= 1
@@ -215,9 +215,9 @@ func (v *video) drawTile(display *gui.Display, col, scroll, row int, tile uint16
 				color |= data2 & 0b00000001 << 1
 				color |= data3 & 0b00000001 << 0
 				if fy {
-					display.SetRGBA((7-x)+int(i*8)+col*16-scroll, 15-int(y)+row*16, v.palette[v.bgPalette[color|palette]])
+					display.Set((7-x)+int(i*8)+col*16-scroll, 15-int(y)+row*16, v.palette[v.bgPalette[color|palette]])
 				} else {
-					display.SetRGBA((7-x)+int(i*8)+col*16-scroll, int(y)+row*16, v.palette[v.bgPalette[color|palette]])
+					display.Set((7-x)+int(i*8)+col*16-scroll, int(y)+row*16, v.palette[v.bgPalette[color|palette]])
 				}
 				data1 >>= 1
 				data2 >>= 1
@@ -235,7 +235,7 @@ func (v *video) drawChar(display *gui.Display, col, row, tile int, palette byte)
 				color := data & 0b00000001 << 1
 				color |= data & 0b00010000 >> 4
 				if color != 0 {
-					display.SetRGBA(((3 - x) + (i * 4) + col*8), row*8+y, v.palette[0x80|v.charPalette[color|palette]])
+					display.Set(((3 - x) + (i * 4) + col*8), row*8+y, v.palette[0x80|v.charPalette[color|palette]])
 				}
 				data >>= 1
 			}
