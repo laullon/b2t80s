@@ -6,6 +6,7 @@ import (
 	"github.com/laullon/b2t80s/emulator"
 	"github.com/laullon/b2t80s/emulator/ay8912"
 	"github.com/laullon/b2t80s/gui"
+	"github.com/laullon/b2t80s/ui"
 )
 
 type a1942 struct {
@@ -113,7 +114,7 @@ func (t *a1942) Control() map[string]gui.GUIObject {
 	return map[string]gui.GUIObject{
 		// "Main CPU":     ui.NewZ80UI(t.mainCpu, true),
 		// "Audio CPU":    ui.NewZ80UI(t.audioCpu, false),
-		// "Main Memory":  ui.NewBusUI(t.mainMem),
+		"Main Memory": ui.NewBusUI(t.mainMem),
 		// "Audio Memory": ui.NewBusUI(t.audioMem),
 		"char": newCharactersUI(t.video),
 	}
@@ -124,20 +125,20 @@ func (t *a1942) SetDebugger(db cpu.DebuggerCallbacks) {
 	t.audioCpu.SetDebugger(db)
 }
 
-func (t *a1942) ReadPort(port uint16) (byte, bool) {
+func (t *a1942) ReadPort(port uint16) byte {
 	switch port {
 	case 0xc000:
-		return t.sys, false
+		return t.sys
 	case 0xc001:
-		return t.p1, false
+		return t.p1
 	case 0xc002:
-		return t.p2, false
+		return t.p2
 	case 0xc004:
 		if *emulator.Test {
-			return 0xF7, false // TEST
+			return 0xF7 // TEST
 		}
 	}
-	return 0xff, false
+	return 0xff
 }
 
 func (m *a1942) WritePort(port uint16, data byte) {
@@ -157,15 +158,15 @@ func (t *a1942) GetVolumeControl() func(float64) { return func(f float64) {} }
 // *******
 type unused struct{}
 
-func (*unused) ReadPort(port uint16) (byte, bool) { return 0xff, false }
-func (*unused) WritePort(port uint16, data byte)  {}
+func (*unused) ReadPort(port uint16) byte        { return 0xff }
+func (*unused) WritePort(port uint16, data byte) {}
 
 // *******
 type ayControl struct {
 	m *a1942
 }
 
-func (ayc *ayControl) ReadPort(port uint16) (byte, bool) { panic(-1) }
+func (ayc *ayControl) ReadPort(port uint16) byte { panic(-1) }
 func (ayc *ayControl) WritePort(port uint16, data byte) {
 	switch port {
 	case 0x8000, 0x8001:
@@ -181,7 +182,7 @@ type latch struct {
 	v byte
 }
 
-func (l *latch) ReadPort(port uint16) (byte, bool) { return l.v, false }
+func (l *latch) ReadPort(port uint16) byte { return l.v }
 func (l *latch) WritePort(port uint16, data byte) {
 	l.v = data
 	l.m.audioCpu.NMI(true)
