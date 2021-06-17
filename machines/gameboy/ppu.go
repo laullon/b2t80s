@@ -301,58 +301,58 @@ func (ppu *ppu) dmaTick() {
 	}
 }
 
-func (ppu *ppu) ReadPort(addr uint16) (byte, bool) {
+func (ppu *ppu) ReadPort(addr uint16) byte {
 	switch addr {
 	case 0xff40:
-		return ppu.control, false
+		return ppu.control
 
 	case 0xff41:
-		return ppu.status, false
+		return ppu.status
 
 	case 0xff42:
-		return byte(ppu.scy), false
+		return byte(ppu.scy)
 
 	case 0xff43:
-		return byte(ppu.scx), false
+		return byte(ppu.scx)
 
 	case 0xff44:
-		return byte(ppu.ly), false
+		return byte(ppu.ly)
 
 	case 0xff45:
-		return byte(ppu.lyc), false
+		return byte(ppu.lyc)
 
 	case 0xff46:
-		return byte(ppu.dma >> 8), false
+		return byte(ppu.dma >> 8)
 
 	case 0xff47:
 		res := ppu.gbp[0] << 0
 		res |= ppu.gbp[1] << 2
 		res |= ppu.gbp[2] << 4
 		res |= ppu.gbp[3] << 6
-		return res, false
+		return res
 
 	case 0xff48:
 		res := ppu.obp0[0] << 0
 		res |= ppu.obp0[1] << 2
 		res |= ppu.obp0[2] << 4
 		res |= ppu.obp0[3] << 6
-		return res, false
+		return res
 
 	case 0xff49:
 		res := ppu.obp1[0] << 0
 		res |= ppu.obp1[1] << 2
 		res |= ppu.obp1[2] << 4
 		res |= ppu.obp1[3] << 6
-		return res, false
+		return res
 
 	case 0xff4A:
-		return byte(ppu.wx), false
+		return byte(ppu.wx)
 
 	case 0xff4B:
-		return byte(ppu.wy), false
+		return byte(ppu.wy)
 
 	case 0xff4c, 0xff4d, 0xff4e, 0xff4f:
-		return 0xff, false
+		return 0xff
 
 	default:
 		panic(fmt.Sprintf("[ppu] read invalid addr:0x%04x", addr))

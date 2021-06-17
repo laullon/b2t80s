@@ -291,7 +291,8 @@ func (ppu *ppu) drawSprites() {
 	}
 }
 
-func (ppu *ppu) ReadPort(addr uint16) (res byte, skip bool) {
+func (ppu *ppu) ReadPort(addr uint16) byte {
+	var res byte
 	switch addr & 0x07 {
 	case 2: // TODO: sprite bits
 		res = ppu.lastWrite & 0x0f
@@ -325,7 +326,7 @@ func (ppu *ppu) ReadPort(addr uint16) (res byte, skip bool) {
 		// panic(fmt.Sprintf("[ppu] read register %d (0x%04X)\n", addr&0x7, addr))
 	}
 	// fmt.Printf("[ppu] read -> addr:0x%04X data:0x%02x  \n", addr, res)
-	return
+	return res
 }
 
 func (ppu *ppu) WritePort(addr uint16, data byte) {
@@ -391,8 +392,8 @@ type palette struct {
 	Data []byte
 }
 
-func (ram *palette) ReadPort(addr uint16) (byte, bool) {
-	return ram.Data[addr&0x1f], false
+func (ram *palette) ReadPort(addr uint16) byte {
+	return ram.Data[addr&0x1f]
 }
 
 func (ram *palette) WritePort(addr uint16, data byte) {

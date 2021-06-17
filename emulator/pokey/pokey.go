@@ -100,7 +100,7 @@ func (p *Pokey) allpotR() byte {
 	return res
 }
 
-func (p *Pokey) ReadPort(port uint16) (byte, bool) {
+func (p *Pokey) ReadPort(port uint16) byte {
 	// fmt.Printf("[pokey.readPort]-> port:0x%04X \n", port)
 	var res byte
 	switch port & 0xf {
@@ -112,7 +112,7 @@ func (p *Pokey) ReadPort(port uint16) (byte, bool) {
 		panic(port & 0x0f)
 	}
 	// fmt.Printf("[pokey.readPort]-> port:0x%04X res:0x%02X \n", port, res)
-	return res, false
+	return res
 }
 
 func (p *Pokey) WritePort(port uint16, data byte) {

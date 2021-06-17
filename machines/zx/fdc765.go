@@ -16,14 +16,14 @@ func NewZXFDC765() *fdc765 {
 	}
 }
 
-func (fdc *fdc765) ReadPort(port uint16) (byte, bool) {
+func (fdc *fdc765) ReadPort(port uint16) byte {
 	switch port {
 	case 0x2ffd:
-		return fdc.chip.ReadStatus(), false
+		return fdc.chip.ReadStatus()
 	case 0x3ffd:
-		return fdc.chip.ReadData(), false
+		return fdc.chip.ReadData()
 	}
-	return 0, true
+	return 0
 }
 
 func (fdc *fdc765) WritePort(port uint16, data byte) {

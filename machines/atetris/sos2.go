@@ -95,7 +95,7 @@ type colorRam struct {
 	mem    []byte
 }
 
-func (ram *colorRam) ReadPort(addr uint16) (byte, bool) { return ram.mem[addr&0xff], false }
+func (ram *colorRam) ReadPort(addr uint16) byte { return ram.mem[addr&0xff] }
 
 func (ram *colorRam) WritePort(addr uint16, data byte) {
 	r := data & 0b11100000 >> 5

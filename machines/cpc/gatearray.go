@@ -206,7 +206,7 @@ func to1bpp(b byte) []byte {
 	return []byte{pixel1, pixel2, pixel3, pixel4, pixel5, pixel6, pixel7, pixel8}
 }
 
-func (ga *gatearray) ReadPort(port uint16) (byte, bool) { return 0, true }
+func (ga *gatearray) ReadPort(port uint16) byte { return 0 }
 
 func (ga *gatearray) WritePort(port uint16, data byte) {
 	f := data >> 6

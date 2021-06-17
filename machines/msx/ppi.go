@@ -35,7 +35,7 @@ func newPPI(mem *memory, cassette cassette.Cassette) *ppi {
 	return ppi
 }
 
-func (ppi *ppi) ReadPort(port uint16) (byte, bool) {
+func (ppi *ppi) ReadPort(port uint16) byte {
 	switch port & 0xff {
 	case 0xa8:
 		res := byte(0)
@@ -43,14 +43,14 @@ func (ppi *ppi) ReadPort(port uint16) (byte, bool) {
 			res |= ppi.mem.cfg[slot] << (slot * 2)
 		}
 		// fmt.Printf("[ppi.ReadPort] mem.cfg: %v (0b%08b)\n", ppi.mem.cfg, res)
-		return res, false
+		return res
 
 	case 0xa9:
 		res := ppi.keyboardRows[ppi.c&0x0f]
-		return res, false
+		return res
 
 	case 0xaa:
-		return ppi.c, false
+		return ppi.c
 	}
 	panic(fmt.Sprintf("[ReadPort] Unsopported port: 0x%02X", port))
 }

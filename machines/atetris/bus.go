@@ -34,8 +34,8 @@ type status struct {
 	romPage byte
 }
 
-func (s *status) ReadPort(addr uint16) (byte, bool) { panic(-1) }
-func (s *status) WritePort(addr uint16, data byte)  { s.romPage = data & 0b00000111 }
+func (s *status) ReadPort(port uint16) byte        { panic(-1) }
+func (s *status) WritePort(addr uint16, data byte) { s.romPage = data & 0b00000111 }
 
 // ----------------------------
 type ram struct {
@@ -45,11 +45,11 @@ type ram struct {
 	trace bool
 }
 
-func (ram *ram) ReadPort(addr uint16) (byte, bool) {
+func (ram *ram) ReadPort(addr uint16) byte {
 	if ram.trace {
 		fmt.Printf("-> read  0x%04X = 0x%02x\n", addr&ram.mask, ram.mem[addr&ram.mask])
 	}
-	return ram.mem[addr&ram.mask], false
+	return ram.mem[addr&ram.mask]
 }
 
 func (ram *ram) WritePort(addr uint16, data byte) {
@@ -68,7 +68,7 @@ type eepromStatus struct {
 	lock bool
 }
 
-func (s *eepromStatus) ReadPort(addr uint16) (byte, bool) { panic(-1) }
+func (s *eepromStatus) ReadPort(port uint16) byte { panic(-1) }
 func (s *eepromStatus) WritePort(addr uint16, data byte) {
 	s.lock = true
 }
@@ -106,11 +106,11 @@ func newEERPROM() *eeprom {
 	return eeprom
 }
 
-func (eeprom *eeprom) ReadPort(addr uint16) (byte, bool) {
+func (eeprom *eeprom) ReadPort(addr uint16) byte {
 	if eeprom.status.lock {
-		return 0, false
+		return 0
 	}
-	return eeprom.mem[addr&eeprom.mask], false
+	return eeprom.mem[addr&eeprom.mask]
 }
 
 func (eeprom *eeprom) WritePort(addr uint16, data byte) {
@@ -137,13 +137,13 @@ type fixedROM struct {
 	rom []byte
 }
 
-func (rom *fixedROM) ReadPort(addr uint16) (byte, bool) { return rom.rom[addr], false }
-func (rom *fixedROM) WritePort(addr uint16, data byte)  { panic(-1) }
+func (rom *fixedROM) ReadPort(addr uint16) byte        { return rom.rom[addr] }
+func (rom *fixedROM) WritePort(addr uint16, data byte) { panic(-1) }
 
 // ----------------------------
 type clearIRQ struct {
 	cpu m6502.M6502
 }
 
-func (s *clearIRQ) ReadPort(addr uint16) (byte, bool) { panic(-1) }
-func (s *clearIRQ) WritePort(addr uint16, data byte)  { s.cpu.Interrupt(false) }
+func (s *clearIRQ) ReadPort(port uint16) byte        { panic(-1) }
+func (s *clearIRQ) WritePort(addr uint16, data byte) { s.cpu.Interrupt(false) }

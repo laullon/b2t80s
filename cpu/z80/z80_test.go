@@ -427,7 +427,7 @@ type basicMemory struct {
 }
 
 func (mem *basicMemory) ReadPort(pos uint16) (byte, bool) {
-	return mem.memory[pos], false
+	return mem.memory[pos]
 }
 func (mem *basicMemory) WritePort(pos uint16, b byte) {
 	mem.memory[pos] = b

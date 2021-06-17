@@ -109,7 +109,7 @@ func (mem *memory) decodeAddress(addr uint16) (page, pos uint16) {
 	return
 }
 
-func (mem *memory) ReadPort(port uint16) (byte, bool) { return 0, true }
+func (mem *memory) ReadPort(port uint16) byte { return 0 }
 func (mem *memory) WritePort(port uint16, data byte) {
 	switch port {
 	case 0x1ffd:

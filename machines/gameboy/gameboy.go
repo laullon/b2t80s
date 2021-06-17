@@ -139,16 +139,16 @@ func (gb *gb) SetDebugger(db cpu.DebuggerCallbacks) {
 	gb.ppu.debugger = db
 }
 
-func (gb *gb) ReadPort(addr uint16) (byte, bool) {
+func (gb *gb) ReadPort(addr uint16) byte {
 	switch addr {
 	case 0xff00:
-		return *gb.controls, false
+		return *gb.controls
 
 	case 0xffff:
-		return gb.cpu.Registers().IE, false
+		return gb.cpu.Registers().IE
 
 	case 0xff0f:
-		return gb.cpu.Registers().IF, false
+		return gb.cpu.Registers().IF
 
 	default:
 		if addr > 0xff7f {
@@ -156,7 +156,7 @@ func (gb *gb) ReadPort(addr uint16) (byte, bool) {
 		}
 		// panic(-1)
 	}
-	return 0xff, false
+	return 0xff
 }
 
 func (gb *gb) WritePort(addr uint16, data byte) {
@@ -263,8 +263,8 @@ func (bios *bios) SetBank(bank []byte) {
 	bios.bank = bank
 }
 
-func (bios *bios) ReadPort(addr uint16) (byte, bool) {
-	return bios.bank[addr], !bios.enable
+func (bios *bios) ReadPort(addr uint16) byte {
+	return bios.bank[addr]
 }
 
 func (bios *bios) WritePort(addr uint16, data byte) {

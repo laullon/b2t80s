@@ -62,8 +62,8 @@ func (mem *memory) getSlot(addr uint16) byte {
 	return mem.cfg[page]
 }
 
-func (mem *memory) ReadPort(port uint16) (byte, bool) { return 0, true }
-func (mem *memory) WritePort(port uint16, data byte)  {}
+func (mem *memory) ReadPort(port uint16) byte        { return 0 }
+func (mem *memory) WritePort(port uint16, data byte) {}
 
 // -------
 // - ROM -
@@ -82,7 +82,7 @@ func (rom rom) Write(addr uint16, b byte) {
 }
 
 // TODO: remove
-func (rom rom) ReadPort(port uint16) (byte, bool)    { return 0, true }
+func (rom rom) ReadPort(port uint16) byte            { return 0 }
 func (rom rom) WritePort(port uint16, data byte)     {}
 func (rom rom) GetBlock(start, length uint16) []byte { panic("not supported") }
 
@@ -101,7 +101,7 @@ func (ram ram) Write(addr uint16, b byte) {
 }
 
 // TODO: remove
-func (ram ram) ReadPort(port uint16) (byte, bool)    { return 0, true }
+func (ram ram) ReadPort(port uint16) byte            { return 0 }
 func (ram ram) WritePort(port uint16, data byte)     {}
 func (ram ram) GetBlock(start, length uint16) []byte { panic("not supported") }
 
@@ -115,6 +115,6 @@ func (es emptySlot) Read(addr uint16) byte     { return 0xff }
 func (es emptySlot) Write(addr uint16, b byte) {}
 
 // TODO: remove
-func (es emptySlot) ReadPort(port uint16) (byte, bool)    { return 0, true }
+func (es emptySlot) ReadPort(port uint16) byte            { return 0 }
 func (es emptySlot) WritePort(port uint16, data byte)     {}
 func (es emptySlot) GetBlock(start, length uint16) []byte { panic("not supported") }

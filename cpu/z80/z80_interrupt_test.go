@@ -58,7 +58,7 @@ type counterHardware struct {
 	c int
 }
 
-func (c *counterHardware) ReadPort(port uint16) (byte, bool) { return 0, false }
+func (c *counterHardware) ReadPort(port uint16) byte { return 0 }
 func (c *counterHardware) WritePort(port uint16, data byte) {
 	c.c++
 }

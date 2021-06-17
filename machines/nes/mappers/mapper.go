@@ -73,7 +73,7 @@ type rom struct {
 	write func(addr uint16, data byte)
 }
 
-func (rom *rom) ReadPort(addr uint16) (byte, bool) { return rom.mem[addr&rom.mask], false }
+func (rom *rom) ReadPort(addr uint16) byte { return rom.mem[addr&rom.mask] }
 func (rom *rom) WritePort(addr uint16, data byte) {
 	if rom.write != nil {
 		rom.write(addr, data)
@@ -88,5 +88,5 @@ type ram struct {
 	mask uint16
 }
 
-func (ram *ram) ReadPort(addr uint16) (byte, bool) { return ram.mem[addr&ram.mask], false }
-func (ram *ram) WritePort(addr uint16, data byte)  { ram.mem[addr&ram.mask] = data }
+func (ram *ram) ReadPort(addr uint16) byte        { return ram.mem[addr&ram.mask] }
+func (ram *ram) WritePort(addr uint16, data byte) { ram.mem[addr&ram.mask] = data }

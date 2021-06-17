@@ -50,7 +50,7 @@ func newCRTC(cpu z80.Z80) *crtc {
 	return crtc
 }
 
-func (crtc *crtc) ReadPort(port uint16) (byte, bool) { return 0, false }
+func (crtc *crtc) ReadPort(port uint16) byte { return 0 }
 
 func (crtc *crtc) WritePort(port uint16, data byte) {
 	f := port >> 8 & 3

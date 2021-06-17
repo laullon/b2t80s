@@ -45,6 +45,6 @@ func (cart *ascii16) Write(addr uint16, data byte) {
 }
 
 // TODO: remove
-func (cart *ascii16) ReadPort(port uint16) (byte, bool)    { return 0, true }
+func (cart *ascii16) ReadPort(port uint16) byte            { return 0 }
 func (cart *ascii16) WritePort(port uint16, data byte)     {}
 func (cart *ascii16) GetBlock(start, length uint16) []byte { panic("not supported") }

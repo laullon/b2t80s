@@ -107,32 +107,32 @@ func NewMSX() emulator.Machine {
 func (msx *msx) Reset() {
 }
 
-func (msx *msx) ReadPort(port uint16) (byte, bool) {
+func (msx *msx) ReadPort(port uint16) byte {
 	if port&0xff < 40 {
-		return 0, false
+		return 0
 	}
 
 	switch port & 0xff {
 	// case 0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e, 0x6f:
-	// 	return 0, false
+	// 	return 0
 
 	case 0xa8, 0xa9, 0xaa, 0xab:
 		return msx.ppi.ReadPort(port)
 
 	// case 0xac, 0xad, 0xae, 0xaf:
-	// 	return 0, false
+	// 	return 0
 
 	case 0x98, 0x99:
 		return msx.vdp.ReadPort(port)
 
 	case 0xa2:
 		if msx.ayReg == 14 {
-			return readJoystick(msx.joy2), false
+			return readJoystick(msx.joy2)
 		}
-		return msx.ay8912.ReadRegister(msx.ayReg), false
+		return msx.ay8912.ReadRegister(msx.ayReg)
 
 	case 0xc0, 0xc1, 0xc2, 0xc3:
-		return 0, false
+		return 0
 
 	default:
 		panic(fmt.Sprintf("[ReadPort] Unsopported port: 0x%02X", port))

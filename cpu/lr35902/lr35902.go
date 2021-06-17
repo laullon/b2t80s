@@ -239,7 +239,7 @@ func (cpu *lr35902) WritePort(addr uint16, data byte) {
 	}
 }
 
-func (cpu *lr35902) ReadPort(addr uint16) (byte, bool) {
+func (cpu *lr35902) ReadPort(addr uint16) byte {
 	switch addr {
 	}
 	panic(-1)

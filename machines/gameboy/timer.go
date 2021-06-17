@@ -56,16 +56,16 @@ func (t *timer) WritePort(addr uint16, data byte) {
 	}
 }
 
-func (t *timer) ReadPort(addr uint16) (byte, bool) {
+func (t *timer) ReadPort(addr uint16) byte {
 	switch addr {
 	case 0xff04:
-		return uint8(t.div >> 8), false
+		return uint8(t.div >> 8)
 	case 0xff05:
-		return t.tima, false
+		return t.tima
 	case 0xff06:
-		return t.tma, false
+		return t.tma
 	case 0xff07:
-		return t.tac, false
+		return t.tac
 	}
 	panic(-1)
 

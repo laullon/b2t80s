@@ -16,14 +16,14 @@ func NewCPCFDC765() *fdc765 {
 	}
 }
 
-func (fdc *fdc765) ReadPort(port uint16) (byte, bool) {
+func (fdc *fdc765) ReadPort(port uint16) byte {
 	if (port & (1 << 10)) == 0 {
 		f := ((port & (1 << 8)) >> (8 - 1)) | (port & 0x01)
 		switch f {
 		case 2:
-			return fdc.chip.ReadStatus(), false
+			return fdc.chip.ReadStatus()
 		case 3:
-			return fdc.chip.ReadData(), false
+			return fdc.chip.ReadData()
 		default:
 			panic(f)
 		}

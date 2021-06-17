@@ -188,5 +188,5 @@ func (m *cpc) SetDebugger(db cpu.DebuggerCallbacks) { m.cpu.SetDebugger(db) }
 
 type dummyPortsManager struct{}
 
-func (*dummyPortsManager) ReadPort(port uint16) (byte, bool) { return 0, false }
-func (*dummyPortsManager) WritePort(port uint16, data byte)  {}
+func (*dummyPortsManager) ReadPort(port uint16) byte        { return 0 }
+func (*dummyPortsManager) WritePort(port uint16, data byte) {}

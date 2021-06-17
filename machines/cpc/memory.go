@@ -134,7 +134,7 @@ func (mem *memory) LoadRom(idx int, rom []byte) {
 	}
 }
 
-func (mem *memory) ReadPort(port uint16) (byte, bool) { return 0, true }
+func (mem *memory) ReadPort(port uint16) byte { return 0 }
 func (mem *memory) WritePort(port uint16, data byte) {
 	switch {
 	case port&0x2000 == 0:

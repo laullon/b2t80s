@@ -160,7 +160,8 @@ func (apu *apu) getStatus() (res byte) {
 	return
 }
 
-func (apu *apu) ReadPort(addr uint16) (res byte, skip bool) {
+func (apu *apu) ReadPort(addr uint16) byte {
+	var res byte
 	channel, register := decode(addr)
 	if channel < 4 {
 		res = apu.channels[channel].getRegister(register)
@@ -180,7 +181,7 @@ func (apu *apu) ReadPort(addr uint16) (res byte, skip bool) {
 		res = apu.channels[2].(*waveChannel).ram[addr&0x000f]
 	}
 	// fmt.Printf("[apu] read  0x%04X 0x%02X (%d,%d)%04b\n", addr, res, channel, register, apu.getStatus()&0b1111)
-	return
+	return res
 }
 
 func (apu *apu) WritePort(addr uint16, data byte) {

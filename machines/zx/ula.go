@@ -169,7 +169,7 @@ func (ula *ula) FrameDone() {
 	ula.monitor.FrameDone()
 }
 
-func (ula *ula) ReadPort(port uint16) (byte, bool) {
+func (ula *ula) ReadPort(port uint16) byte {
 	if port&0xff == 0xfe {
 		data := byte(0b00011111)
 		readRow := port >> 8
@@ -183,9 +183,9 @@ func (ula *ula) ReadPort(port uint16) (byte, bool) {
 		} else {
 			data |= 0b10100000
 		}
-		return data, false
+		return data
 	}
-	return ula.floatingBus, false
+	return ula.floatingBus
 }
 
 func (ula *ula) WritePort(port uint16, data byte) {

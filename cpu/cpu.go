@@ -27,7 +27,7 @@ type PortMask struct {
 }
 
 type PortManager interface {
-	ReadPort(port uint16) (byte, bool)
+	ReadPort(port uint16) byte
 	WritePort(port uint16, data byte)
 }
 

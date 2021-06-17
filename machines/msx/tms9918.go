@@ -74,8 +74,8 @@ func newTMS9918(cpu z80.Z80) *tms9918 {
 	return res
 }
 
-func (vdp *tms9918) ReadPort(port uint16) (res byte, skip bool) {
-	skip = false
+func (vdp *tms9918) ReadPort(port uint16) byte {
+	var res byte
 	switch port & 0xff {
 	case 0x98:
 		res = vdp.vramByteToRead
@@ -102,7 +102,7 @@ func (vdp *tms9918) ReadPort(port uint16) (res byte, skip bool) {
 		panic(fmt.Sprintf("[ReadPort] Unsopported port: 0x%02X", port))
 	}
 	vdp.waitSecondByte = false
-	return
+	return res
 }
 
 func (vdp *tms9918) WritePort(port uint16, data byte) {

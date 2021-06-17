@@ -170,7 +170,7 @@ func (zx *zx) loadDataBlock() {
 type kempston struct {
 }
 
-func (k *kempston) ReadPort(port uint16) (byte, bool) {
+func (k *kempston) ReadPort(port uint16) byte {
 	j := gui.Joystick1
 	res := byte(0)
 	// 000FUDLR
@@ -192,7 +192,7 @@ func (k *kempston) ReadPort(port uint16) (byte, bool) {
 		}
 	}
 
-	return res, false
+	return res
 }
 
 func (k *kempston) WritePort(port uint16, data byte) {

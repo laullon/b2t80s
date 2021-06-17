@@ -60,17 +60,15 @@ func (bus *bus) Read(addr uint16) uint8 {
 	for _, entry := range bus.ports {
 		if (addr & entry.mask.Mask) == entry.mask.Value {
 			// fmt.Printf("[%s-readPort] port:0x%04X (0x%04X)(0x%04X) \n", bus.name, addr, addr&entry.mask.Mask, entry.mask.Value)
-			data, skip := entry.manager.ReadPort(addr)
+			data := entry.manager.ReadPort(addr)
 			// println("[readPort] read from:", entry.name, "skip:", skip)
 			// fmt.Printf(fmt.Sprintf("[readPort]-> port:0x%04X data:0x%02X \n", addr, data))
-			if !skip {
-				return data
-			}
+			return data
 		}
 	}
 
 	if bus.defaultManager != nil {
-		data, _ := bus.defaultManager.ReadPort(addr)
+		data := bus.defaultManager.ReadPort(addr)
 		return data
 	} else {
 		panic(fmt.Sprintf("[%s-readPort]-(no PM)-> port:0x%04X", bus.name, addr))
@@ -142,8 +140,8 @@ func (ram *ram) SetBank(bank []byte) {
 	ram.bank = bank
 }
 
-func (ram *ram) ReadPort(addr uint16) (byte, bool) {
-	return ram.bank[addr&ram.mask], false
+func (ram *ram) ReadPort(port uint16) byte {
+	return ram.bank[port&ram.mask]
 }
 
 func (ram *ram) WritePort(addr uint16, data byte) {
@@ -182,8 +180,8 @@ func (rom *rom) SetBank(bank []byte) {
 	rom.bank = bank
 }
 
-func (rom *rom) ReadPort(addr uint16) (byte, bool) {
-	return rom.bank[addr&rom.mask], false
+func (rom *rom) ReadPort(port uint16) byte {
+	return rom.bank[port&rom.mask]
 }
 
 func (rom *rom) WritePort(addr uint16, data byte) {

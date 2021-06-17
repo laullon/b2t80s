@@ -9,8 +9,8 @@ type watchdog struct {
 	cpu   cpu.CPU
 }
 
-func (wd *watchdog) ReadPort(addr uint16) (byte, bool) { panic(-1) }
-func (wd *watchdog) WritePort(addr uint16, data byte)  { wd.count++ }
+func (wd *watchdog) ReadPort(port uint16) byte        { panic(-1) }
+func (wd *watchdog) WritePort(addr uint16, data byte) { wd.count++ }
 func (wd *watchdog) start() {
 	// ticker := time.NewTicker(time.Second * 2)
 	// go func() {

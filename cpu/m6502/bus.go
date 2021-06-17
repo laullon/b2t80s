@@ -55,7 +55,7 @@ func (bus *bus) Read(addr uint16) uint8 {
 		if (addr & entry.mask.Mask) == entry.mask.Value {
 			// fmt.Printf("[readPort] port:0x%04X (0x%04X)(0x%04X) \n", addr, addr&portMask.Mask, portMask.Value)
 			// println(reflect.TypeOf(portManager).Elem().Name())
-			data, _ := entry.manager.ReadPort(addr)
+			data := entry.manager.ReadPort(addr)
 			// fmt.Printf(fmt.Sprintf("[readPort]-> port:0x%04X data:0x%02X \n", addr, data))
 			return data
 		}
@@ -121,11 +121,11 @@ type BasicRam struct {
 	Trace bool
 }
 
-func (ram *BasicRam) ReadPort(addr uint16) (byte, bool) {
+func (ram *BasicRam) ReadPort(addr uint16) byte {
 	if ram.Trace {
 		fmt.Printf("[ram] read 0x%04X \n", addr)
 	}
-	return ram.Data[addr&ram.Mask], false
+	return ram.Data[addr&ram.Mask]
 }
 
 func (ram *BasicRam) WritePort(addr uint16, data byte) {

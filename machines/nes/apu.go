@@ -76,7 +76,8 @@ func (apu *apu) Tick() {
 	}
 }
 
-func (apu *apu) ReadPort(addr uint16) (res byte, skip bool) {
+func (apu *apu) ReadPort(addr uint16) byte {
+	var res byte
 	if addr < 0x4014 {
 		chIdx := addr >> 2 & 0x07
 		idx := addr & 0x03
@@ -105,7 +106,7 @@ func (apu *apu) ReadPort(addr uint16) (res byte, skip bool) {
 			// panic(fmt.Sprintf("[apu] read  0x%04X\n", addr&0x1f))
 		}
 	}
-	return
+	return res
 }
 
 func (apu *apu) WritePort(addr uint16, data byte) {

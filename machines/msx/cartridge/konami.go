@@ -58,6 +58,6 @@ func decodeAddr(addr uint16) (bank byte, offset uint32, ok bool) {
 }
 
 // TODO: remove
-func (cart *konami) ReadPort(port uint16) (byte, bool)    { return 0, true }
+func (cart *konami) ReadPort(port uint16) byte            { return 0 }
 func (cart *konami) WritePort(port uint16, data byte)     {}
 func (cart *konami) GetBlock(start, length uint16) []byte { panic("not supported") }

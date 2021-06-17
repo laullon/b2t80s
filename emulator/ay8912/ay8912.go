@@ -123,8 +123,8 @@ func New() AY8912 {
 }
 
 // TODO: remove... create a wrapper for each machine
-func (ay *ay8912) ReadPort(port uint16) (byte, bool) {
-	return ay.regs[ay.selectedReg], false
+func (ay *ay8912) ReadPort(port uint16) byte {
+	return ay.regs[ay.selectedReg]
 }
 
 func (ay *ay8912) WritePort(port uint16, data byte) {

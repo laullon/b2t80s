@@ -51,15 +51,15 @@ func newPPI(crtc *crtc, cassette cassette.Cassette, psg ay8912.AY8912) *ppi {
 	return ppi
 }
 
-func (ppi *ppi) ReadPort(port uint16) (byte, bool) {
+func (ppi *ppi) ReadPort(port uint16) byte {
 	t := (port>>8)&0xf - 4
 
 	if t == 0x0 {
-		return ppi.readA(), false
+		return ppi.readA()
 	} else if t == 0x1 {
-		return ppi.readB(), false
+		return ppi.readB()
 	} else if t == 0x2 {
-		return ppi.readC(), false
+		return ppi.readC()
 	} else {
 		panic(t)
 	}

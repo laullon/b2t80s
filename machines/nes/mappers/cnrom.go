@@ -33,8 +33,8 @@ func (m *cnrom) ConnectToCPU(bus m6502.Bus) {
 	bus.RegisterPort("cart.control", cpu.PortMask{Mask: 0b10000000_00000000, Value: 0b10000000_00000000}, m)
 }
 
-func (m *cnrom) ReadPort(addr uint16) (byte, bool) {
-	return m.file.prg[addr&m.mask], false
+func (m *cnrom) ReadPort(addr uint16) byte {
+	return m.file.prg[addr&m.mask]
 }
 
 func (m *cnrom) WritePort(addr uint16, data byte) {
