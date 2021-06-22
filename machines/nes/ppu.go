@@ -11,7 +11,7 @@ import (
 )
 
 type ppu struct {
-	cpu      cpu.CPU
+	cpu      m6502.M6502
 	bus      m6502.Bus
 	display  *gui.Display
 	monitor  emulator.Monitor
@@ -62,7 +62,7 @@ type ppu struct {
 	blocks    [][]byte
 }
 
-func newPPU(bus m6502.Bus, m6805 cpu.CPU) *ppu {
+func newPPU(bus m6502.Bus, m6805 m6502.M6502) *ppu {
 	display := gui.NewDisplay(256, 240)
 	ppu := &ppu{
 		cpu:     m6805,

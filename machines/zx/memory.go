@@ -94,7 +94,7 @@ func (mem *memory) GetDumplables() map[string]cpu.Dumpable {
 	panic(-1)
 }
 
-func (mem *memory) RegisterPort(name string, mask cpu.PortMask, manager cpu.PortManager) {
+func (mem *memory) RegisterPort(name string, mask cpu.PortMask, manager cpu.PortManager, trace ...bool) {
 	panic(-1)
 }
 

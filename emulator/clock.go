@@ -2,6 +2,7 @@ package emulator
 
 import (
 	"fmt"
+	rtdebug "runtime/debug"
 	"time"
 )
 
@@ -78,6 +79,13 @@ func (c *clock) Run() {
 	ticker := time.NewTicker(c.wait)
 	hf := 0
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Printf("PANIC!!! -> %v\n%T\n", r, r)
+				fmt.Println("stacktrace from panic: \n" + string(rtdebug.Stack()))
+			}
+		}()
+
 		for range ticker.C {
 			if !c.pasued {
 				start := time.Now()

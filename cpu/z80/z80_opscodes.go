@@ -510,31 +510,31 @@ func (cpu *z80) initOpsCodes() {
 }
 
 func decodeCB(cpu *z80) {
-	cpu.scheduler.append(newFetch(cpu.lookupCB))
+	cpu.scheduler.append(cpu.newFetch(cpu.lookupCB))
 }
 
 func decodeDD(cpu *z80) {
 	cpu.indexIdx = 1
-	cpu.scheduler.append(newFetch(cpu.lookupDD))
+	cpu.scheduler.append(cpu.newFetch(cpu.lookupDD))
 }
 
 func decodeED(cpu *z80) {
-	cpu.scheduler.append(newFetch(cpu.lookupED))
+	cpu.scheduler.append(cpu.newFetch(cpu.lookupED))
 }
 
 func decodeFD(cpu *z80) {
 	cpu.indexIdx = 2
-	cpu.scheduler.append(newFetch(cpu.lookupFD))
+	cpu.scheduler.append(cpu.newFetch(cpu.lookupFD))
 }
 
 func decodeDDCB(cpu *z80) {
 	cpu.regs.R--
-	cpu.scheduler.append(newFetch(cpu.lookupDDCB))
+	cpu.scheduler.append(cpu.newFetch(cpu.lookupDDCB))
 }
 
 func decodeFDCB(cpu *z80) {
 	cpu.regs.R--
-	cpu.scheduler.append(newFetch(cpu.lookupFDCB))
+	cpu.scheduler.append(cpu.newFetch(cpu.lookupFDCB))
 }
 
 func (o *opCode) String() string {

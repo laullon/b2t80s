@@ -35,7 +35,6 @@ type fetch struct {
 
 func (ops *fetch) tick(cpu *z80) {
 	ops.t++
-	// println("> [fetch]", ops.t, "pc:", fmt.Sprintf("0x%04X", cpu.regs.PC))
 	switch ops.t {
 	case 1:
 		cpu.regs.M1 = true
@@ -53,7 +52,9 @@ func (ops *fetch) tick(cpu *z80) {
 	case 4:
 		cpu.fetched.op = ops.table[cpu.fetched.opCode]
 		if cpu.fetched.op == nil {
-			panic(errors.Errorf("opCode '%X - %X' not found", cpu.fetched.prefix, cpu.fetched.opCode))
+			err := errors.Errorf("opCode '%X - %X' not found on PC:0x%04x", cpu.fetched.prefix, cpu.fetched.opCode, cpu.fetched.pc)
+			cpu.log.AppendLastOP(err.Error())
+			panic(err)
 		}
 		for _, op := range cpu.fetched.op.ops {
 			op.reset()
@@ -66,10 +67,8 @@ func (ops *fetch) tick(cpu *z80) {
 	}
 }
 
-var fetchPool = newObjectPool(func() interface{} { return &fetch{} })
-
-func newFetch(table []*opCode) *fetch {
-	fetch := fetchPool.next().(*fetch)
+func (cpu *z80) newFetch(table []*opCode) *fetch {
+	fetch := cpu.fetchPool.next().(*fetch)
 	fetch.reset()
 	fetch.table = table
 	return fetch
@@ -162,10 +161,8 @@ func (ops *mr) tick(cpu *z80) {
 	}
 }
 
-var mrsPool = newObjectPool(func() interface{} { return &mr{} })
-
-func newMR(from uint16, f z80MRf) *mr {
-	mr := mrsPool.next().(*mr)
+func (cpu *z80) newMR(from uint16, f z80MRf) *mr {
+	mr := cpu.mrsPool.next().(*mr)
 	mr.reset()
 	mr.from = from
 	mr.f = f
@@ -230,10 +227,8 @@ func (ops *mw) tick(cpu *z80) {
 	}
 }
 
-var mwsPool = newObjectPool(func() interface{} { return &mw{} })
-
-func newMW(addr uint16, data uint8, f func(*z80)) *mw {
-	mw := mwsPool.next().(*mw)
+func (cpu *z80) newMW(addr uint16, data uint8, f func(*z80)) *mw {
+	mw := cpu.mwsPool.next().(*mw)
 	mw.reset()
 	mw.addr = addr
 	mw.data = data

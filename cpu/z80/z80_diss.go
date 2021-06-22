@@ -1348,7 +1348,7 @@ func (fd *fetchedData) disassemble() string {
 		op = opsFDCB[fd.opCode]
 
 	default:
-		panic(fmt.Sprintf("--> 0x%X (%s)", fd.prefix, fd.op.name))
+		// panic(fmt.Sprintf("DISS --> 0x%X (%s)", fd.prefix, fd.op.name))
 	}
 
 	if strings.HasPrefix(op, "JR ") || strings.HasPrefix(op, "DJNZ ") {

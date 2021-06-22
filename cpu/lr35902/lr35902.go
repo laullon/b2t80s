@@ -88,7 +88,6 @@ var intVector = []uint16{0x40, 0x48, 0x50, 0x58, 0x60}
 type LR35902 interface {
 	cpu.CPU
 	Registers() *LR35902Registers
-	RegisterTrap(pc uint16, trap CPUTrap)
 	cpu.PortManager
 }
 
@@ -136,11 +135,8 @@ func New(bus cpu.Bus) LR35902 {
 	return res
 }
 
-// TODO: remove from CPU interface
-func (cpu *lr35902) Interrupt(bool)                       {}
-func (cpu *lr35902) NMI(bool)                             {}
-func (cpu *lr35902) CurrentOP() string                    { panic(-2) }
-func (cpu *lr35902) RegisterTrap(pc uint16, trap CPUTrap) { panic(-2) }
+func (cpu *lr35902) Interrupt(bool) {}
+func (cpu *lr35902) NMI(bool)       {}
 
 func (cpu *lr35902) Registers() *LR35902Registers {
 	return cpu.regs

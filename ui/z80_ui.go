@@ -18,7 +18,7 @@ type z80UI struct {
 	ixh, ixl, iyh, iyl     *RegText
 	ix, iy                 *RegText
 	sp, pc, flag           *RegText
-	im                     *RegText
+	im, iff                *RegText
 
 	log    []string
 	nextOP string
@@ -55,6 +55,7 @@ func NewZ80UI(cpu z80.Z80, trace bool) gui.GUIObject {
 	ctl.pc = NewRegText("PC:")
 	ctl.flag = NewRegText("FLAG:")
 	ctl.im = NewRegText("IM:")
+	ctl.iff = NewRegText("IFF:")
 
 	flag := NewRegText("")
 	flag.Update("SZXHXPNC")
@@ -66,7 +67,7 @@ func NewZ80UI(cpu z80.Z80, trace bool) gui.GUIObject {
 		ctl.d, ctl.e, ctl.de, ctl.flag,
 		ctl.h, ctl.l, ctl.hl, flag,
 		ctl.ixh, ctl.ixl, ctl.ix, ctl.im,
-		ctl.iyh, ctl.iyl, ctl.iy,
+		ctl.iyh, ctl.iyl, ctl.iy, ctl.iff,
 	}
 
 	grid := gui.NewHGrid(8, 20, 0)
@@ -129,6 +130,13 @@ func (ctl *z80UI) Update() {
 	ctl.sp.Update(toHex16(ctl.regs.SP.Get()))
 	ctl.pc.Update(toHex16(ctl.regs.PC))
 	ctl.im.Update(strconv.Itoa(int(ctl.regs.InterruptsMode)))
+
+	if ctl.regs.IFF1 {
+		ctl.iff.Update("true")
+	} else {
+		ctl.iff.Update("false")
+	}
+
 	ctl.flag.Update(fmt.Sprintf("%08b", ctl.regs.F.GetByte()))
 
 	ctl.out.SetText(strings.Join(append(ctl.log, "\n", ctl.nextOP), "\n"))

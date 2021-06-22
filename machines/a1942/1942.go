@@ -49,8 +49,9 @@ func New1942() emulator.Machine {
 	m.mainBus = z80.NewBus(m.mainMem, mainPorts)
 	m.mainCpu = z80.NewZ80(m.mainBus)
 
+	audioPorts := cpu.NewBus("mainPorts") //, &unused{})
 	m.audioMem = cpu.NewBus("audioMem", &unused{})
-	m.audioBus = z80.NewBus(m.audioMem, nil)
+	m.audioBus = z80.NewBus(m.audioMem, audioPorts)
 	m.audioCpu = z80.NewZ80(m.audioBus)
 
 	m.monitor = emulator.NewMonitor(m.video.display)
@@ -119,11 +120,11 @@ func (t *a1942) Monitor() emulator.Monitor {
 
 func (t *a1942) Control() map[string]gui.GUIObject {
 	return map[string]gui.GUIObject{
-		// "Main CPU":     ui.NewZ80UI(t.mainCpu, true),
-		// "Audio CPU":    ui.NewZ80UI(t.audioCpu, false),
-		"Main Memory": ui.NewBusUI(t.mainMem),
-		// "Audio Memory": ui.NewBusUI(t.audioMem),
-		"char": newCharactersUI(t.video),
+		"Main CPU":     ui.NewZ80UI(t.mainCpu, false),
+		"Audio CPU":    ui.NewZ80UI(t.audioCpu, false),
+		"Main Memory":  ui.NewBusUI(t.mainMem),
+		"Audio Memory": ui.NewBusUI(t.audioMem),
+		"char":         newCharactersUI(t.video),
 	}
 }
 
@@ -198,5 +199,5 @@ func (l *latch) ReadPort(port uint16) byte {
 
 func (l *latch) WritePort(port uint16, data byte) {
 	l.v = data
-	l.m.audioCpu.NMI(true)
+	// l.m.audioCpu.NMI(true)
 }

@@ -116,6 +116,7 @@ type Z80 interface {
 	Registers() *Z80Registers
 	RegisterTrap(pc uint16, trap CPUTrap)
 	Interrupt(bool, ...byte)
+	NMI(bool)
 }
 
 type z80 struct {
@@ -128,6 +129,7 @@ type z80 struct {
 	halt bool
 	wait bool
 
+	doNMInterrupt bool
 	doInterrupt   bool
 	interruptData byte
 
@@ -154,6 +156,10 @@ type z80 struct {
 	popData    uint16
 	popF       func(cpu *z80, data uint16)
 	hlv        uint8
+
+	mrsPool   *objectPool
+	mwsPool   *objectPool
+	fetchPool *objectPool
 }
 
 func init() {
@@ -183,6 +189,9 @@ func NewZ80(bus Bus) Z80 {
 		fetched:   &fetchedData{},
 		scheduler: newCircularBuffer(),
 		traps:     make(map[uint16]CPUTrap),
+		mrsPool:   newObjectPool(func() interface{} { return &mr{} }),
+		mwsPool:   newObjectPool(func() interface{} { return &mw{} }),
+		fetchPool: newObjectPool(func() interface{} { return &fetch{} }),
 		regs: &Z80Registers{
 			PC: 0,
 			M1: false,
@@ -211,33 +220,17 @@ func NewZ80(bus Bus) Z80 {
 
 	cpu.initOpsCodes()
 
-	cpu.regs.BC = &cpuUtils.RegPair{&cpu.regs.B, &cpu.regs.C}
-	cpu.regs.DE = &cpuUtils.RegPair{&cpu.regs.D, &cpu.regs.E}
-	cpu.regs.HL = &cpuUtils.RegPair{&cpu.regs.H, &cpu.regs.L}
-	cpu.regs.SP = &cpuUtils.RegPair{&cpu.regs.S, &cpu.regs.P}
-	cpu.regs.IX = &cpuUtils.RegPair{&cpu.regs.IXH, &cpu.regs.IXL}
-	cpu.regs.IY = &cpuUtils.RegPair{&cpu.regs.IYH, &cpu.regs.IYL}
+	cpu.regs.BC = &cpuUtils.RegPair{H: &cpu.regs.B, L: &cpu.regs.C}
+	cpu.regs.DE = &cpuUtils.RegPair{H: &cpu.regs.D, L: &cpu.regs.E}
+	cpu.regs.HL = &cpuUtils.RegPair{H: &cpu.regs.H, L: &cpu.regs.L}
+	cpu.regs.SP = &cpuUtils.RegPair{H: &cpu.regs.S, L: &cpu.regs.P}
+	cpu.regs.IX = &cpuUtils.RegPair{H: &cpu.regs.IXH, L: &cpu.regs.IXL}
+	cpu.regs.IY = &cpuUtils.RegPair{H: &cpu.regs.IYH, L: &cpu.regs.IYL}
 	cpu.indexRegs = []*cpuUtils.RegPair{cpu.regs.HL, cpu.regs.IX, cpu.regs.IY}
 
-	cpu.scheduler.append(newFetch(cpu.lookup))
+	cpu.scheduler.append(cpu.newFetch(cpu.lookup))
 	return cpu
 }
-
-func (cpu *z80) Status() string { return cpu.regs.dump() }
-
-func (cpu *z80) FullStatus() string {
-	var res strings.Builder
-	res.WriteString(fmt.Sprintf("  A:0x%02X    F:0x%02X  AF:0x%04X    SP:0x%04X\n", cpu.regs.A, cpu.regs.F.GetByte(), uint16(cpu.regs.A)<<8|uint16(cpu.regs.F.GetByte()), cpu.regs.SP.Get()))
-	res.WriteString(fmt.Sprintf("  B:0x%02X    C:0x%02X  BC:0x%04X    ---------\n", cpu.regs.B, cpu.regs.C, uint16(cpu.regs.B)<<8|uint16(cpu.regs.C)))
-	res.WriteString(fmt.Sprintf("  D:0x%02X    E:0x%02X  DE:0x%04X    0x%04X\n", cpu.regs.D, cpu.regs.E, uint16(cpu.regs.D)<<8|uint16(cpu.regs.E), "-"))         // getWord(debug.memory, cpu.regs.SP.Get()+0)))
-	res.WriteString(fmt.Sprintf("  H:0x%02X    L:0x%02X  HL:0x%04X    0x%04X\n", cpu.regs.H, cpu.regs.L, uint16(cpu.regs.H)<<8|uint16(cpu.regs.L), "-"))         // getWord(debug.memory, cpu.regs.SP.Get()+2)))
-	res.WriteString(fmt.Sprintf("IXH:0x%02X  IXL:0x%02X  IX:0x%04X    0x%04X\n", cpu.regs.IXH, cpu.regs.IXL, uint16(cpu.regs.IXH)<<8|uint16(cpu.regs.IXL), "-")) // getWord(debug.memory, cpu.regs.SP.Get()+4)))
-	res.WriteString(fmt.Sprintf("IYH:0x%02X  IYL:0x%02X  IY:0x%04X    0x%04X\n", cpu.regs.IYH, cpu.regs.IYL, uint16(cpu.regs.IYH)<<8|uint16(cpu.regs.IYL), "-")) // getWord(debug.memory, cpu.regs.SP.Get()+6)))
-	res.WriteString(fmt.Sprintf("SZ5H3PNC            PC:0x%04X\n%08b", cpu.regs.PC, cpu.regs.F.GetByte()))
-	return res.String()
-}
-
-func (cpu *z80) CurrentOP() string { panic(-2) }
 
 func (cpu *z80) RegisterTrap(pc uint16, trap CPUTrap) {
 	cpu.traps[pc] = trap
@@ -255,6 +248,7 @@ func (cpu *z80) Interrupt(i bool, data ...byte) {
 }
 
 func (cpu *z80) NMI(i bool) {
+	cpu.doNMInterrupt = i
 }
 
 func (cpu *z80) Wait(w bool) {
@@ -278,47 +272,61 @@ func (cpu *z80) execInterrupt() {
 	}
 
 	cpu.prepareForNewInstruction()
-	cpu.doInterrupt = false
 
-	if cpu.regs.IFF1 {
+	if cpu.doNMInterrupt {
+		cpu.doNMInterrupt = false
 		cpu.regs.IFF1 = false
-		cpu.regs.IFF2 = false
-		switch cpu.regs.InterruptsMode {
-		case 0:
-			opCode := cpu.interruptData
-			cpu.fetched.opCode = opCode
-			op := cpu.lookup[opCode]
-			if op == nil {
-				panic(errors.Errorf("opCode '%X - %X' not found", 0, opCode))
-			}
-			for _, op := range op.ops {
-				op.reset()
-			}
-			cpu.scheduler.clear()
-			cpu.scheduler.append(op.ops...)
+		code := &exec{l: 5, f: func(cpu *z80) {
+			cpu.pushToStack(cpu.regs.PC, func(cpu *z80) {
+				cpu.regs.PC = 0x0066
+			})
+		}}
+		cpu.scheduler.append(code)
+		return
+	}
 
-		case 1:
-			code := &exec{l: 7, f: func(cpu *z80) {
-				cpu.pushToStack(cpu.regs.PC, func(cpu *z80) {
-					cpu.regs.PC = 0x0038
-				})
-			}}
-			cpu.scheduler.append(code)
+	if cpu.doInterrupt {
+		cpu.doInterrupt = false
+		if cpu.regs.IFF1 {
+			cpu.regs.IFF1 = false
+			cpu.regs.IFF2 = false
+			switch cpu.regs.InterruptsMode {
+			case 0:
+				opCode := cpu.interruptData
+				cpu.fetched.opCode = opCode
+				op := cpu.lookup[opCode]
+				if op == nil {
+					panic(errors.Errorf("opCode '%X - %X' not found", 0, opCode))
+				}
+				for _, op := range op.ops {
+					op.reset()
+				}
+				cpu.scheduler.clear()
+				cpu.scheduler.append(op.ops...)
 
-		case 2:
-			code := &exec{l: 7, f: func(cpu *z80) {
-				cpu.pushToStack(cpu.regs.PC, func(cpu *z80) {
-					pos := uint16(cpu.regs.I)<<8 + 0xff
-					mr1 := newMR(pos, func(cpu *z80, data byte) {
-						cpu.regs.PC = uint16(data) << 8
+			case 1:
+				code := &exec{l: 7, f: func(cpu *z80) {
+					cpu.pushToStack(cpu.regs.PC, func(cpu *z80) {
+						cpu.regs.PC = 0x0038
 					})
-					mr2 := newMR(pos, func(cpu *z80, data byte) {
-						cpu.regs.PC |= uint16(data)
+				}}
+				cpu.scheduler.append(code)
+
+			case 2:
+				code := &exec{l: 7, f: func(cpu *z80) {
+					cpu.pushToStack(cpu.regs.PC, func(cpu *z80) {
+						pos := uint16(cpu.regs.I)<<8 + 0xff
+						mr1 := cpu.newMR(pos, func(cpu *z80, data byte) {
+							cpu.regs.PC = uint16(data) << 8
+						})
+						mr2 := cpu.newMR(pos, func(cpu *z80, data byte) {
+							cpu.regs.PC |= uint16(data)
+						})
+						cpu.scheduler.append(mr1, mr2)
 					})
-					cpu.scheduler.append(mr1, mr2)
-				})
-			}}
-			cpu.scheduler.append(code)
+				}}
+				cpu.scheduler.append(code)
+			}
 		}
 	}
 }
@@ -342,7 +350,7 @@ func (cpu *z80) Tick() {
 	}
 
 	if cpu.halt {
-		if cpu.doInterrupt {
+		if cpu.doInterrupt || cpu.doNMInterrupt {
 			cpu.halt = false
 			cpu.regs.PC++
 			cpu.execInterrupt()
@@ -354,10 +362,10 @@ func (cpu *z80) Tick() {
 	if cpu.scheduler.first().isDone() {
 		cpu.scheduler.next()
 		if cpu.scheduler.isEmpty() {
-			// if cpu.log != nil {
-			// 	cpu.log.AppendLastOP(cpu.fetched.disassemble()) //fmt.Sprintf("%04x: %s", cpu.fetched.pc, cpu.fetched.getInstruction()))
-			// }
-			if cpu.doInterrupt {
+			if cpu.log != nil {
+				cpu.log.AppendLastOP(cpu.fetched.disassemble())
+			}
+			if cpu.doInterrupt || cpu.doNMInterrupt {
 				cpu.execInterrupt()
 			} else {
 				cpu.newInstruction()
@@ -373,7 +381,7 @@ func (cpu *z80) Tick() {
 func (cpu *z80) newInstruction() {
 	cpu.prepareForNewInstruction()
 	cpu.doTraps()
-	cpu.scheduler.append(newFetch(cpu.lookup))
+	cpu.scheduler.append(cpu.newFetch(cpu.lookup))
 }
 
 func (cpu *z80) doTraps() {

@@ -12,7 +12,7 @@ type Dumpable interface {
 type Bus interface {
 	Write(addr uint16, data uint8)
 	Read(addr uint16) uint8
-	RegisterPort(name string, mask PortMask, manager PortManager)
+	RegisterPort(name string, mask PortMask, manager PortManager, trace ...bool)
 	DumpMap() string
 	GetDumplables() map[string]Dumpable
 }
@@ -75,7 +75,12 @@ func (bus *bus) Read(addr uint16) uint8 {
 	}
 }
 
-func (bus *bus) RegisterPort(name string, mask PortMask, manager PortManager) {
+func (bus *bus) RegisterPort(name string, mask PortMask, manager PortManager, trace ...bool) {
+	if len(trace) != 0 {
+		if trace[0] {
+			manager = &traceManager{manager}
+		}
+	}
 	bus.ports = append(bus.ports, &busEntry{name, mask, manager})
 }
 
@@ -198,6 +203,23 @@ func (rom *rom) Memory() []byte {
 
 //-----------------------------------------------
 
+type traceManager struct {
+	man PortManager
+}
+
+func (tm *traceManager) ReadPort(port uint16) byte {
+	data := tm.man.ReadPort(port)
+	fmt.Printf("[ReadPort] -> port:0x%04X data:0x%02X \n", port, data)
+	return data
+}
+
+func (tm *traceManager) WritePort(port uint16, data byte) {
+	fmt.Printf("[WritePort]-> port:0x%04X data:0x%02X \n", port, data)
+	tm.man.WritePort(port, data)
+}
+
+//-----------------------------------------------
+
 type watchableBus struct {
 	bus Bus
 	// wps []uint16
@@ -244,7 +266,7 @@ func (bus *watchableBus) Read(addr uint16) uint8 {
 	return bus.bus.Read(addr)
 }
 
-func (bus *watchableBus) RegisterPort(name string, mask PortMask, manager PortManager) {
+func (bus *watchableBus) RegisterPort(name string, mask PortMask, manager PortManager, trace ...bool) {
 	bus.bus.RegisterPort(name, mask, manager)
 }
 

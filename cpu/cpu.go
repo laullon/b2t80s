@@ -1,13 +1,10 @@
 package cpu
 
 type CPU interface {
-	NMI(bool)
 	Halt()
 	Wait(bool)
 	Reset()
 	Tick()
-
-	CurrentOP() string
 
 	SetTracer(CPUTracer)
 	SetDebugger(DebuggerCallbacks)
